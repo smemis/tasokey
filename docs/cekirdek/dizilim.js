@@ -9,7 +9,7 @@ const SAYI_ARALIGI = EN_YUKSEK_SAYI - EN_DUSUK_SAYI + 1;
 
 // n uzunluğunda, ardışık sayı pencereleri üretir. `onUcBirGecisiPerSayilir` açıksa
 // 13 → 1 dönüşlü (dairesel) pencereler de üretilir; kapalıysa yalnız 1..13 düz pencereler.
-function ardisikPencereUret(n, onUcBirGecisiPerSayilir) {
+export function ardisikPencereUret(n, onUcBirGecisiPerSayilir) {
   const pencereler = [];
   for (let baslangic = EN_DUSUK_SAYI; baslangic <= EN_YUKSEK_SAYI; baslangic++) {
     const pencere = [];
