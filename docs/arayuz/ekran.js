@@ -9,6 +9,12 @@ import { kolayBotTurOyna } from '../bot/kolay.js';
 import { cevir } from '../dil/cevir.js';
 import { surukleBagla } from './surukle.js';
 import { kayitOku, kayitYaz } from '../kayit/depo.js';
+import { gorselOlustur, gorselleriOnYukle } from './gorseller.js';
+
+// tasokey#15'in ürettiği 17 taş/boşluk SVG'si (masa-zemin.svg ve istaka.svg CSS arka planı
+// olarak kullanılır, bkz. arayuz/stil.css #masa / #rafAlani — burada önceden yüklenmesi gerekmez).
+const TAS_YUZ_DOSYALARI = Array.from({ length: 13 }, (_, i) => `tas-${String(i + 1).padStart(2, '0')}.svg`);
+const GORSEL_DOSYALARI = [...TAS_YUZ_DOSYALARI, 'tas-sahte-okey.svg', 'tas-okey-cerceve.svg', 'tas-arka.svg', 'yuva-bos.svg'];
 
 const INSAN_OYUNCUSU = 0;
 const BOT_GECIKME_MS = 450;
@@ -68,17 +74,16 @@ function tasiYuvayaTasi(tasId, hedefIndex) {
   rafCiz();
 }
 
+function tasYuzDosyasi(tas) {
+  return tas.tur === 'sahteOkey' ? 'tas-sahte-okey.svg' : `tas-${String(tas.sayi).padStart(2, '0')}.svg`;
+}
+
 function tasElemaniOlustur(tas, okeyTasi) {
   const div = document.createElement('div');
   div.className = 'tas';
-  if (tas.tur === 'sahteOkey') {
-    div.classList.add('sahteOkey');
-    div.textContent = '★';
-  } else {
-    div.classList.add(tas.renk);
-    div.textContent = String(tas.sayi);
-  }
-  if (tasOkeyMi(tas, okeyTasi)) div.classList.add('okeyVurgu');
+  if (tas.tur !== 'sahteOkey') div.classList.add(tas.renk);
+  div.appendChild(gorselOlustur(tasYuzDosyasi(tas), 'tas-yuz'));
+  if (tasOkeyMi(tas, okeyTasi)) div.appendChild(gorselOlustur('tas-okey-cerceve.svg', 'tas-cerceve'));
   div.dataset.tasId = tas.id;
   return div;
 }
@@ -86,6 +91,7 @@ function tasElemaniOlustur(tas, okeyTasi) {
 function tersTasElemaniOlustur() {
   const div = document.createElement('div');
   div.className = 'tas-arka';
+  div.appendChild(gorselOlustur('tas-arka.svg'));
   return div;
 }
 
@@ -171,6 +177,8 @@ function rafCiz() {
       if (id === secilenTasId) tasElemani.classList.add('secili');
       tasElemani.addEventListener('click', () => tasiSec(id));
       yuva.appendChild(tasElemani);
+    } else {
+      yuva.appendChild(gorselOlustur('yuva-bos.svg'));
     }
     eleman.raf.appendChild(yuva);
   }
@@ -338,7 +346,8 @@ function tohumuBelirle() {
 async function baslat() {
   elemanlariTopla();
   document.documentElement.style.setProperty('--raf-sutun-sayisi', String(RAF_SUTUN_SAYISI));
-  durumKutu.diller = await dilleriYukle();
+  const [diller] = await Promise.all([dilleriYukle(), gorselleriOnYukle(GORSEL_DOSYALARI)]);
+  durumKutu.diller = diller;
   durumKutu.dilKodu = kayitOku().dilKodu;
   elDurumunuSifirla(tohumuBelirle());
   olaylariBagla();
