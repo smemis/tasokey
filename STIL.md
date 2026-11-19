@@ -12,7 +12,8 @@
 ## 1. Genel görünüş
 Sade, geleneksel bir okey masası hissi: yeşil/koyu keçe tonunda masa zemini, gerçekçi değil ama tanınabilir taş görselleri
 (sayı + renk net okunur biçimde). Kumar/kahvehane çağrışımlı öğelerden (nakit, jeton-para benzetmesi, zar/rulet imgesi)
-kaçınılması önerildi (`PRD.md` §9 Soru 6). Kesin örnek görsel/referans Sahip'ten beklenir — bu taslakta yok.
+kaçınılması **K1'de onaylandı ve bağlayıcı hale geldi** (`PRD.md` §9 Soru 6, karar A; ayrıntı §4). Kesin örnek görsel/referans
+Sahip'ten beklenir — bu taslakta yok; bu kısıt dışındaki görsel beğeni kararları yine Sahip onayı ister.
 
 ## 2. Renk
 | Kullanım | Renk | Not |
@@ -26,8 +27,12 @@ kaçınılması önerildi (`PRD.md` §9 Soru 6). Kesin örnek görsel/referans S
 Uygulanmaz (proje 2B web arayüzü; 3B varlık planı yok).
 
 ## 4. 2B görseller ve ikonlar
+- **Kumar çağrışımı yasağı (bağlayıcı madde, K1 — Sahip, 2026-11-19; `MIMARI.md` ADR-009, `PRD.md` §9 Soru 6 — karar A):**
+  görselde nakit, jeton-para benzetmesi, zar/rulet imgesi ve bahis dili **kullanılmaz**; yalnız geleneksel okey taşı ve
+  masa görseli. Bu bir öneri değil, V sınıfı iş 13'ün şartnamesine giren zorunlu kısıttır; dil dosyasına da bahis/kumar
+  sözcüğü girmez.
 - Taş görseli: sayı (1-13) büyük ve net, renk arka plan ya da taş rengiyle; sahte okey ayrı bir ikonla (ör. yonca/joker simgesi,
-  `ARASTIRMA.md` §2'de geçen geleneksel gösterime yakın).
+  `ARASTIRMA.md` §2'de geçen geleneksel gösterime yakın; yukarıdaki kumar çağrışımı yasağına uygun, zar/rulet imgesi değil).
 - Gösterge taşı, atılan taş yığını, oyuncu rafı (14-15 taş) için ayrı görsel durumlar gerekir — ayrıntı Mimar/Varlık ile.
 - İkon seti (çek/at/bitir düğmeleri, dil seçici TR/EN) sade, metinsiz anlaşılır ikon önerisi; her ikon dil anahtarlı etiketle desteklenmeli (sabit metin yasak).
 

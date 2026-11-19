@@ -1,17 +1,19 @@
 # GDD: Taş Okey
 
 > GDD, PRD'nin ekidir: "ne" ve "neden" `PRD.md`'de, oyunun ayrıntısı burada. Çelişirse PRD geçerlidir.
-> Bu sürüm **v0** (Analist taslağı); K1 sonrası Mimar tamamlar.
+> Bu sürüm **v1**: K1'in (Sahip, 2026-11-19) dört kural kararı işlendi (`MIMARI.md` ADR-008); `MIMARI.md` ile çelişen
+> kural ifadesi yok.
 
 | Alan | Değer |
 |---|---|
 | Proje | `tasokey` |
-| GDD sürümü | `0` (taslak) |
-| Bağlı PRD sürümü | `1` (taslak) |
+| GDD sürümü | `1` (K1 onaylı) |
+| Bağlı PRD sürümü | `1` (K1 onaylı) |
 
 ## 1. Kurallar
 > Her kural bir PRD gereksinimine bağlanır. Kaynaklar arası fark `ARASTIRMA.md` §2'de; emin olunmayan satır "doğrulanmadı".
-> Kural seti varsayımı: **Klasik Okey** (`PRD.md` §9 Soru 1'in önerilen seçeneği — K1'de değişebilir).
+> Kural seti: **Klasik Okey** (`PRD.md` §9 Soru 1, K1 onaylı). Kural 6, 10-12 K1'in (Sahip, 2026-11-19) dört kural kararını
+> işler (`MIMARI.md` ADR-008); bu dört madde `cekirdek/kural.js` içinde tek nesnede ayar olarak durur.
 
 | # | Kural | Gereksinim | Kaynak | Durum |
 |---|---|---|---|---|
@@ -20,11 +22,13 @@
 | 3 | Gösterge: karma sonrası açılan bir taş; okey taşı göstergeyle aynı renkte bir üst sayıdır (13 → 1 döner) | R-002 | `ARASTIRMA.md` §2.3 | doğrulandı |
 | 4 | Sahte okey, o elin okey taşının yerine geçer; her yerde (per, çift) okey gibi kullanılır | R-002 | `ARASTIRMA.md` §2.4 | doğrulandı |
 | 5 | Tur: oyuncu yerden ya da son atılan taştan 1 taş çeker, elinden 1 taş atar; sıradaki oyuncuya geçer | R-003 | `ARASTIRMA.md` §2.5 | doğrulandı |
-| 6 | Per: aynı renkte ardışık en az 3 sayı (12-13-1 geçişi kurala göre tartışmalı — doğrulanmadı) | R-004 | `ARASTIRMA.md` §2.6 | doğrulanmadı (12-13-1 per geçerliliği kaynaklar arasında net değil) |
+| 6 | Per: aynı renkte ardışık en az 3 sayı; **`12-13-1` geçişi per DEĞİLDİR** (per 1→13 düz sıradır, tur yapmaz) | R-004 | `MIMARI.md` ADR-008/1 (K1 kararı) | doğrulandı (K1, 2026-11-19) |
 | 7 | Çift: aynı sayı, 2 farklı renk | R-004 | `ARASTIRMA.md` §2.6 | doğrulandı |
 | 8 | Klasik Okey'de per/çift masaya yalnız el biterken (son taşı atarken) açılır; ara aşamada masaya taş konmaz | R-005 | `ARASTIRMA.md` §2.7 | doğrulandı |
 | 9 | Gösterge taşı kendisi çift sayılamaz | R-004 | `ARASTIRMA.md` §2, satır 9 | doğrulandı |
-| 10 | Okey (joker) taşının atılması kurala aykırıdır; atılırsa ceza puanı uygulanır (kesin çarpan/puan doğrulanmadı) | R-007 | `ARASTIRMA.md` §2, satır 10-11 | doğrulanmadı — K1'de teyit (`PRD.md` §9 Soru 4) |
+| 10 | Okey (joker) ve sahte okey taşının atılması **yasaktır**; motor bu hamleyi baştan engeller. Ceza puanı yoktur — tek elde ceza tablosunun yeri yok | R-003, R-007 | `MIMARI.md` ADR-008/2 (K1 kararı) | doğrulandı (K1, 2026-11-19) |
+| 11 | Gösterge taşı sahte okey çıkarsa taş desteye karışır ve gösterge yeniden açılır (yeni gösterge, yeni okey taşı belirler) | R-002 | `MIMARI.md` ADR-008/3 (K1 kararı) | doğrulandı (K1, 2026-11-19) |
+| 12 | Yerdeki (desteki) taşlar kimse elini bitirmeden tükenirse el **berabere** sayılır ve yeni el başlar | R-006, R-007 | `MIMARI.md` ADR-008/4 (K1 kararı) | doğrulandı (K1, 2026-11-19) |
 
 ### Kural farkları tablosu (varsa)
 | Konu | Seçenek A (Klasik) | Seçenek B (101 Okey) | Öneri |
@@ -71,8 +75,11 @@ değildir.
 | M3 cila | Son deneme: 3 ekran oranında arayüz kanıtı, ceza/puan tablosu Sahip ile teyitli; K5, Sahip |
 
 ## 6. Açık sorular
-| # | Soru | Seçenekler (önerilen ilk sırada) |
-|---|---|---|
-| 1 | 12-13-1 geçişi (sayı sırasının "tur" yapıp yapmaması) per olarak geçerli mi? | A) Geçersiz — çoğu kaynakta per ardışık sayılar 1'den 13'e düz sıradır, tur yapma belirtilmemiş **(önerilen)** · B) Geçerli — bazı yerel kurallarda tur yapabiliyor olabilir (doğrulanmadı) |
-| 2 | Okey atma cezası kesin puan/çarpanı ne olacak? | A) `PRD.md` §9 Soru 4 ile birlikte M2'de Sahip'in bildiği yerel kuralla sabitlensin **(önerilen)** · B) `101buddy.com` tablosu (101/202/404/808) birebir uygulansın |
-| 3 | Bot zorluk kademesi sayısı M1'de kaç olacak? | A) 1 kademe, M2/M3'te artırılsın **(önerilen)** · B) M1'den itibaren 3 kademe (kolay/orta/zor) |
+
+Soru 1 ve 2 K1'de kapandı (Sahip, 2026-11-19 — bkz. §1 kural 6 ve 10). Soru 3 açık kalıyor; M1 planında Mimar/Geliştirici kararı.
+
+| # | Soru | Seçenekler (önerilen ilk sırada) | Durum |
+|---|---|---|---|
+| 1 | 12-13-1 geçişi (sayı sırasının "tur" yapıp yapmaması) per olarak geçerli mi? | A) Geçersiz — çoğu kaynakta per ardışık sayılar 1'den 13'e düz sıradır, tur yapma belirtilmemiş **(önerilen)** · B) Geçerli — bazı yerel kurallarda tur yapabiliyor olabilir (doğrulanmadı) | **kapandı — A** (K1, §1 kural 6) |
+| 2 | Okey atma cezası kesin puan/çarpanı ne olacak? | A) `PRD.md` §9 Soru 4 ile birlikte M2'de Sahip'in bildiği yerel kuralla sabitlensin **(önerilen)** · B) `101buddy.com` tablosu (101/202/404/808) birebir uygulansın | **kapandı — değişti**: okey/sahte okey atmak baştan yasak (motor engelliyor), ceza puanı/tablosu yok (K1, §1 kural 10) |
+| 3 | Bot zorluk kademesi sayısı M1'de kaç olacak? | A) 1 kademe, M2/M3'te artırılsın **(önerilen)** · B) M1'den itibaren 3 kademe (kolay/orta/zor) | açık — K1 kapsamında değildi |
