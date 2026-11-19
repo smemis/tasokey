@@ -1,21 +1,21 @@
 # PRD: Taş Okey
 
 > Şablon kaynağı: `ofis-sistem-rehberi.md` Bölüm 6, 5.5, 14A. PRD projenin tek ve yaşayan "ürün gerçeği"dir.
-> Taslağı Analist yazdı; Mimar uygulanabilirliğe bakacak, Sahip K1'de onaylayacak. **Bu bir taslaktır, onay değildir.**
+> Taslağı Analist yazdı; Mimar uygulanabilirliğe baktı (`MIMARI.md`), Sahip K1'de onayladı. **PRD v1 onaylandı.**
 
 | Alan | Değer |
 |---|---|
 | Proje (kısa ad) | `tasokey` |
-| Proje türü / profil | `oyun-web` (not: kit'te henüz ayrı bir "web oyunu" profili yok — `ofis-sistem-rehberi.md` D-26, `kit\profiller\web-uygulamasi.md` §"Yakın türler". Profil Mimar tarafından yazılacak) |
-| PRD sürümü | `1` (taslak; K1 onayından sonra kesinleşir) |
-| Durum | `K1 bekliyor` |
-| Son onay | — |
-| Ek belgeler | `ARASTIRMA.md`, `GDD.md` (v0), `STIL.md` (taslak) |
+| Proje türü / profil | `oyun-web` (not: kit'te henüz ayrı bir "web oyunu" profili yok — `ofis-sistem-rehberi.md` D-26, `kit\profiller\web-uygulamasi.md` §"Yakın türler". Taslak profil: `profil-oyun-web-taslak.md`, kit'e girmesi ayrı Sahip onayı ister) |
+| PRD sürümü | `1` (**K1 onaylı**) |
+| Durum | `onaylandı` |
+| Son onay | Sahip, 2026-11-19 (K1, toplu onay — §9'daki bütün sorularda önerilen seçenek) |
+| Ek belgeler | `ARASTIRMA.md`, `MIMARI.md` (v1, K1 onaylı), `GDD.md` (v1, K1 onaylı), `STIL.md` (taslak, görsel onayı Sahip'te) |
 
 ## 1. Ne yapıyoruz?
 Tarayıcıda oynanan, klasik Türk taş oyunu Okey'i ("Taş Okey") temel alan bir web oyunu. Oyuncu kurallara uygun bir Okey eli
-oynar: taş çeker, atar, per/çift dizer, elini bitirir. Bu PRD'nin kapsamı ilk sürümün (M1-M3) iskeletidir; kural seti ve oyun
-modu (bota karşı mı, gerçek rakiplerle mi) §9'daki açık sorulara bağlıdır.
+oynar: taş çeker, atar, per/çift dizer, elini bitirir. Bu PRD'nin kapsamı ilk sürümün (M1-M3) iskeletidir; kural seti **Klasik
+Okey** ve oyun modu **yalnız bota karşı** olarak K1'de kesinleşti (§9).
 
 ## 2. Kimin için?
 Türkçe konuşan, Okey oyununu bilen ya da öğrenmek isteyen yetişkin kullanıcılar. Okey kültürel olarak genellikle yetişkin/orta
@@ -32,9 +32,9 @@ Türkiye'nin kumar yasağına baştan uyumlu (gerçek para yok) sade bir Okey de
 |---|---|
 | Platformlar | Web tarayıcı (masaüstü + mobil tarayıcı); hangi tarayıcı/sürüm aralığı Mimar'ın işi |
 | Ekran yönü | Duyarlı (responsive); mobilde dikey öncelikli olması önerilir (kesin karar Mimar/STIL) |
-| Çevrim içi / çevrim dışı | M1: çevrimdışı/yerel (bota karşı) — bkz. §9 Soru 2 için onay bekliyor |
+| Çevrim içi / çevrim dışı | M1: çevrimdışı/yerel, yalnız bota karşı — K1 onaylı (§9 Soru 2) |
 | Diller | TR + EN (KraftDcm varsayılanı); sabit metin yok, dil anahtarından okunur |
-| Kural seti | Klasik Okey önerisi; ayrıntı `GDD.md` §1 — bkz. §9 Soru 1 |
+| Kural seti | Klasik Okey — K1 onaylı (§9 Soru 1); ayrıntı `GDD.md` §1 |
 
 ## 5. Gereksinimler
 
@@ -92,25 +92,28 @@ Kilometre taşları: **M1** çekirdek (kurallar, testler; bota karşı tek el) �
 | İzinler | Yok (web oyunu; konum, bildirim, kamera gibi tarayıcı izni istenmeyecek) |
 | Üçüncü taraf SDK | Yok (M1) |
 | Yasal gereklilikler (türe göre) | TR kumar yasağına uyum (gerçek para yok, sabit karar) · gizlilik/kullanım şartları sayfası gerekip gerekmediği veri toplama kapsamına göre netleşecek (doğrulanmadı — KVKK açısından veri toplanmıyorsa asgari metin yeterli olabilir, kesin karar değil) |
-| Site adresi kalıbı | `kraftdcm.github.io/tasokey/` (KraftDcm standardı); oyunun bu adreste barındırılıp barındırılmayacağı (statik mi, sunucu mu) Mimar kararı — bkz. §9 Soru 5 |
+| Site adresi kalıbı | `https://kraftdcm.github.io/tasokey/` — K1 onaylı (§9 Soru 5, `MIMARI.md` ADR-005); kendi deposu (`kraftdcm/tasokey`) `docs/` klasöründen statik yayın |
 
-## 9. Açık sorular (K1'de sorulacak)
+## 9. Açık sorular — K1'de kapatıldı (2026-11-19, Sahip, toplu onay: her soruda önerilen seçenek)
 
-| # | Soru | Seçenekler (önerilen ilk sırada) |
-|---|---|---|
-| 1 | Hangi kural seti uygulanacak? | A) Klasik Okey — per/çift yalnız el biterken açılır, tek el biter oyun biter **(önerilen)** — isim ve sadelik açısından "Taş Okey"e daha yakın, kural motoru daha basit · B) 101 Okey — çoklu el, kümülatif skor, önceden açma kuralı — daha popüler ama daha karmaşık · C) İkisi de (mod seçimi) — kapsam büyür, M1'de önerilmez |
-| 2 | M1'de oyun modu ne olacak? | A) Yalnız bota karşı (yerel, sunucusuz) **(önerilen)** — XOX Duel'de de ilk sürüm bota karşı + yerel oldu (`D:\KraftDcm\oyunlar.md`); risk ve kapsam düşük · B) Baştan gerçek zamanlı çok oyunculu (ağ üzerinden insan rakipler) — sunucu/oturum/eşleştirme gerektirir, kapsam ve süre büyür |
-| 3 | Oyuncu sayısı sabit 4 mü olacak? | A) Evet, yalnız 4 kişilik standart Okey **(önerilen)** — en yaygın ve kaynaklarda net tanımlı biçim · B) 2-3 kişilik modlar da eklensin — kural ayrıntısı doğrulanmadı, ek araştırma gerekir |
-| 4 | Ceza/puanlama tablosu hangi kaynağa göre sabitlenecek? | A) `GDD.md`'de önerilen basit tablo (normal bitiş / okey ile bitiş iki kademe) ile başla, Sahip'in bildiği yerel kurallarla M2'de teyit edilsin **(önerilen)** — kaynaklar birbiriyle çelişiyor (`ARASTIRMA.md` §2, satır 10-11) · B) Belirli bir kaynağın (ör. 101buddy.com) tam tablosu birebir uygulansın — tek kaynağa bağlanır, yerel oynanışla farklı olabilir |
-| 5 | Oyun hangi adreste/biçimde barındırılacak? | A) `kraftdcm.github.io/tasokey/` altında statik (sunucusuz) site, M1 bota karşı olduğu için teknik olarak mümkün **(önerilen)** — mevcut KraftDcm web altyapısıyla uyumlu · B) Ayrı domain/sunucu — ileride çok oyunculu eklenirse gerekebilir, şimdiden kurulursa kapsam büyür (nihai teknik karar Mimar'ın) |
-| 6 | Görsel ton: kumar/kahvehane çağrışımı olan öğelerden (nakit, jeton-para benzetmesi, rulet/zar imgesi) kaçınılsın mı? | A) Evet, kaçınılsın; yalnız geleneksel okey taşı ve masa görseli kullanılsın **(önerilen)** — yasal risk ve marka algısı açısından güvenli taraf (`ARASTIRMA.md` §4) · B) Kısıtlama yok |
+> Bütün sorular kapandı; açık soru kalmadı. Karar sütunu seçilen seçeneği gösterir; ayrıntı `MIMARI.md` ADR-005/ADR-008/ADR-009'da.
+
+| # | Soru | Seçenekler (önerilen ilk sırada) | Karar |
+|---|---|---|---|
+| 1 | Hangi kural seti uygulanacak? | A) Klasik Okey — per/çift yalnız el biterken açılır, tek el biter oyun biter **(önerilen)** — isim ve sadelik açısından "Taş Okey"e daha yakın, kural motoru daha basit · B) 101 Okey — çoklu el, kümülatif skor, önceden açma kuralı — daha popüler ama daha karmaşık · C) İkisi de (mod seçimi) — kapsam büyür, M1'de önerilmez | **A — Klasik Okey** |
+| 2 | M1'de oyun modu ne olacak? | A) Yalnız bota karşı (yerel, sunucusuz) **(önerilen)** — XOX Duel'de de ilk sürüm bota karşı + yerel oldu (`D:\KraftDcm\oyunlar.md`); risk ve kapsam düşük · B) Baştan gerçek zamanlı çok oyunculu (ağ üzerinden insan rakipler) — sunucu/oturum/eşleştirme gerektirir, kapsam ve süre büyür | **A — yalnız bota karşı** |
+| 3 | Oyuncu sayısı sabit 4 mü olacak? | A) Evet, yalnız 4 kişilik standart Okey **(önerilen)** — en yaygın ve kaynaklarda net tanımlı biçim · B) 2-3 kişilik modlar da eklensin — kural ayrıntısı doğrulanmadı, ek araştırma gerekir | **A — sabit 4 kişi** |
+| 4 | Ceza/puanlama tablosu hangi kaynağa göre sabitlenecek? | A) `GDD.md`'de önerilen basit tablo (normal bitiş / okey ile bitiş iki kademe) ile başla, Sahip'in bildiği yerel kurallarla M2'de teyit edilsin **(önerilen)** — kaynaklar birbiriyle çelişiyor (`ARASTIRMA.md` §2, satır 10-11) · B) Belirli bir kaynağın (ör. 101buddy.com) tam tablosu birebir uygulansın — tek kaynağa bağlanır, yerel oynanışla farklı olabilir | **A, değişti** — okey/sahte okey atmak motor tarafından baştan engellenir (`MIMARI.md` ADR-008/2), bu yüzden ceza puanı tablosu gerekmiyor; bkz. `GDD.md` §1 kural 10 |
+| 5 | Oyun hangi adreste/biçimde barındırılacak? | A) `kraftdcm.github.io/tasokey/` altında statik (sunucusuz) site, M1 bota karşı olduğu için teknik olarak mümkün **(önerilen)** — mevcut KraftDcm web altyapısıyla uyumlu · B) Ayrı domain/sunucu — ileride çok oyunculu eklenirse gerekebilir, şimdiden kurulursa kapsam büyür (nihai teknik karar Mimar'ın) | **A — `kraftdcm/tasokey` deposu, `docs/`'tan GitHub Pages** |
+| 6 | Görsel ton: kumar/kahvehane çağrışımı olan öğelerden (nakit, jeton-para benzetmesi, rulet/zar imgesi) kaçınılsın mı? | A) Evet, kaçınılsın; yalnız geleneksel okey taşı ve masa görseli kullanılsın **(önerilen)** — yasal risk ve marka algısı açısından güvenli taraf (`ARASTIRMA.md` §4) · B) Kısıtlama yok | **A — kaçınılsın** (bağlayıcı, `STIL.md` §4) |
 
 Emin olunmayan kural ya da bilgi satırları "doğrulanmadı" diye işaretlenir; bu PRD'de işaretli satırlar `ARASTIRMA.md` §2 ve §4'te
-listelidir (ceza puanlama kesinliği, KVKK kapsamı, 2-3 kişilik mod).
+listelidir (KVKK kapsamı, 2-3 kişilik mod). Ceza puanlama kesinliği sorusu yukarıda kapandı (Soru 4).
 
 ## 10. Değişiklik geçmişi (PRD farkları)
 Kapsamı değiştiren her istek önce bir **PRD farkı** olur ve Sahip'e sorulur; onaylanınca sürüm artar.
 
 | Sürüm | Tarih | Fark (eklenen / değişen / çıkan gereksinimler) | İstek (iş no) | Onay |
 |---|---|---|---|---|
-| 1 | 2026-11-19 | İlk sürüm (taslak) | `tasokey#1` | K1 bekliyor |
+| 1 | 2026-11-19 | İlk sürüm (taslak, R-001…R-010) | `tasokey#1` | K1 onaylandı (toplu, 2026-11-19) |
+| 1 | 2026-11-19 | §9'un altı sorusu kapatıldı, "onaylandı" damgası eklendi; gereksinim numaraları (R-001…R-010) değişmedi | `tasokey#2` | K1 onaylandı (toplu, 2026-11-19) |
