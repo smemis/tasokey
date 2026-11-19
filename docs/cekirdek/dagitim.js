@@ -1,6 +1,7 @@
-// Dağıtım, yer destesi ve gösterge açma (MIMARI.md §3 `cekirdek/dagitim.js`; GDD.md §1 kural 2, 3, 11; R-001, R-002).
+// Dağıtım, yer destesi, gösterge açma ve o elin okey taşını belirleme
+// (MIMARI.md §3 `cekirdek/dagitim.js`; GDD.md §1 kural 2, 3, 4, 11; R-001, R-002).
 
-import { setOlustur, TAS_TURU } from './tas.js';
+import { setOlustur, TAS_TURU, EN_DUSUK_SAYI, EN_YUKSEK_SAYI } from './tas.js';
 import { karistir } from './karma.js';
 import { KURAL_VARSAYILAN } from './kural.js';
 
@@ -19,6 +20,18 @@ export function gostergeAc(destesi, kural = KURAL_VARSAYILAN) {
   return { gosterge, kalanDeste: kalan };
 }
 
+// GDD.md §1 kural 3: okey taşı, göstergeyle aynı renkte bir üst sayıdır (13 → 1 döner).
+export function okeyTasiBelirle(gosterge) {
+  const sonrakiSayi = gosterge.sayi === EN_YUKSEK_SAYI ? EN_DUSUK_SAYI : gosterge.sayi + 1;
+  return { renk: gosterge.renk, sayi: sonrakiSayi };
+}
+
+// GDD.md §1 kural 4: sahte okey, o elin okey taşının yerine geçer; her yerde okey gibi davranır.
+export function tasOkeyMi(tas, okeyTasi) {
+  if (tas.tur === TAS_TURU.SAHTE_OKEY) return true;
+  return tas.renk === okeyTasi.renk && tas.sayi === okeyTasi.sayi;
+}
+
 // GDD.md §1 kural 2: başlayan oyuncu 15, diğer üçü 14 taş alır; kalanı yer destesidir.
 export function dagit(tohum, kural = KURAL_VARSAYILAN) {
   const havuz = karistir(setOlustur(), tohum);
@@ -28,5 +41,5 @@ export function dagit(tohum, kural = KURAL_VARSAYILAN) {
     eller.push(havuz.splice(0, boyut));
   }
   const { gosterge, kalanDeste } = gostergeAc(havuz, kural);
-  return { eller, yerDestesi: kalanDeste, gosterge };
+  return { eller, yerDestesi: kalanDeste, gosterge, okeyTasi: okeyTasiBelirle(gosterge) };
 }
