@@ -1,0 +1,23 @@
+{
+  "baslik": "Taş Okey",
+  "yerDestesi": "Yer destesi",
+  "atilanYigin": "Atılan",
+  "rafim": "Rafım",
+  "atButonu": "At",
+  "dilDegistir": "EN",
+  "sira.sen": "Sıra sende — çek ya da at.",
+  "sira.bot": "{0} oynuyor…",
+  "reddedilme.siraDegil": "Sıra sende değil.",
+  "reddedilme.zatenCekildi": "Bu turda zaten çektin, şimdi at.",
+  "reddedilme.henuzCekilmedi": "Önce çekmelisin.",
+  "reddedilme.yerDestesiBos": "Yer destesi boş.",
+  "reddedilme.atilanYok": "Atılan yığında taş yok.",
+  "reddedilme.tasEldeYok": "Bu taş elinde yok.",
+  "reddedilme.okeyAtilamaz": "Okey ve sahte okey atılamaz.",
+  "reddedilme.elBitti": "El bitti.",
+  "sonuc.bitti": "El bitti! Kazanan: {0}",
+  "sonuc.berabere": "Berabere — yer destesi tükendi.",
+  "sonuc.turSiniri": "Tur sınırına ulaşıldı.",
+  "oyuncu.sen": "Sen",
+  "oyuncu.bot": "Bot {0}"
+}
