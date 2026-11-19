@@ -1,51 +1,48 @@
-// Rafta taşları sürükleyerek yeniden dizme — yalnız görsel düzenleme, kural motoruna
-// hiçbir çağrı yapmaz (GDD.md §2 "Dizme/deneme": masaya açma değil). Fare ve dokunma
-// (Pointer Events) ile çalışır (MIMARI.md §3 `arayuz/surukle.js`, DOM katmanı).
+// Rafta taşları sürükleyerek yeniden dizme (yuvadan yuvaya) — yalnız görsel düzenleme, kural
+// motoruna hiçbir çağrı yapmaz (GDD.md §2 "Dizme/deneme": masaya açma değil). Fare ve dokunma
+// (Pointer Events) ile çalışır (MIMARI.md §3 `arayuz/surukle.js`, DOM katmanı; tasokey#13: ıstaka
+// artık 2 sıralı sabit yuvalardan oluşur, taş boş bir yuvaya bırakılırsa eski yuvası boş kalır —
+// oyuncu taşları aralıklı dizebilir).
 
-export function surukleBagla(rafElemani, siraDizisiGetter, uygulaCallback) {
-  let suruklenenIndex = null;
+export function surukleBagla(rafElemani, hedefYuvayaTasiCallback) {
+  let suruklenenTasId = null;
   let suruklenenEleman = null;
-  let baslangicX = 0;
-
-  function hesaplaYeniIndex(x) {
-    const kardesler = Array.from(rafElemani.children).filter((el) => el !== suruklenenEleman);
-    let index = 0;
-    for (const kardes of kardesler) {
-      const dikdortgen = kardes.getBoundingClientRect();
-      const merkezX = dikdortgen.left + dikdortgen.width / 2;
-      if (x > merkezX) index++;
-    }
-    return index;
-  }
+  let baslangicMerkezX = 0;
+  let baslangicMerkezY = 0;
 
   rafElemani.addEventListener('pointerdown', (e) => {
     const hedef = e.target.closest('.tas');
-    if (!hedef || hedef.parentElement !== rafElemani) return;
+    if (!hedef || !rafElemani.contains(hedef)) return;
+    const dikdortgen = hedef.getBoundingClientRect();
     suruklenenEleman = hedef;
-    suruklenenIndex = Array.from(rafElemani.children).indexOf(hedef);
-    baslangicX = e.clientX;
+    suruklenenTasId = hedef.dataset.tasId;
+    baslangicMerkezX = dikdortgen.left + dikdortgen.width / 2;
+    baslangicMerkezY = dikdortgen.top + dikdortgen.height / 2;
     hedef.setPointerCapture(e.pointerId);
     hedef.classList.add('surukleniyor');
   });
 
   rafElemani.addEventListener('pointermove', (e) => {
-    if (suruklenenIndex === null) return;
-    suruklenenEleman.style.transform = `translateX(${e.clientX - baslangicX}px)`;
+    if (!suruklenenEleman) return;
+    const dx = e.clientX - baslangicMerkezX;
+    const dy = e.clientY - baslangicMerkezY;
+    suruklenenEleman.style.transform = `translate(${dx}px, ${dy}px)`;
   });
 
   function birak(e) {
-    if (suruklenenIndex === null) return;
+    if (!suruklenenEleman) return;
     suruklenenEleman.style.transform = '';
     suruklenenEleman.classList.remove('surukleniyor');
 
-    const yeniIndex = hesaplaYeniIndex(e.clientX);
-    if (yeniIndex !== suruklenenIndex) {
-      const siraDizisi = siraDizisiGetter().slice();
-      const [id] = siraDizisi.splice(suruklenenIndex, 1);
-      siraDizisi.splice(yeniIndex, 0, id);
-      uygulaCallback(siraDizisi);
+    // .surukleniyor pointer-events: none bırakır ki elementFromPoint, sürüklenen taşın kendisini
+    // değil altındaki yuvayı/taşı görsün.
+    const noktadakiEleman = document.elementFromPoint(e.clientX, e.clientY);
+    const hedefYuva = noktadakiEleman?.closest('.raf-yuva');
+    if (hedefYuva && rafElemani.contains(hedefYuva)) {
+      hedefYuvayaTasiCallback(suruklenenTasId, Number(hedefYuva.dataset.slotIndex));
     }
-    suruklenenIndex = null;
+
+    suruklenenTasId = null;
     suruklenenEleman = null;
   }
 

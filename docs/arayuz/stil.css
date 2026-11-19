@@ -1,4 +1,7 @@
 /* Masa, raf, atılan yığın görünümü (STIL.md: koyu keçe zemin, 4 oyun rengi, kumar çağrışımı yok). */
+/* Duyarlı düzen (tasokey#13, R-009): bütün boyut/boşluk değerleri burada değişken; kodda sihirli sayı yok.
+   Oyuncunun rafı gerçek ıstaka gibi iki sıra olacak kadar yuvaya sahip (yuva sayısı ve sütun sayısı
+   `arayuz/ekran.js` RAF_SATIR_SAYISI/RAF_SUTUN_SAYISI'nda; --raf-sutun-sayisi buradan okunur). */
 
 :root {
   --renk-kirmizi: #c0392b;
@@ -8,6 +11,18 @@
   --masa-zemin: #0f3d2e;
   --panel: #123a2c;
   --metin: #f2efe6;
+
+  --tas-genislik: 58px;
+  --tas-yukseklik: 82px;
+  --tas-font-boyutu: 1.6rem;
+  --tas-arka-genislik: 36px;
+  --tas-arka-yukseklik: 52px;
+  --raf-yuva-bosluk: 6px;
+  --rakip-raf-bosluk: 4px;
+  --rakip-raf-genislik: 280px;
+  --masa-bosluk: 24px;
+  --masa-dolgu: 16px;
+  --panel-dolgu: 16px;
 }
 
 * { box-sizing: border-box; }
@@ -61,8 +76,8 @@ html, body {
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 24px;
-  padding: 16px;
+  gap: var(--masa-bosluk);
+  padding: var(--masa-dolgu);
 }
 
 .yigin {
@@ -75,8 +90,8 @@ html, body {
 .yigin-baslik { font-size: 0.8rem; opacity: 0.85; }
 
 .yigin-tas-alani {
-  min-width: 68px;
-  min-height: 92px;
+  min-width: var(--tas-genislik);
+  min-height: var(--tas-yukseklik);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -100,15 +115,15 @@ html, body {
 .rakip.aktif { outline: 2px solid #e8c547; }
 
 .tas {
-  width: 58px;
-  height: 82px;
+  width: var(--tas-genislik);
+  height: var(--tas-yukseklik);
   border-radius: 6px;
   background: #ece6d6;
   color: #1a1a1a;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.6rem;
+  font-size: var(--tas-font-boyutu);
   font-weight: 700;
   border: 2px solid #00000022;
   user-select: none;
@@ -136,14 +151,20 @@ html, body {
 }
 
 .tas-arka {
-  width: 36px;
-  height: 52px;
+  width: var(--tas-arka-genislik);
+  height: var(--tas-arka-yukseklik);
   border-radius: 5px;
   background: #3a2c14;
   border: 1px solid #00000055;
 }
 
-.rakip-raf { display: flex; gap: -4px; }
+.rakip-raf {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rakip-raf-bosluk);
+  max-width: var(--rakip-raf-genislik);
+  justify-content: center;
+}
 
 #rafAlani {
   flex: 0 0 auto;
@@ -151,16 +172,27 @@ html, body {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 12px 16px 20px;
+  padding: var(--panel-dolgu);
   background: var(--panel);
 }
 
+/* Oyuncunun ıstakası: sabit sayıda yuva, 2 sıra (RAF_SATIR_SAYISI/RAF_SUTUN_SAYISI — arayuz/ekran.js).
+   Boş yuvalar kalır (içeriksiz div) → taş çekilince en yakın boşa girer, taş atılınca yuva boş kalır:
+   oyuncu taşları ıstakada serbestçe aralıklı dizebilir (tasokey#13 ek bilgi). */
 #raf {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(var(--raf-sutun-sayisi), var(--tas-genislik));
+  grid-auto-rows: var(--tas-yukseklik);
+  gap: var(--raf-yuva-bosluk);
   justify-content: center;
-  min-height: 92px;
+}
+
+.raf-yuva {
+  width: var(--tas-genislik);
+  height: var(--tas-yukseklik);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 #rafAltCubuk {
@@ -181,7 +213,12 @@ html, body {
 
 #atButonu:disabled { opacity: 0.4; cursor: default; }
 
-.tas.surukleniyor { opacity: 0.5; }
+.tas.surukleniyor {
+  opacity: 0.7;
+  position: relative;
+  z-index: 5;
+  pointer-events: none;
+}
 
 #sonucPaneli {
   position: fixed;
@@ -200,6 +237,54 @@ html, body {
   border-radius: 10px;
   text-align: center;
   font-size: 1.2rem;
+}
+
+/* Duyarlı kademeler (tasokey#13, R-009) — sabit 4 ölçüm boyutu: 1920x1080, 1280x800,
+   820x1180 (tablet dikey), 390x844 (mobil dikey). Istaka her kademede 2 sıra kalır; yalnız taş/boşluk
+   ölçüsü küçülür ki sayılar (6/9, 1/7) kesilmeden okunsun. */
+@media (max-width: 1300px) {
+  :root {
+    --tas-genislik: 50px;
+    --tas-yukseklik: 72px;
+    --tas-font-boyutu: 1.35rem;
+    --tas-arka-genislik: 30px;
+    --tas-arka-yukseklik: 44px;
+    --masa-bosluk: 18px;
+    --rakip-raf-genislik: 220px;
+  }
+}
+
+@media (max-width: 900px) {
+  :root {
+    --tas-genislik: 42px;
+    --tas-yukseklik: 60px;
+    --tas-font-boyutu: 1.15rem;
+    --tas-arka-genislik: 24px;
+    --tas-arka-yukseklik: 36px;
+    --raf-yuva-bosluk: 5px;
+    --masa-bosluk: 14px;
+    --masa-dolgu: 10px;
+    --panel-dolgu: 12px;
+    --rakip-raf-genislik: 170px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --tas-genislik: 34px;
+    --tas-yukseklik: 50px;
+    --tas-font-boyutu: 1rem;
+    --tas-arka-genislik: 18px;
+    --tas-arka-yukseklik: 28px;
+    --raf-yuva-bosluk: 4px;
+    --rakip-raf-bosluk: 3px;
+    --masa-bosluk: 8px;
+    --masa-dolgu: 6px;
+    --panel-dolgu: 8px;
+    --rakip-raf-genislik: 140px;
+  }
+  #ustCubuk h1 { font-size: 1rem; }
+  #durumSatiri { font-size: 0.85rem; padding: 4px 10px; }
 }
 
 #sonucKalanTaslar {
