@@ -243,6 +243,17 @@ html, body {
   font-size: 1.2rem;
 }
 
+#yeniElButonu {
+  margin-top: 16px;
+  padding: 8px 20px;
+  font-size: 1rem;
+  border-radius: 6px;
+  border: none;
+  background: #e8c547;
+  color: #1a1a1a;
+  cursor: pointer;
+}
+
 /* Duyarlı kademeler (tasokey#13, R-009) — sabit 4 ölçüm boyutu: 1920x1080, 1280x800,
    820x1180 (tablet dikey), 390x844 (mobil dikey). Istaka her kademede 2 sıra kalır; yalnız taş/boşluk
    ölçüsü küçülür ki sayılar (6/9, 1/7) kesilmeden okunsun. */

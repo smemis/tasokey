@@ -19,6 +19,7 @@
   "sonuc.berabere": "Draw — the pile ran out.",
   "sonuc.turSiniri": "Turn limit reached.",
   "sonuc.kalanTas": "{0}: {1} tiles left",
+  "yeniEl": "New hand",
   "oyuncu.sen": "You",
   "oyuncu.bot": "Bot {0}"
 }
