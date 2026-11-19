@@ -23,6 +23,10 @@
   --masa-bosluk: 24px;
   --masa-dolgu: 16px;
   --panel-dolgu: 16px;
+  --baslik-font-boyutu: 1.1rem;
+  --durum-font-boyutu: 0.95rem;
+  --durum-dolgu-dikey: 6px;
+  --durum-dolgu-yatay: 16px;
 }
 
 * { box-sizing: border-box; }
@@ -50,7 +54,7 @@ html, body {
   flex: 0 0 auto;
 }
 
-#ustCubuk h1 { font-size: 1.1rem; margin: 0; }
+#ustCubuk h1 { font-size: var(--baslik-font-boyutu); margin: 0; }
 
 #dilDugmesi {
   background: transparent;
@@ -62,9 +66,9 @@ html, body {
 }
 
 #durumSatiri {
-  padding: 6px 16px;
+  padding: var(--durum-dolgu-dikey) var(--durum-dolgu-yatay);
   min-height: 1.4em;
-  font-size: 0.95rem;
+  font-size: var(--durum-font-boyutu);
   flex: 0 0 auto;
 }
 
@@ -282,9 +286,11 @@ html, body {
     --masa-dolgu: 6px;
     --panel-dolgu: 8px;
     --rakip-raf-genislik: 140px;
+    --baslik-font-boyutu: 1rem;
+    --durum-font-boyutu: 0.85rem;
+    --durum-dolgu-dikey: 4px;
+    --durum-dolgu-yatay: 10px;
   }
-  #ustCubuk h1 { font-size: 1rem; }
-  #durumSatiri { font-size: 0.85rem; padding: 4px 10px; }
 }
 
 #sonucKalanTaslar {
