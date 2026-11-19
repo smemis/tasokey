@@ -9,6 +9,7 @@ import { join } from 'node:path';
 const DOCS_KOK = join(import.meta.dirname, '..', 'docs');
 const ARAYUZ_DIZINI = join(DOCS_KOK, 'arayuz');
 const DILLER_DIZINI = join(DOCS_KOK, 'diller');
+const INDEX_HTML = join(DOCS_KOK, 'index.html');
 
 // Harf içermeyen DOM metinleri (ikon/glif, sayı) dil anahtarı gerektirmez — görsel sembol,
 // dile göre çevrilmez. Harf içeren her literal gerçek bir metindir ve anahtardan gelmelidir.
@@ -47,6 +48,18 @@ test('arayüz katmanında dil anahtarı dışından gelen sabit metin yok', () =
     }
   }
   assert.equal(tumBulunanlar.length, 0, `sabit metin bulundu:\n${tumBulunanlar.join('\n')}`);
+});
+
+test('docs/index.html <title> etiketi sabit metin taşımıyor (JS tarafında dil anahtarıyla doldurulur)', () => {
+  const icerik = readFileSync(INDEX_HTML, 'utf8');
+  const eslesme = icerik.match(/<title>([^<]*)<\/title>/);
+  assert.ok(eslesme, 'docs/index.html içinde <title> etiketi bulunamadı');
+  const [, baslikIcerigi] = eslesme;
+  assert.equal(
+    HARF_DESENI.test(baslikIcerigi),
+    false,
+    `<title> etiketi sabit metin içeriyor: "${baslikIcerigi}" (document.title JS'te dil anahtarıyla atanmalı)`,
+  );
 });
 
 test('dil dosyaları arasında eksik/karşılıksız anahtar yok', () => {

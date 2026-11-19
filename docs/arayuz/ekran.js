@@ -75,7 +75,9 @@ function sonucMetni() {
 }
 
 function ustCubukCiz() {
-  eleman.baslikMetni.textContent = metinAl('baslik');
+  const baslik = metinAl('baslik');
+  eleman.baslikMetni.textContent = baslik;
+  document.title = baslik;
   eleman.dilDugmesi.textContent = metinAl('dilDegistir');
 }
 
