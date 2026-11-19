@@ -16,15 +16,15 @@ cekirdek/   saf kural motoru (DOM yok, rastgelelik dışarıdan verilir)
 bot/        bot karar vericisi (cekirdek'i kullanır)
 arayuz/     DOM + CSS: masa, raf, sürükleme, dil, kayıt
 diller/     dil anahtarı dosyaları (tr.json, en.json)
-testler/    öz-testler (node --test burayı çalıştırır)
+testler/    öz-testler (npm test burayı çalıştırır)
 docs/       GitHub Pages'ten yayınlanan statik site (ADR-005); oyun dosyaları doğrudan burada durur
 ```
 
 ## Test komutu
 ```
-node --test testler/
+npm test
 ```
-Node'un yerleşik test koşucusu; ek paket kurulumu gerekmez (`MIMARI.md` ADR-004).
+`node --test "testler/**/*.test.js"` çalıştırır; Node'un yerleşik test koşucusu, ek paket kurulumu gerekmez (`MIMARI.md` ADR-004 sürüm 2).
 
 ## Yerel çalıştırma
 ```
