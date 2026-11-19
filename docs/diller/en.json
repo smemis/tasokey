@@ -18,6 +18,7 @@
   "sonuc.bitti": "Hand over! Winner: {0}",
   "sonuc.berabere": "Draw — the pile ran out.",
   "sonuc.turSiniri": "Turn limit reached.",
+  "sonuc.kalanTas": "{0}: {1} tiles left",
   "oyuncu.sen": "You",
   "oyuncu.bot": "Bot {0}"
 }

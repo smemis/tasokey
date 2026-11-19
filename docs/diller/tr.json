@@ -18,6 +18,7 @@
   "sonuc.bitti": "El bitti! Kazanan: {0}",
   "sonuc.berabere": "Berabere — yer destesi tükendi.",
   "sonuc.turSiniri": "Tur sınırına ulaşıldı.",
+  "sonuc.kalanTas": "{0}: {1} taş kaldı",
   "oyuncu.sen": "Sen",
   "oyuncu.bot": "Bot {0}"
 }

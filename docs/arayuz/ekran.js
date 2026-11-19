@@ -4,6 +4,7 @@
 
 import { elBaslat, cek, at, KAYNAK, EL_SONUCU } from '../cekirdek/el.js';
 import { tasOkeyMi } from '../cekirdek/dagitim.js';
+import { elSonucunuHesapla } from '../cekirdek/puan.js';
 import { kolayBotTurOyna } from '../bot/kolay.js';
 import { cevir } from '../dil/cevir.js';
 import { surukleBagla } from './surukle.js';
@@ -147,11 +148,22 @@ function rafCiz() {
   );
 }
 
+function sonucKalanTaslariCiz(sonuc) {
+  eleman.sonucKalanTaslar.innerHTML = '';
+  for (const { oyuncu, sayi } of sonuc.kalanTaslar) {
+    const li = document.createElement('li');
+    li.textContent = metinAl('sonuc.kalanTas', [oyuncuAdi(oyuncu), sayi]);
+    eleman.sonucKalanTaslar.appendChild(li);
+  }
+}
+
 function sonucPaneliCiz() {
   const { durum } = durumKutu;
-  const bittiMi = durum.sonuc !== EL_SONUCU.SUREN;
-  eleman.sonucPaneli.classList.toggle('gorunur', bittiMi);
-  if (bittiMi) eleman.sonucMetni.textContent = sonucMetni();
+  const sonuc = elSonucunuHesapla(durum);
+  eleman.sonucPaneli.classList.toggle('gorunur', sonuc !== null);
+  if (sonuc === null) return;
+  eleman.sonucMetni.textContent = sonucMetni();
+  sonucKalanTaslariCiz(sonuc);
 }
 
 function ciz() {
@@ -239,7 +251,7 @@ function elemanlariTopla() {
     'rakip2', 'rakip2Ad', 'rakip2Raf',
     'rakip3', 'rakip3Ad', 'rakip3Raf',
     'rafBaslik', 'raf', 'atButonu',
-    'sonucPaneli', 'sonucMetni',
+    'sonucPaneli', 'sonucMetni', 'sonucKalanTaslar',
   ];
   for (const id of idler) eleman[id] = document.getElementById(id);
 }
