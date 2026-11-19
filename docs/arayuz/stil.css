@@ -11,10 +11,10 @@
   --masa-zemin: #0f3d2e;
   --panel: #123a2c;
   --metin: #f2efe6;
+  --tas-govde: #ece6d6;
 
   --tas-genislik: 58px;
   --tas-yukseklik: 82px;
-  --tas-font-boyutu: 1.6rem;
   --tas-arka-genislik: 36px;
   --tas-arka-yukseklik: 52px;
   --raf-yuva-bosluk: 6px;
@@ -82,6 +82,8 @@ html, body {
   justify-content: center;
   gap: var(--masa-bosluk);
   padding: var(--masa-dolgu);
+  background-image: url('../gorsel/masa-zemin.svg');
+  background-size: 100% 100%;
 }
 
 .yigin {
@@ -119,20 +121,29 @@ html, body {
 .rakip.aktif { outline: 2px solid #e8c547; }
 
 .tas {
+  position: relative;
   width: var(--tas-genislik);
   height: var(--tas-yukseklik);
-  border-radius: 6px;
-  background: #ece6d6;
   color: #1a1a1a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--tas-font-boyutu);
-  font-weight: 700;
-  border: 2px solid #00000022;
   user-select: none;
   cursor: pointer;
   touch-action: none;
+}
+
+.tas-yuz {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.tas-cerceve {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  color: #e8c547;
+  pointer-events: none;
 }
 
 .tas.kirmizi { color: var(--renk-kirmizi); }
@@ -140,26 +151,17 @@ html, body {
 .tas.mavi { color: var(--renk-mavi); }
 .tas.sari { color: var(--renk-sari); }
 
-.tas.sahteOkey {
-  background: #fff8e0;
-  border-style: dashed;
-}
-
-.tas.okeyVurgu { outline: 3px solid #e8c547; outline-offset: 2px; }
-
 .tas.secili { transform: translateY(-10px); box-shadow: 0 4px 10px #00000055; }
-
-.tas.ters {
-  background: #3a2c14;
-  border-color: #00000055;
-}
 
 .tas-arka {
   width: var(--tas-arka-genislik);
   height: var(--tas-arka-yukseklik);
-  border-radius: 5px;
-  background: #3a2c14;
-  border: 1px solid #00000055;
+}
+
+.tas-arka svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .rakip-raf {
@@ -177,7 +179,8 @@ html, body {
   align-items: center;
   gap: 8px;
   padding: var(--panel-dolgu);
-  background: var(--panel);
+  background-image: url('../gorsel/istaka.svg');
+  background-size: 100% 100%;
 }
 
 /* Oyuncunun ıstakası: sabit sayıda yuva, 2 sıra (RAF_SATIR_SAYISI/RAF_SUTUN_SAYISI — arayuz/ekran.js).
@@ -197,6 +200,13 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.raf-yuva > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0.85;
 }
 
 #rafAltCubuk {
@@ -261,7 +271,6 @@ html, body {
   :root {
     --tas-genislik: 50px;
     --tas-yukseklik: 72px;
-    --tas-font-boyutu: 1.35rem;
     --tas-arka-genislik: 30px;
     --tas-arka-yukseklik: 44px;
     --masa-bosluk: 18px;
@@ -273,7 +282,6 @@ html, body {
   :root {
     --tas-genislik: 42px;
     --tas-yukseklik: 60px;
-    --tas-font-boyutu: 1.15rem;
     --tas-arka-genislik: 24px;
     --tas-arka-yukseklik: 36px;
     --raf-yuva-bosluk: 5px;
@@ -288,7 +296,6 @@ html, body {
   :root {
     --tas-genislik: 34px;
     --tas-yukseklik: 50px;
-    --tas-font-boyutu: 1rem;
     --tas-arka-genislik: 18px;
     --tas-arka-yukseklik: 28px;
     --raf-yuva-bosluk: 4px;
