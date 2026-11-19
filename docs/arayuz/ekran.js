@@ -12,11 +12,18 @@ import { surukleBagla } from './surukle.js';
 const INSAN_OYUNCUSU = 0;
 const BOT_GECIKME_MS = 450;
 
+// Oyuncunun ıstakası gerçek okey ıstakası gibi 2 sıra (tasokey#13 ek bilgi); yuva sayısı en
+// yüksek el boyutundan (15, dagitim.js BASLAYAN_OYUNCU_EL_BOYUTU) fazla tutulur ki oyuncu taşları
+// aralıklı dizerken boş yuva kalsın. Tek kaynak: CSS `--raf-sutun-sayisi` bu sabitten okunur (baslat()).
+const RAF_SATIR_SAYISI = 2;
+const RAF_SUTUN_SAYISI = 9;
+const RAF_SLOT_SAYISI = RAF_SATIR_SAYISI * RAF_SUTUN_SAYISI;
+
 const durumKutu = {
   durum: null,
   diller: {},
   dilKodu: 'tr',
-  rafSirasi: [],
+  rafYerlesimi: [],
   secilenTasId: null,
   mesajAnahtari: null,
   botCalisiyor: false,
@@ -32,13 +39,32 @@ function oyuncuAdi(oyuncu) {
   return oyuncu === INSAN_OYUNCUSU ? metinAl('oyuncu.sen') : metinAl('oyuncu.bot', [oyuncu]);
 }
 
-function rafSirasiniGuncelle(yeniEl) {
+// Yuva içeriğini yeni ele göre günceller: hâlâ elde olan taş kendi yuvasında kalır (oyuncunun
+// dizilimi/aralığı bozulmaz), elden çıkan taşın yuvası boş kalır, yeni çekilen taş ilk boş yuvaya girer.
+function rafYerlesimiGuncelle(yeniEl) {
   const mevcutIdSeti = new Set(yeniEl.map((tas) => tas.id));
-  const korunan = durumKutu.rafSirasi.filter((id) => mevcutIdSeti.has(id));
+  const yerlesim = durumKutu.rafYerlesimi.map((id) => (id !== null && mevcutIdSeti.has(id) ? id : null));
+  const yerlesimdekiIdSeti = new Set(yerlesim.filter((id) => id !== null));
   for (const tas of yeniEl) {
-    if (!korunan.includes(tas.id)) korunan.push(tas.id);
+    if (yerlesimdekiIdSeti.has(tas.id)) continue;
+    const bosIndex = yerlesim.indexOf(null);
+    if (bosIndex === -1) yerlesim.push(tas.id);
+    else yerlesim[bosIndex] = tas.id;
   }
-  durumKutu.rafSirasi = korunan;
+  durumKutu.rafYerlesimi = yerlesim;
+}
+
+// Sürükleyip bırakmayla bir taşı hedef yuvaya koyar: hedef boşsa taş oraya geçer ve eski yuvası
+// boş kalır (oyuncu taşları aralıklı dizebilir); hedef doluysa iki taş yer değiştirir.
+function tasiYuvayaTasi(tasId, hedefIndex) {
+  const yerlesim = durumKutu.rafYerlesimi.slice();
+  const kaynakIndex = yerlesim.indexOf(tasId);
+  if (kaynakIndex === -1 || kaynakIndex === hedefIndex || hedefIndex < 0 || hedefIndex >= yerlesim.length) return;
+  const hedefIcerik = yerlesim[hedefIndex];
+  yerlesim[hedefIndex] = tasId;
+  yerlesim[kaynakIndex] = hedefIcerik;
+  durumKutu.rafYerlesimi = yerlesim;
+  rafCiz();
 }
 
 function tasElemaniOlustur(tas, okeyTasi) {
@@ -129,17 +155,23 @@ function tasiSec(id) {
 }
 
 function rafCiz() {
-  const { durum, rafSirasi, secilenTasId } = durumKutu;
+  const { durum, rafYerlesimi, secilenTasId } = durumKutu;
   eleman.rafBaslik.textContent = metinAl('rafim');
   const elMap = new Map(durum.eller[INSAN_OYUNCUSU].map((tas) => [tas.id, tas]));
   eleman.raf.innerHTML = '';
-  for (const id of rafSirasi) {
-    const tas = elMap.get(id);
-    if (!tas) continue;
-    const tasElemani = tasElemaniOlustur(tas, durum.okeyTasi);
-    if (id === secilenTasId) tasElemani.classList.add('secili');
-    tasElemani.addEventListener('click', () => tasiSec(id));
-    eleman.raf.appendChild(tasElemani);
+  for (let index = 0; index < rafYerlesimi.length; index++) {
+    const yuva = document.createElement('div');
+    yuva.className = 'raf-yuva';
+    yuva.dataset.slotIndex = String(index);
+    const id = rafYerlesimi[index];
+    const tas = id !== null ? elMap.get(id) : null;
+    if (tas) {
+      const tasElemani = tasElemaniOlustur(tas, durum.okeyTasi);
+      if (id === secilenTasId) tasElemani.classList.add('secili');
+      tasElemani.addEventListener('click', () => tasiSec(id));
+      yuva.appendChild(tasElemani);
+    }
+    eleman.raf.appendChild(yuva);
   }
   eleman.atButonu.textContent = metinAl('atButonu');
   eleman.atButonu.disabled = !(
@@ -183,7 +215,7 @@ function cekSonucunuIsle(sonuc) {
     return;
   }
   durumKutu.durum = sonuc.durum;
-  rafSirasiniGuncelle(sonuc.durum.eller[INSAN_OYUNCUSU]);
+  rafYerlesimiGuncelle(sonuc.durum.eller[INSAN_OYUNCUSU]);
   mesajGoster(null);
   ciz();
 }
@@ -199,7 +231,7 @@ function ataBas() {
   }
   durumKutu.durum = sonuc.durum;
   durumKutu.secilenTasId = null;
-  rafSirasiniGuncelle(sonuc.durum.eller[INSAN_OYUNCUSU]);
+  rafYerlesimiGuncelle(sonuc.durum.eller[INSAN_OYUNCUSU]);
   mesajGoster(null);
   ciz();
   botSirasiniBaslat();
@@ -263,10 +295,7 @@ function olaylariBagla() {
   eleman.atilanYigin.addEventListener('click', atilandanCek);
   eleman.atButonu.addEventListener('click', ataBas);
   eleman.dilDugmesi.addEventListener('click', dilDegistir);
-  surukleBagla(eleman.raf, () => durumKutu.rafSirasi, (yeniDizi) => {
-    durumKutu.rafSirasi = yeniDizi;
-    rafCiz();
-  });
+  surukleBagla(eleman.raf, tasiYuvayaTasi);
 }
 
 async function dilleriYukle() {
@@ -285,9 +314,13 @@ function tohumuBelirle() {
 
 async function baslat() {
   elemanlariTopla();
+  document.documentElement.style.setProperty('--raf-sutun-sayisi', String(RAF_SUTUN_SAYISI));
   durumKutu.diller = await dilleriYukle();
   durumKutu.durum = elBaslat(tohumuBelirle());
-  durumKutu.rafSirasi = durumKutu.durum.eller[INSAN_OYUNCUSU].map((tas) => tas.id);
+  durumKutu.rafYerlesimi = new Array(RAF_SLOT_SAYISI).fill(null);
+  durumKutu.durum.eller[INSAN_OYUNCUSU].forEach((tas, index) => {
+    durumKutu.rafYerlesimi[index] = tas.id;
+  });
   olaylariBagla();
   ciz();
 }
