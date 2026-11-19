@@ -8,6 +8,7 @@ import { elSonucunuHesapla } from '../cekirdek/puan.js';
 import { kolayBotTurOyna } from '../bot/kolay.js';
 import { cevir } from '../dil/cevir.js';
 import { surukleBagla } from './surukle.js';
+import { kayitOku, kayitYaz } from '../kayit/depo.js';
 
 const INSAN_OYUNCUSU = 0;
 const BOT_GECIKME_MS = 450;
@@ -198,6 +199,7 @@ function sonucPaneliCiz() {
   if (sonuc === null) return;
   eleman.sonucMetni.textContent = sonucMetni();
   sonucKalanTaslariCiz(sonuc);
+  eleman.yeniElButonu.textContent = metinAl('yeniEl');
 }
 
 function ciz() {
@@ -273,6 +275,26 @@ function atilandanCek() {
 
 function dilDegistir() {
   durumKutu.dilKodu = durumKutu.dilKodu === 'tr' ? 'en' : 'tr';
+  kayitYaz({ dilKodu: durumKutu.dilKodu });
+  ciz();
+}
+
+// R-010: oyuncu bir eli yeniden başlatabilir. Yeni el yeni bir gösterge/okey taşı belirler
+// (dagitim.js `dagit` her çağrıda yeniden karar, elBaslat çağrısından gelir); dil/kayıt tercihi
+// (durumKutu.dilKodu) bu sıfırlamadan etkilenmez.
+function elDurumunuSifirla(tohum) {
+  durumKutu.durum = elBaslat(tohum);
+  durumKutu.rafYerlesimi = new Array(RAF_SLOT_SAYISI).fill(null);
+  durumKutu.durum.eller[INSAN_OYUNCUSU].forEach((tas, index) => {
+    durumKutu.rafYerlesimi[index] = tas.id;
+  });
+  durumKutu.secilenTasId = null;
+  durumKutu.mesajAnahtari = null;
+  durumKutu.botCalisiyor = false;
+}
+
+function yeniElBaslat() {
+  elDurumunuSifirla(tohumuBelirle());
   ciz();
 }
 
@@ -285,7 +307,7 @@ function elemanlariTopla() {
     'rakip2', 'rakip2Ad', 'rakip2Raf',
     'rakip3', 'rakip3Ad', 'rakip3Raf',
     'rafBaslik', 'raf', 'atButonu',
-    'sonucPaneli', 'sonucMetni', 'sonucKalanTaslar',
+    'sonucPaneli', 'sonucMetni', 'sonucKalanTaslar', 'yeniElButonu',
   ];
   for (const id of idler) eleman[id] = document.getElementById(id);
 }
@@ -295,6 +317,7 @@ function olaylariBagla() {
   eleman.atilanYigin.addEventListener('click', atilandanCek);
   eleman.atButonu.addEventListener('click', ataBas);
   eleman.dilDugmesi.addEventListener('click', dilDegistir);
+  eleman.yeniElButonu.addEventListener('click', yeniElBaslat);
   surukleBagla(eleman.raf, tasiYuvayaTasi);
 }
 
@@ -316,11 +339,8 @@ async function baslat() {
   elemanlariTopla();
   document.documentElement.style.setProperty('--raf-sutun-sayisi', String(RAF_SUTUN_SAYISI));
   durumKutu.diller = await dilleriYukle();
-  durumKutu.durum = elBaslat(tohumuBelirle());
-  durumKutu.rafYerlesimi = new Array(RAF_SLOT_SAYISI).fill(null);
-  durumKutu.durum.eller[INSAN_OYUNCUSU].forEach((tas, index) => {
-    durumKutu.rafYerlesimi[index] = tas.id;
-  });
+  durumKutu.dilKodu = kayitOku().dilKodu;
+  elDurumunuSifirla(tohumuBelirle());
   olaylariBagla();
   ciz();
 }
