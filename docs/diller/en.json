@@ -1,0 +1,23 @@
+{
+  "baslik": "Stone Rummikub",
+  "yerDestesi": "Draw pile",
+  "atilanYigin": "Discard",
+  "rafim": "My rack",
+  "atButonu": "Discard",
+  "dilDegistir": "TR",
+  "sira.sen": "Your turn — draw or discard.",
+  "sira.bot": "{0} is playing…",
+  "reddedilme.siraDegil": "It's not your turn.",
+  "reddedilme.zatenCekildi": "You already drew this turn, discard now.",
+  "reddedilme.henuzCekilmedi": "Draw a tile first.",
+  "reddedilme.yerDestesiBos": "The draw pile is empty.",
+  "reddedilme.atilanYok": "The discard pile is empty.",
+  "reddedilme.tasEldeYok": "That tile is not in your hand.",
+  "reddedilme.okeyAtilamaz": "The joker and fake joker cannot be discarded.",
+  "reddedilme.elBitti": "The hand is over.",
+  "sonuc.bitti": "Hand over! Winner: {0}",
+  "sonuc.berabere": "Draw — the pile ran out.",
+  "sonuc.turSiniri": "Turn limit reached.",
+  "oyuncu.sen": "You",
+  "oyuncu.bot": "Bot {0}"
+}
