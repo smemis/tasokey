@@ -207,6 +207,24 @@ test('yer destesi tükenmişken yapılan atışla (kimse bitirmediyse) el BERABE
   assert.equal(sonuc.durum.kazanan, null);
 });
 
+test('kural kapalıyken (desteTukenirseElBerabereSayilir: false) deste tükense de el berabere olmaz, sıra ilerler', () => {
+  const atilacakTas = t('kirmizi', 1);
+  const durum = temelDurum({
+    sira: 0,
+    cekildiMi: true,
+    yerDestesi: [],
+    eller: [
+      [atilacakTas, t('siyah', 9)],
+      temelDurum().eller[1], temelDurum().eller[2], temelDurum().eller[3],
+    ],
+  });
+  const sonuc = at(durum, 0, atilacakTas.id, { ...KURAL_VARSAYILAN, desteTukenirseElBerabereSayilir: false });
+  assert.equal(sonuc.basarili, true);
+  assert.equal(sonuc.durum.sonuc, EL_SONUCU.SUREN);
+  assert.equal(sonuc.durum.sira, 1);
+  assert.equal(sonuc.durum.kazanan, null);
+});
+
 test('yer destesinde taş kaldığı sürece el berabere sonlanmaz, sıra ilerler', () => {
   const atilacakTas = t('kirmizi', 1);
   const durum = temelDurum({

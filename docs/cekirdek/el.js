@@ -112,7 +112,7 @@ export function at(durum, oyuncu, tasId, kural = KURAL_VARSAYILAN, maksimumTur =
     return { basarili: true, durum: { ...durum, ...ortakAlanlar, sonuc: EL_SONUCU.TUR_SINIRI } };
   }
 
-  if (durum.yerDestesi.length === 0) {
+  if (kural.desteTukenirseElBerabereSayilir && durum.yerDestesi.length === 0) {
     return { basarili: true, durum: { ...durum, ...ortakAlanlar, sonuc: EL_SONUCU.BERABERE } };
   }
 
