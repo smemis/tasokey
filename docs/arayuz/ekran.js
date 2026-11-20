@@ -4,10 +4,13 @@
 
 import { elBaslat, cek, at, KAYNAK, EL_SONUCU, sonrakiOyuncu, oncekiOyuncu } from '../cekirdek/el.js';
 import { tasOkeyMi } from '../cekirdek/dagitim.js';
+import { elBitirenTaslar } from '../cekirdek/cozucu.js';
+import { KURAL_VARSAYILAN } from '../cekirdek/kural.js';
 import { elSonucunuHesapla } from '../cekirdek/puan.js';
 import { kolayBotTurOyna } from '../bot/kolay.js';
 import { cevir } from '../dil/cevir.js';
 import { surukleBagla } from './surukle.js';
+import { HEDEF_TURU, EYLEM, eylemKararVer } from './etkilesim.js';
 import { kayitOku, kayitYaz } from '../kayit/depo.js';
 import { gorselOlustur, gorselleriOnYukle } from './gorseller.js';
 import { oyuncuKenarHaritasi, oyuncununAtilanKosesi } from './yerlesim.js';
@@ -68,6 +71,25 @@ function metinAl(anahtar, degerler = []) {
 
 function oyuncuAdi(oyuncu) {
   return oyuncu === INSAN_OYUNCUSU ? metinAl('oyuncu.sen') : metinAl('oyuncu.bot', [oyuncu]);
+}
+
+// Klavye/dokunma erişilebilirliği (R-012/R-013, tasokey#30): odaklanabilir hedef + Enter/Space,
+// dil anahtarlı aria-label. Tıklama ve klavye aynı eyleme varır — ayrı bir dokunma kodu yok.
+function tiklanabilirYap(eleman_, islev) {
+  eleman_.addEventListener('click', islev);
+  eleman_.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+    e.preventDefault();
+    islev();
+  });
+}
+
+// Taşın ekran okuyucu etiketi; renk adı da dil anahtarından gelir (R-008).
+function tasAriaEtiketi(tas, okeyTasi) {
+  if (tas.tur !== 'sayi') return metinAl('tas.etiketSahteOkey');
+  const renkMetni = metinAl(`renk.${tas.renk}`);
+  const anahtar = tasOkeyMi(tas, okeyTasi) ? 'tas.etiketOkey' : 'tas.etiket';
+  return metinAl(anahtar, [renkMetni, tas.sayi]);
 }
 
 // Yuva içeriğini yeni ele göre günceller: hâlâ elde olan taş kendi yuvasında kalır (oyuncunun
@@ -191,6 +213,14 @@ function koseYiginiCiz(kutu, yiginAlani, sayacEl, yigin, oyuncu, okeyTasi) {
   kutu.setAttribute('aria-label', metinAl('koseYigini.adet', [oyuncuAdi(oyuncu), yigin.length]));
 }
 
+// R-013: elin bitirilebilir olup olmadığı yalnız iş 3'ün sorgusuyla (`elBitirenTaslar`) anlaşılır;
+// kural burada yeniden yazılmaz. Çekilmeden önce ya da sıra bende değilken anlamsız olduğundan
+// o durumlarda boş liste döner.
+function insanBitirenTaslar(durum) {
+  if (durum.sira !== INSAN_OYUNCUSU || !durum.cekildiMi || durum.sonuc !== EL_SONUCU.SUREN) return [];
+  return elBitirenTaslar(durum.eller[INSAN_OYUNCUSU], durum.okeyTasi, KURAL_VARSAYILAN, durum.gosterge);
+}
+
 function masaCiz() {
   const { durum } = durumKutu;
 
@@ -198,6 +228,11 @@ function masaCiz() {
   eleman.yerDestesi.innerHTML = '';
   if (durum.yerDestesi.length > 0) eleman.yerDestesi.appendChild(tersTasElemaniOlustur());
   eleman.yerDestesiSayac.textContent = String(durum.yerDestesi.length);
+  eleman.yerDestesi.setAttribute('aria-label', metinAl('yerDestesi'));
+
+  const bitirilebilirMi = insanBitirenTaslar(durum).length > 0;
+  eleman.yerDestesi.classList.toggle('bitirilebilir', bitirilebilirMi);
+  eleman.yerDestesiIpucu.textContent = bitirilebilirMi ? metinAl('yerDestesi.bitirilebilirIpucu') : '';
 
   eleman.gostergeBaslik.textContent = metinAl('gosterge');
   eleman.gosterge.innerHTML = '';
@@ -242,21 +277,19 @@ function rafCiz() {
     const tas = id !== null ? elMap.get(id) : null;
     if (tas) {
       const tasElemani = tasElemaniOlustur(tas, durum.okeyTasi);
-      if (id === secilenTasId) tasElemani.classList.add('secili');
-      tasElemani.addEventListener('click', () => tasiSec(id));
+      const seciliMi = id === secilenTasId;
+      if (seciliMi) tasElemani.classList.add('secili');
+      tasElemani.setAttribute('tabindex', '0');
+      tasElemani.setAttribute('role', 'button');
+      tasElemani.setAttribute('aria-pressed', String(seciliMi));
+      tasElemani.setAttribute('aria-label', tasAriaEtiketi(tas, durum.okeyTasi));
+      tiklanabilirYap(tasElemani, () => tasiSec(id));
       yuva.appendChild(tasElemani);
     } else {
       yuva.appendChild(gorselOlustur('yuva-bos.svg'));
     }
     eleman.raf.appendChild(yuva);
   }
-  eleman.atButonu.textContent = metinAl('atButonu');
-  eleman.atButonu.disabled = !(
-    durum.sira === INSAN_OYUNCUSU
-    && durum.cekildiMi
-    && secilenTasId
-    && durum.sonuc === EL_SONUCU.SUREN
-  );
 }
 
 function sonucKalanTaslariCiz(sonuc) {
@@ -298,10 +331,12 @@ function cekSonucunuIsle(sonuc) {
   ciz();
 }
 
-function ataBas() {
-  const { durum, secilenTasId } = durumKutu;
-  if (!secilenTasId) return;
-  const sonuc = at(durum, INSAN_OYUNCUSU, secilenTasId);
+// Atma ve bitirme aynı motor çağrısına (`at`) varır: el.js bu hamlenin kalan eli bitirip
+// bitirmediğine zaten kendi bakar (R-005/R-013), etkileşim yalnız ÖNDEN göstermek için
+// `elBitirenTaslar`a bakmıştı (etkilesim.js) — burada motor sonucunu uygulamaktan başka bir
+// kural tekrarı yok (ADR-002).
+function atVeyaBitirUygula(tasId) {
+  const sonuc = at(durumKutu.durum, INSAN_OYUNCUSU, tasId);
   if (!sonuc.basarili) {
     mesajGoster(sonuc.sebep);
     ciz();
@@ -313,6 +348,42 @@ function ataBas() {
   mesajGoster(null);
   ciz();
   botSirasiniBaslat();
+}
+
+// `etkilesim.js`in döndürdüğü eylem kararını uygular: sürükleme, dokunma (tıklama) ve klavye
+// yolu hepsi buraya varır (tasokey#30). Doğrulama burada yok — yalnız hangi motor çağrısının
+// (`cek`/`at`) yapılacağına ya da rafta taşıma olduğuna göre dağıtır.
+function eylemiUygula(karar) {
+  if (karar.eylem === EYLEM.GECERSIZ) {
+    mesajGoster(karar.sebep);
+    ciz();
+    return;
+  }
+  if (karar.eylem === EYLEM.RAFTA_TASI) {
+    tasiYuvayaTasi(karar.tasId, karar.slotIndex);
+    return;
+  }
+  if (karar.eylem === EYLEM.CEK_DESTE) {
+    cekSonucunuIsle(cek(durumKutu.durum, INSAN_OYUNCUSU, KAYNAK.YER));
+    return;
+  }
+  if (karar.eylem === EYLEM.CEK_KOSE) {
+    cekSonucunuIsle(cek(durumKutu.durum, INSAN_OYUNCUSU, KAYNAK.ATILAN));
+    return;
+  }
+  atVeyaBitirUygula(karar.tasId);
+}
+
+// Dokunma/tıklama/klavye yolu: seçili taş zaten `durumKutu`da durur (dokun-seç → hedefe dokun).
+function etkilesimUygula(hedefTuru, hedef = {}) {
+  const karar = eylemKararVer(durumKutu.secilenTasId, hedefTuru, durumKutu.durum, INSAN_OYUNCUSU, hedef);
+  eylemiUygula(karar);
+}
+
+// Sürükleme yolu: taşınan taş id'si sürükleme olayından gelir, seçim durumuna bakılmaz.
+function hedefeBirakUygula(tasId, hedefTuru, hedef) {
+  const karar = eylemKararVer(tasId, hedefTuru, durumKutu.durum, INSAN_OYUNCUSU, hedef);
+  eylemiUygula(karar);
 }
 
 function botAdimiOyna() {
@@ -339,14 +410,6 @@ function botSirasiniBaslat() {
   if (durum.sonuc !== EL_SONUCU.SUREN || durum.sira === INSAN_OYUNCUSU) return;
   durumKutu.botCalisiyor = true;
   setTimeout(botAdimiOyna, BOT_GECIKME_MS);
-}
-
-function yerdenCek() {
-  cekSonucunuIsle(cek(durumKutu.durum, INSAN_OYUNCUSU, KAYNAK.YER));
-}
-
-function atilandanCek() {
-  cekSonucunuIsle(cek(durumKutu.durum, INSAN_OYUNCUSU, KAYNAK.ATILAN));
 }
 
 function dilDegistir() {
@@ -377,7 +440,7 @@ function yeniElBaslat() {
 function elemanlariTopla() {
   const idler = [
     'baslikMetni', 'dilDugmesi', 'durumSatiri',
-    'yerDestesiBaslik', 'yerDestesi', 'yerDestesiSayac',
+    'yerDestesiBaslik', 'yerDestesi', 'yerDestesiSayac', 'yerDestesiIpucu',
     'gostergeBaslik', 'gosterge',
     'kenarUst', 'kenarUstAd', 'kenarUstRaf',
     'kenarSol', 'kenarSolAd', 'kenarSolRaf',
@@ -386,30 +449,23 @@ function elemanlariTopla() {
     'koseSagUst', 'koseSagUstYigin', 'koseSagUstSayac',
     'koseSolAlt', 'koseSolAltYigin', 'koseSolAltSayac',
     'koseSagAlt', 'koseSagAltYigin', 'koseSagAltSayac',
-    'rafBaslik', 'raf', 'atButonu',
+    'rafBaslik', 'raf',
     'sonucPaneli', 'sonucMetni', 'sonucKalanTaslar', 'yeniElButonu',
   ];
   for (const id of idler) eleman[id] = document.getElementById(id);
 }
 
-// R-012: dört köşeden yalnız o anda geçerli olan (`cekilebilir` sınıflı — bkz. masaCiz) tıklamayı
-// çekme sayar; motor (`cek`) zaten yalnız önceki oyuncunun yığınından çeker (ADR-010), bu yüzden
-// her köşeye aynı davranış bağlanabilir — tıklanan köşe geçerli değilse hiçbir şey olmaz.
-function koseyeTikla(koseAdi) {
-  const { kutu } = KOSE_ELEMAN_ADLARI[koseAdi];
-  if (!eleman[kutu].classList.contains('cekilebilir')) return;
-  atilandanCek();
-}
-
+// R-012/R-013: her köşe/deste hedefi hangi eylemi (çek/at/bitir) temsil ettiğine `etkilesim.js`de
+// karar verilir; burada hedef türüne göre dağıtmaktan başka bir kural yok (geçersiz hedef dil
+// anahtarlı ret mesajıyla gösterilir, bkz. eylemiUygula → mesajGoster).
 function olaylariBagla() {
-  eleman.yerDestesi.addEventListener('click', yerdenCek);
+  tiklanabilirYap(eleman.yerDestesi, () => etkilesimUygula(HEDEF_TURU.YER_DESTESI));
   for (const koseAdi of Object.keys(KOSE_ELEMAN_ADLARI)) {
-    eleman[KOSE_ELEMAN_ADLARI[koseAdi].kutu].addEventListener('click', () => koseyeTikla(koseAdi));
+    tiklanabilirYap(eleman[KOSE_ELEMAN_ADLARI[koseAdi].kutu], () => etkilesimUygula(HEDEF_TURU.KOSE, { kose: koseAdi }));
   }
-  eleman.atButonu.addEventListener('click', ataBas);
   eleman.dilDugmesi.addEventListener('click', dilDegistir);
   eleman.yeniElButonu.addEventListener('click', yeniElBaslat);
-  surukleBagla(eleman.raf, tasiYuvayaTasi);
+  surukleBagla(eleman.raf, hedefeBirakUygula);
 }
 
 async function dilleriYukle() {

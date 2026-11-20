@@ -14,7 +14,7 @@
       </div>
       <div id="durumSatiri"></div>
       <div id="masa">
-        <div id="koseSolUst" class="kose" data-kose="solUst">
+        <div id="koseSolUst" class="kose" data-kose="solUst" tabindex="0" role="button">
           <div class="kose-yigin" id="koseSolUstYigin"></div>
           <div class="kose-sayac" id="koseSolUstSayac" aria-hidden="true"></div>
         </div>
@@ -22,7 +22,7 @@
           <div class="kenar-ad" id="kenarUstAd"></div>
           <div class="kenar-raf kenar-raf-yatay" id="kenarUstRaf"></div>
         </div>
-        <div id="koseSagUst" class="kose" data-kose="sagUst">
+        <div id="koseSagUst" class="kose" data-kose="sagUst" tabindex="0" role="button">
           <div class="kose-yigin" id="koseSagUstYigin"></div>
           <div class="kose-sayac" id="koseSagUstSayac" aria-hidden="true"></div>
         </div>
@@ -34,8 +34,9 @@
         <div id="merkez">
           <div class="yigin">
             <div class="yigin-baslik" id="yerDestesiBaslik"></div>
-            <div class="yigin-tas-alani" id="yerDestesi"></div>
+            <div class="yigin-tas-alani" id="yerDestesi" data-hedef="yerDestesi" tabindex="0" role="button"></div>
             <div class="yigin-sayac" id="yerDestesiSayac"></div>
+            <div class="yigin-ipucu" id="yerDestesiIpucu" aria-live="polite"></div>
           </div>
           <div class="yigin">
             <div class="yigin-baslik" id="gostergeBaslik"></div>
@@ -47,18 +48,15 @@
           <div class="kenar-raf kenar-raf-dikey" id="kenarSagRaf"></div>
         </div>
 
-        <div id="koseSolAlt" class="kose" data-kose="solAlt">
+        <div id="koseSolAlt" class="kose" data-kose="solAlt" tabindex="0" role="button">
           <div class="kose-yigin" id="koseSolAltYigin"></div>
           <div class="kose-sayac" id="koseSolAltSayac" aria-hidden="true"></div>
         </div>
         <div id="rafAlani" class="kenar kenar-alt">
           <div id="rafBaslik"></div>
           <div id="raf"></div>
-          <div id="rafAltCubuk">
-            <button id="atButonu" type="button" disabled></button>
-          </div>
         </div>
-        <div id="koseSagAlt" class="kose" data-kose="sagAlt">
+        <div id="koseSagAlt" class="kose" data-kose="sagAlt" tabindex="0" role="button">
           <div class="kose-yigin" id="koseSagAltYigin"></div>
           <div class="kose-sayac" id="koseSagAltSayac" aria-hidden="true"></div>
         </div>

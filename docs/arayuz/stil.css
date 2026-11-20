@@ -133,6 +133,20 @@ html, body {
   opacity: 0.8;
 }
 
+.yigin-ipucu {
+  font-size: 0.75rem;
+  color: #e8c547;
+  min-height: 1em;
+  text-align: center;
+}
+
+/* R-013: el bitirilebilir durumdaysa deste vurgulanır (ekran.js masaCiz); dil anahtarlı ipucu
+   metni #yerDestesiIpucu'nde durur. */
+#yerDestesi.bitirilebilir {
+  outline: 2px solid #e8c547;
+  border-radius: 6px;
+}
+
 #merkez {
   display: flex;
   align-items: flex-end;
@@ -207,6 +221,14 @@ html, body {
 }
 
 .kose-sayac { font-size: 0.75rem; opacity: 0.8; }
+
+/* Klavye yolu: odaklanabilir hedefler (köşe, yer destesi, raftaki taş — tasokey#30 R-012/R-013). */
+.kose:focus-visible,
+#yerDestesi:focus-visible,
+.tas:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
 
 .tas {
   position: relative;
@@ -306,24 +328,6 @@ html, body {
   height: 100%;
   opacity: 0.85;
 }
-
-#rafAltCubuk {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-#atButonu {
-  padding: 8px 20px;
-  font-size: 1rem;
-  border-radius: 6px;
-  border: none;
-  background: #e8c547;
-  color: #1a1a1a;
-  cursor: pointer;
-}
-
-#atButonu:disabled { opacity: 0.4; cursor: default; }
 
 .tas.surukleniyor {
   opacity: 0.7;
