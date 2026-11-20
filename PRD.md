@@ -4,15 +4,18 @@
 > Taslağı Analist yazdı; Mimar uygulanabilirliğe baktı (`MIMARI.md`), Sahip K1'de onayladı. **PRD v1 onaylandı.**
 > **v2** (`tasokey#22`, Sahip kararı 2026-11-20): masa düzeni ve etkileşim davranışları R-011…R-015 olarak eklendi; kaynak
 > `tasarim/referans/MASA-DUZENI.md` ve `tasarim/referans/masa-duzeni-sema.svg`. Bkz. §10 değişiklik geçmişi.
+> **v3** (`tasokey#36`, üst iş `tasokey#35`, Sahip onayı 2026-11-20): R-004 ve R-005 metinleri gerçek Klasik Okey bitiş kuralına
+> göre düzeltildi (per = seri + sayı peri · çift = iki birebir aynı taş · bitiş ya tamamen per ya tam 7 çift). Gereksinim
+> numaraları değişmedi, yeni gereksinim eklenmedi; kural kodu bu işte değişmedi. Bkz. §10 ve `GDD.md` §1 kural 6, 7, 13.
 
 | Alan | Değer |
 |---|---|
 | Proje (kısa ad) | `tasokey` |
 | Proje türü / profil | `oyun-web` (not: kit'te henüz ayrı bir "web oyunu" profili yok — `ofis-sistem-rehberi.md` D-26, `kit\profiller\web-uygulamasi.md` §"Yakın türler". Taslak profil: `profil-oyun-web-taslak.md`, kit'e girmesi ayrı Sahip onayı ister) |
-| PRD sürümü | `2` (v1 **K1 onaylı**; v2 masa düzeni eki, `tasokey#22`) |
+| PRD sürümü | `3` (v1 **K1 onaylı**; v2 masa düzeni eki, `tasokey#22`; v3 kural düzeltmesi, `tasokey#36`) |
 | Durum | `onaylandı` |
-| Son onay | Sahip, 2026-11-19 (K1, toplu onay — §9'daki bütün sorularda önerilen seçenek); v2 eki Sahip kararı 2026-11-20 |
-| Ek belgeler | `ARASTIRMA.md`, `MIMARI.md` (v1, K1 onaylı), `GDD.md` (v2), `STIL.md` (taslak, görsel onayı Sahip'te), `tasarim/referans/MASA-DUZENI.md` |
+| Son onay | Sahip onayı 2026-11-20, tasokey#35 (v3 kural metni); v1 K1 toplu onayı 2026-11-19, v2 eki Sahip kararı 2026-11-20 |
+| Ek belgeler | `ARASTIRMA.md`, `MIMARI.md` (v1, K1 onaylı), `GDD.md` (v3), `STIL.md` (taslak, görsel onayı Sahip'te), `tasarim/referans/MASA-DUZENI.md` |
 
 ## 1. Ne yapıyoruz?
 Tarayıcıda oynanan, klasik Türk taş oyunu Okey'i ("Taş Okey") temel alan bir web oyunu. Oyuncu kurallara uygun bir Okey eli
@@ -48,8 +51,8 @@ Her gereksinim numara alır (`R-001`). Numara işe, teste ve Denetçi kontrolün
 | R-001 | Sistem, standart 106 taşlık okey setini (1-13, 4 renk, her biri 2 adet + 2 sahte okey) kurallara uygun karıp dağıtır | evet | M1 | Öz-test: dağıtılan taş sayısı ve seti tam, dağıtım kuralına uygun | açık |
 | R-002 | Sistem her elin başında bir gösterge taşı açar ve o elin okey (joker) taşını (göstergeyle aynı renk, bir üst sayı; 13'ün üstü 1) belirler | evet | M1 | Öz-test: gösterge → okey eşleşmesi beklenen taşla eşleşiyor | açık |
 | R-003 | Oyuncu sırası geldiğinde yerden ya da son atılan taştan bir taş çeker ve elinden bir taş atar; kurala aykırı hamle (sıra dışı, taşsız çekme/atma) engellenir | evet | M1 | Öz-test: geçerli/geçersiz hamle senaryoları | açık |
-| R-004 | Sistem, bir dizi taşın geçerli "per" (aynı renkte ardışık ≥3 sayı) ya da "çift" (aynı sayı, farklı renk, ikili) olup olmadığını doğrular | evet | M1 | Öz-test: geçerli/geçersiz per-çift örnekleri | açık |
-| R-005 | Oyuncu elindeki taşları sürükleyip/dizip per-çift kombinasyonu dener; sistem geçerli bir dizilimle elini (tek taş kalıp atarak) bitirebildiğini tespit eder ve "bitti" ilan eder | evet | M1 | Öz-test + elle deneme: tam dizilimli bir el doğru tespit ediliyor | açık |
+| R-004 | Sistem, bir dizi taşın geçerli "per" — seri (aynı renkte ardışık ≥3 sayı) ya da sayı peri (aynı sayının 3-4 farklı renkteki taşı, aynı renk iki kez giremez) — ya da geçerli "çift" (iki birebir aynı taş: aynı sayı ve aynı renk) olup olmadığını doğrular; okey ve sahte okey her ikisinde de eksik taşın yerine geçer | evet | M1 | Öz-test: geçerli/geçersiz seri, sayı peri ve çift örnekleri | açık |
+| R-005 | Oyuncu elindeki taşları sürükleyip/dizip bitiş dizilimi dener; sistem elini (tek taş kalıp atarak) bitirebildiğini yalnız iki biçimde kabul eder: elin tamamı per gruplarına bölünüyorsa ya da el tam 7 çiftse — per ile çift karışık dizilim bitiş sayılmaz — ve bu durumda "bitti" ilan eder | evet | M1 | Öz-test + elle deneme: tamamen perli ve tam 7 çiftli el bitiş sayılıyor, karışık dizilim sayılmıyor | açık |
 | R-006 | Oyuncu, insan oyuncuyla aynı kural sınıfını kullanan en az bir zorluk kademesindeki bota karşı tam bir el oynayabilir (başından bitimine kadar hatasız) | evet | M1 | N bot × M el öz-testi hatasız biter (bkz. `GDD.md` §4) | açık |
 | R-007 | Sistem bitmiş elin sonucunu (kazanan, kalan taş/ceza durumu) hesaplar ve oyuncuya gösterir | evet | M2 | Elle deneme: el bitince sonuç ekranı doğru puanla görünür | açık |
 | R-008 | Oyuncu arayüz dilini TR/EN arasında değiştirebilir; arayüzde sabit (koda gömülü) metin yoktur | evet | M2 | Dil dosyası taraması: yeni ekranda anahtarsız metin = 0 | açık |
@@ -125,3 +128,4 @@ Kapsamı değiştiren her istek önce bir **PRD farkı** olur ve Sahip'e sorulur
 | 1 | 2026-11-19 | İlk sürüm (taslak, R-001…R-010) | `tasokey#1` | K1 onaylandı (toplu, 2026-11-19) |
 | 1 | 2026-11-19 | §9'un altı sorusu kapatıldı, "onaylandı" damgası eklendi; gereksinim numaraları (R-001…R-010) değişmedi | `tasokey#2` | K1 onaylandı (toplu, 2026-11-19) |
 | 2 | 2026-11-20 | Masa düzeni ve etkileşim (dört köşe yığını, deste/gösterge, bitirme hedefi, telefon dikey uyarısı, masa/ıstaka/taş görseli) gereksinim olarak eklendi: R-011…R-015. Kaynak: `tasarim/referans/MASA-DUZENI.md`, `tasarim/referans/masa-duzeni-sema.svg`. Yalnız belge; arayüz ve kural kodu değişmedi | `tasokey#22` | Sahip onaylandı (2026-11-20) |
+| 3 | 2026-11-20 | Gerçek Klasik Okey bitiş kuralı: **R-004** ve **R-005** metinleri değişti (per = seri + sayı peri · çift = iki birebir aynı taş · bitiş ya tamamen per ya tam 7 çift, karışık yok). Eklenen/çıkan gereksinim yok, numaralar değişmedi; R-004/R-005 durumu "açık" kaldı (motor işi kapatacak). `GDD.md` v3 (§1 kural 6, 7, yeni 13 ve "Kazanma / bitiş koşulu"), `ARASTIRMA.md` §2 düzeltme notu. Yalnız belge; kural kodu değişmedi | `tasokey#36` (karar: `tasokey#35`) | Sahip onayı 2026-11-20, tasokey#35 |

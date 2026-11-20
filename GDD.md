@@ -6,17 +6,24 @@
 > **v2** (`tasokey#22`, Sahip kararı 2026-11-20, KraftOfis brainstorm (21)): §7 "Masa düzeni ve etkileşim" eklendi; kaynak
 > `tasarim/referans/MASA-DUZENI.md` ve `tasarim/referans/masa-duzeni-sema.svg`. Bu belge güncellemesi arayüz ya da kural
 > kodunu değiştirmez — yalnız tasarım kaydı.
+> **v3** (`tasokey#36`, üst iş `tasokey#35`, Sahip onayı 2026-11-20): gerçek Klasik Okey bitiş kuralı işlendi — §1 kural 6
+> (per = seri **+ sayı peri**), kural 7 (çift = iki birebir aynı taş) düzeltildi, kural 13 (bitiş ya tamamen per ya tam 7 çift,
+> karışık yok) eklendi, "Kazanma / bitiş koşulu" paragrafı yeniden yazıldı. Bu da yalnız belge güncellemesidir; motor karşılığı
+> (ADR-017) ayrı bir iştir, kural kodu bu işte değişmedi.
 
 | Alan | Değer |
 |---|---|
 | Proje | `tasokey` |
-| GDD sürümü | `2` (v2: masa düzeni bölümü, `tasokey#22`) |
-| Bağlı PRD sürümü | `2` (`tasokey#22` ile birlikte) |
+| GDD sürümü | `3` (v3: gerçek Klasik Okey bitiş kuralı, `tasokey#36`) |
+| Bağlı PRD sürümü | `3` (`tasokey#36` ile birlikte) |
+| Son onay | Sahip onayı 2026-11-20, tasokey#35 |
 
 ## 1. Kurallar
 > Her kural bir PRD gereksinimine bağlanır. Kaynaklar arası fark `ARASTIRMA.md` §2'de; emin olunmayan satır "doğrulanmadı".
 > Kural seti: **Klasik Okey** (`PRD.md` §9 Soru 1, K1 onaylı). Kural 6, 10-12 K1'in (Sahip, 2026-11-19) dört kural kararını
 > işler (`MIMARI.md` ADR-008); bu dört madde `cekirdek/kural.js` içinde tek nesnede ayar olarak durur.
+> Kural 6'nın sayı peri maddesi, kural 7 ve kural 13 Sahip'in 2026-11-20 kararıdır (`tasokey#35`); gerçek Klasik Okey'den
+> sapan eski metin bu sürümde düzeltildi.
 
 | # | Kural | Gereksinim | Kaynak | Durum |
 |---|---|---|---|---|
@@ -25,13 +32,14 @@
 | 3 | Gösterge: karma sonrası açılan bir taş; okey taşı göstergeyle aynı renkte bir üst sayıdır (13 → 1 döner) | R-002 | `ARASTIRMA.md` §2.3 | doğrulandı |
 | 4 | Sahte okey, o elin okey taşının yerine geçer; her yerde (per, çift) okey gibi kullanılır | R-002 | `ARASTIRMA.md` §2.4 | doğrulandı |
 | 5 | Tur: oyuncu yerden ya da son atılan taştan 1 taş çeker, elinden 1 taş atar; sıradaki oyuncuya geçer | R-003 | `ARASTIRMA.md` §2.5 | doğrulandı |
-| 6 | Per: aynı renkte ardışık en az 3 sayı; **`12-13-1` geçişi per DEĞİLDİR** (per 1→13 düz sıradır, tur yapmaz) | R-004 | `MIMARI.md` ADR-008/1 (K1 kararı) | doğrulandı (K1, 2026-11-19) |
-| 7 | Çift: aynı sayı, 2 farklı renk | R-004 | `ARASTIRMA.md` §2.6 | doğrulandı |
+| 6 | Per iki biçimde olur: **(a) seri** — aynı renkte ardışık en az 3 sayı; **`12-13-1` geçişi per DEĞİLDİR** (per 1→13 düz sıradır, tur yapmaz). **(b) sayı peri** — aynı sayının 3 ya da 4 farklı renkteki taşı; aynı renk bir perde iki kez bulunamaz. Okey ve sahte okey her iki per türünde de eksik taşın yerine geçer | R-004 | (a) `MIMARI.md` ADR-008/1 (K1 kararı) · (b) Sahip kararı 2026-11-20 (`tasokey#35`) | doğrulandı (seri: K1, 2026-11-19 · sayı peri: Sahip, 2026-11-20) |
+| 7 | Çift: iki **birebir aynı** taş (aynı sayı **ve** aynı renk). Okey/sahte okey bir çiftin yerini tutabilir. Eski "aynı sayı, 2 farklı renk" tanımı yanlıştı; o dizilim artık sayı perinin parçasıdır (kural 6b) | R-004 | Sahip kararı 2026-11-20 (`tasokey#35`); `ARASTIRMA.md` §2 satır 6 düzeltildi | doğrulandı (Sahip, 2026-11-20) |
 | 8 | Klasik Okey'de per/çift masaya yalnız el biterken (son taşı atarken) açılır; ara aşamada masaya taş konmaz | R-005 | `ARASTIRMA.md` §2.7 | doğrulandı |
 | 9 | Gösterge taşı kendisi çift sayılamaz | R-004 | `ARASTIRMA.md` §2, satır 9 | doğrulandı |
 | 10 | Okey (joker) ve sahte okey taşının atılması **yasaktır**; motor bu hamleyi baştan engeller. Ceza puanı yoktur — tek elde ceza tablosunun yeri yok | R-003, R-007 | `MIMARI.md` ADR-008/2 (K1 kararı) | doğrulandı (K1, 2026-11-19) |
 | 11 | Gösterge taşı sahte okey çıkarsa taş desteye karışır ve gösterge yeniden açılır (yeni gösterge, yeni okey taşı belirler) | R-002 | `MIMARI.md` ADR-008/3 (K1 kararı) | doğrulandı (K1, 2026-11-19) |
 | 12 | Yerdeki (desteki) taşlar kimse elini bitirmeden tükenirse el **berabere** sayılır ve yeni el başlar | R-006, R-007 | `MIMARI.md` ADR-008/4 (K1 kararı) | doğrulandı (K1, 2026-11-19) |
+| 13 | Bitiş: el ya **tamamen per** gruplarına bölünür (her grup seri ya da sayı peri, her biri en az 3 taş), ya da **tam 7 çift**tir; per ile çift **karışık kullanılamaz** | R-004, R-005 | Sahip kararı 2026-11-20 (`tasokey#35`); motor karşılığı ADR-017, `MIMARI.md`'ye motor işinde yazılır | doğrulandı (Sahip, 2026-11-20) |
 
 ### Kural farkları tablosu (varsa)
 | Konu | Seçenek A (Klasik) | Seçenek B (101 Okey) | Öneri |
@@ -40,8 +48,14 @@
 | El/skor yapısı | Tek el, biten oyun biter | Çoklu el, kümülatif skor (101'e kadar) | A |
 
 ### Kazanma / bitiş koşulu
-Elindeki 14 taşı (okey ve sahte okey dahil) geçerli per/çift kombinasyonlarına dizip son taşı atan ve "taşsız" kalan oyuncu
-eli kazanır ("okey/bitti"). Tam dizilim geçerli değilse bitiş kabul edilmez (R-005).
+Oyuncu elindeki 14 taşı (okey ve sahte okey dahil) geçerli bir dizilime dizip son taşı atar ve "taşsız" kalırsa eli kazanır
+("okey/bitti"). Bitiş yalnız **iki** biçimde geçerlidir (kural 13):
+
+1. **Tamamen per:** 14 taşın tamamı per gruplarına bölünür; her grup ya seri ya sayı peridir ve en az 3 taş içerir (kural 6).
+2. **Tam 7 çift:** 14 taşın tamamı çifttir; her çift iki birebir aynı taştır (kural 7).
+
+Per ile çift **aynı elde karışık kullanılamaz**; karışık bir dizilim (ör. 6 çift + 1 per) bitiş sayılmaz. Okey ve sahte okey her
+iki yolda da eksik taşın yerine geçer. Elin tamamı bu iki biçimden birine bölünmüyorsa bitiş kabul edilmez (R-005).
 
 ## 2. Mekanikler
 | Mekanik | Oyuncu ne yapar | Sistem ne yapar | Gereksinim |
