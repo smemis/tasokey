@@ -3,12 +3,15 @@
 > GDD, PRD'nin ekidir: "ne" ve "neden" `PRD.md`'de, oyunun ayrıntısı burada. Çelişirse PRD geçerlidir.
 > Bu sürüm **v1**: K1'in (Sahip, 2026-11-19) dört kural kararı işlendi (`MIMARI.md` ADR-008); `MIMARI.md` ile çelişen
 > kural ifadesi yok.
+> **v2** (`tasokey#22`, Sahip kararı 2026-11-20, KraftOfis brainstorm (21)): §7 "Masa düzeni ve etkileşim" eklendi; kaynak
+> `tasarim/referans/MASA-DUZENI.md` ve `tasarim/referans/masa-duzeni-sema.svg`. Bu belge güncellemesi arayüz ya da kural
+> kodunu değiştirmez — yalnız tasarım kaydı.
 
 | Alan | Değer |
 |---|---|
 | Proje | `tasokey` |
-| GDD sürümü | `1` (K1 onaylı) |
-| Bağlı PRD sürümü | `1` (K1 onaylı) |
+| GDD sürümü | `2` (v2: masa düzeni bölümü, `tasokey#22`) |
+| Bağlı PRD sürümü | `2` (`tasokey#22` ile birlikte) |
 
 ## 1. Kurallar
 > Her kural bir PRD gereksinimine bağlanır. Kaynaklar arası fark `ARASTIRMA.md` §2'de; emin olunmayan satır "doğrulanmadı".
@@ -74,7 +77,53 @@ değildir.
 | M2 oynanabilir | Elle deneme: tarayıcıda bir el baştan sona oynanır, sonuç ekranı ve TR/EN dil değişimi çalışır; K4, Sahip |
 | M3 cila | Son deneme: 3 ekran oranında arayüz kanıtı, ceza/puan tablosu Sahip ile teyitli; K5, Sahip |
 
-## 6. Açık sorular
+## 6. Masa düzeni ve etkileşim
+
+> Kaynak: Sahip'in kararı, 2026-11-20 (KraftOfis brainstorm (21)); ayrıntı `tasarim/referans/MASA-DUZENI.md` ve kaba yerleşim
+> şeması `tasarim/referans/masa-duzeni-sema.svg`. Gereksinimler `PRD.md` §5'te R-011…R-015; bu bölüm yalnız tasarım kaydıdır,
+> bu iş (`tasokey#22`) arayüz ya da kural kodunu değiştirmez.
+
+### Yerleşim (yatay ekran)
+- Dört oyuncu dört kenarda: **Sahip altta** (kendi ıstakası), **botlar sol, üst, sağ**. Oyuncu adları kenarda, dil dosyasından (R-008).
+- **Deste ortada:** ters dönmüş taşlardan üst üste görünen yığın (kalan sayı okunur gerekmez, görsel yığın yeterli). **Gösterge taşı**
+  destenin yanında açık durur (GDD §1 kural 3).
+- **Köşe (atılan taş) yığınları:** her oyuncunun attığı taş, **kendisi ile sıradaki oyuncu arasındaki köşede** kendisine ait
+  yığında birikir. Alınmayan taşlar üst üste birikir; en üstteki tam görünür, alttakiler hafif kaydırılmış görünür (kaç taş
+  biriktiği anlaşılır). Sıra yönü saat yönünün tersi olduğunda: Sahip (alt) → sağ → üst → sol → Sahip; Sahip'in attığı yığın
+  **sağ alt** köşede, Sahip'in çekebileceği yığın (soldaki oyuncunun attığı) **sol alt** köşede. (Şema bu yönü gösterir; gerçek
+  yön kural ayarına bağlıdır.)
+
+### Etkileşim
+| Eylem | Nasıl |
+|---|---|
+| Taş çekme | Ortadaki desteden **ya da** önceki oyuncunun köşedeki yığınının üstünden: sürükle-bırak ya da dokun |
+| Taş atma | Istakadaki taşı sürükleyip **sıradaki oyuncunun tarafındaki köşe yığınına** bırak |
+| Bitirme | Son taşı **ortadaki desteye** bırak; el bitirilebilir durumdaysa deste görsel olarak vurgulanır ("bitirmek için buraya bırak" — dil anahtarlı) |
+| Telefon yedeği | Sürükleme zorunlu değil: dokun-seç → hedefe dokun |
+| Istakada düzen | Taşları sürükleyerek yer değiştirme, araya boşluk bırakma (yalnız görsel düzenleme, kural motorunu etkilemez) |
+
+"At" düğmesi kaldırılabilir; ekran okuyucu ve klavye için erişilebilir bir yol kalmalı (ör. seç + Enter) — doğrulanmadı,
+erişilebilirlik ayrıntısı bu v2'de netleşmedi.
+
+### Görsel (özet; ayrıntı `STIL.md`)
+Desenli (ince dokulu) yeşil keçe masa, ahşap çerçeve; kalın ahşap, **iki kademeli** (alt/üst raf) ıstaka, iki ucunda ayak/kulak;
+fildişi/krem gövdeli taş, **kalın düz rakam** (yedi parçalı/dijital DEĞİL, sistem yazı tipi) ve altında **aynı renkte küçük daire**;
+sahte okey rakamsız, ayrı işaretli (yıldız/rozet); kapalı taş ters dönmüş, yüzü görünmez.
+
+### Ekran boyutları
+Masaüstü (geniş/dar) ve tablet yatay düzende dört kenar yerleşimini kullanır. **Telefon dikey** yönde oyun alanı yerine dil
+anahtarlı "telefonu yan çevir" uyarısı gösterilir (R-014); telefon yatay döndürüldüğünde dört kenar düzeni sığdırılır.
+
+### Bulgu: kural motorunda köşe yığını (yapılacak)
+`docs/cekirdek/el.js` kontrol edildi (bu iş kapsamında kod **değiştirilmedi**): el durumu tek ortak `atilanYigin` dizisi
+tutuyor (satır 41, 77-80, 103), oyuncu başına ayrılmış bir yığın yok. Sıra sabit döngüde ilerlediği için "ATILAN" kaynağından
+çekilen taş (dizinin en üstü) her zaman fiilen **önceki oyuncunun** attığı taşla aynı sonucu verir — bu yüzden mevcut çekme
+mantığı (R-003) yanlış **değildir**. Ancak arayüzün dört ayrı köşe yığınını (her birinin kendi yüksekliği/geçmişiyle)
+göstermesi için motorun hangi taşın hangi oyuncu tarafından atıldığını ayrı ayrı bilmesi gerekir; bu bilgi şu an dizide yok.
+**Yapılacak** (bu işin kapsamı dışı, ayrı bir Geliştirici işi): `atilanYigin`'i oyuncu başına dizi (ya da her taşa "atan oyuncu"
+etiketi) olacak şekilde genişletmek — bkz. `PRD.md` R-011.
+
+## 7. Açık sorular
 
 Soru 1 ve 2 K1'de kapandı (Sahip, 2026-11-19 — bkz. §1 kural 6 ve 10). Soru 3 açık kalıyor; M1 planında Mimar/Geliştirici kararı.
 

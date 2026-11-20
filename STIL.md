@@ -2,18 +2,21 @@
 
 > Bu belge **taslak**tır (Analist); görsel beğeni ve "his" kararı Sahip'tedir, Sahip onaylamadan kesin sayılmaz.
 > 3B varlık yok (web 2B masa oyunu) — §3 bu projede uygulanmaz.
+> **v0.1** (`tasokey#22`, Sahip kararı 2026-11-20): masa, ıstaka ve taş görünümü `tasarim/referans/MASA-DUZENI.md` ile
+> eşitlendi (§1, §4). Yalnız belge; arayüz kodu bu işte değişmedi.
 
 | Alan | Değer |
 |---|---|
 | Proje | `tasokey` |
-| Sürüm | `0` (taslak) |
-| Onay | Bekliyor |
+| Sürüm | `0.1` (taslak; masa/ıstaka/taş görünümü Sahip kararıyla netleşti, diğer kısımlar hâlâ taslak) |
+| Onay | Bekliyor (masa/ıstaka/taş görünümü hariç — bkz. v0.1 notu) |
 
 ## 1. Genel görünüş
-Sade, geleneksel bir okey masası hissi: yeşil/koyu keçe tonunda masa zemini, gerçekçi değil ama tanınabilir taş görselleri
-(sayı + renk net okunur biçimde). Kumar/kahvehane çağrışımlı öğelerden (nakit, jeton-para benzetmesi, zar/rulet imgesi)
-kaçınılması **K1'de onaylandı ve bağlayıcı hale geldi** (`PRD.md` §9 Soru 6, karar A; ayrıntı §4). Kesin örnek görsel/referans
-Sahip'ten beklenir — bu taslakta yok; bu kısıt dışındaki görsel beğeni kararları yine Sahip onayı ister.
+Sade, geleneksel bir okey masası hissi: **desenli (ince dokulu) yeşil keçe** masa zemini, dışında **ahşap çerçeve**; kalın
+ahşap, **iki kademeli** (alt ve üst raf) ıstaka, iki ucunda ayak/kulak (Sahip kararı, 2026-11-20 — bkz. §4). Gerçekçi değil
+ama tanınabilir taş görselleri (sayı + renk net okunur biçimde). Kumar/kahvehane çağrışımlı öğelerden (nakit, jeton-para
+benzetmesi, zar/rulet imgesi) kaçınılması **K1'de onaylandı ve bağlayıcı hale geldi** (`PRD.md` §9 Soru 6, karar A; ayrıntı
+§4). Masa/ıstaka/taş görünümü dışındaki görsel beğeni kararları yine Sahip onayı ister.
 
 ## 2. Renk
 | Kullanım | Renk | Not |
@@ -31,9 +34,15 @@ Uygulanmaz (proje 2B web arayüzü; 3B varlık planı yok).
   görselde nakit, jeton-para benzetmesi, zar/rulet imgesi ve bahis dili **kullanılmaz**; yalnız geleneksel okey taşı ve
   masa görseli. Bu bir öneri değil, V sınıfı iş 13'ün şartnamesine giren zorunlu kısıttır; dil dosyasına da bahis/kumar
   sözcüğü girmez.
-- Taş görseli: sayı (1-13) büyük ve net, renk arka plan ya da taş rengiyle; sahte okey ayrı bir ikonla (ör. yonca/joker simgesi,
-  `ARASTIRMA.md` §2'de geçen geleneksel gösterime yakın; yukarıdaki kumar çağrışımı yasağına uygun, zar/rulet imgesi değil).
-- Gösterge taşı, atılan taş yığını, oyuncu rafı (14-15 taş) için ayrı görsel durumlar gerekir — ayrıntı Mimar/Varlık ile.
+- **Taş görseli (Sahip kararı, 2026-11-20 — `tasarim/referans/MASA-DUZENI.md`):** fildişi/krem gövde, hafif gölge ve
+  yuvarlatılmış köşe; sayı (1-13) **kalın, düz rakam** (yedi parçalı/dijital DEĞİL — sistem yazı tipi, kalın), rakamın
+  altında **aynı renkte küçük daire**. Renkler: kırmızı, mavi, siyah, sarı/turuncu. Sahte okey rakamsız, ayrı işaretli taş
+  (yıldız ya da rozet) — kumar çağrışımı yasağına uygun, zar/rulet imgesi değil. Kapalı taş: ters dönmüş, gövde rengi, yüzü
+  görünmez.
+- **Istaka görseli (Sahip kararı, 2026-11-20):** kalın ahşap, **iki kademeli** (alt ve üst raf), iki ucunda ayak/kulak; taşlar
+  rafa oturur, taşlar arasında boşluk bırakılabilir.
+- Gösterge taşı, köşe (atılan taş) yığınları, oyuncu rafı (14-15 taş) için ayrı görsel durumlar gerekir — ayrıntı Mimar/Varlık
+  ile; yerleşim ayrıntısı `GDD.md` §6.
 - İkon seti (çek/at/bitir düğmeleri, dil seçici TR/EN) sade, metinsiz anlaşılır ikon önerisi; her ikon dil anahtarlı etiketle desteklenmeli (sabit metin yasak).
 
 ## 5. Yazı

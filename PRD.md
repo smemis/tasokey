@@ -2,15 +2,17 @@
 
 > Şablon kaynağı: `ofis-sistem-rehberi.md` Bölüm 6, 5.5, 14A. PRD projenin tek ve yaşayan "ürün gerçeği"dir.
 > Taslağı Analist yazdı; Mimar uygulanabilirliğe baktı (`MIMARI.md`), Sahip K1'de onayladı. **PRD v1 onaylandı.**
+> **v2** (`tasokey#22`, Sahip kararı 2026-11-20): masa düzeni ve etkileşim davranışları R-011…R-015 olarak eklendi; kaynak
+> `tasarim/referans/MASA-DUZENI.md` ve `tasarim/referans/masa-duzeni-sema.svg`. Bkz. §10 değişiklik geçmişi.
 
 | Alan | Değer |
 |---|---|
 | Proje (kısa ad) | `tasokey` |
 | Proje türü / profil | `oyun-web` (not: kit'te henüz ayrı bir "web oyunu" profili yok — `ofis-sistem-rehberi.md` D-26, `kit\profiller\web-uygulamasi.md` §"Yakın türler". Taslak profil: `profil-oyun-web-taslak.md`, kit'e girmesi ayrı Sahip onayı ister) |
-| PRD sürümü | `1` (**K1 onaylı**) |
+| PRD sürümü | `2` (v1 **K1 onaylı**; v2 masa düzeni eki, `tasokey#22`) |
 | Durum | `onaylandı` |
-| Son onay | Sahip, 2026-11-19 (K1, toplu onay — §9'daki bütün sorularda önerilen seçenek) |
-| Ek belgeler | `ARASTIRMA.md`, `MIMARI.md` (v1, K1 onaylı), `GDD.md` (v1, K1 onaylı), `STIL.md` (taslak, görsel onayı Sahip'te) |
+| Son onay | Sahip, 2026-11-19 (K1, toplu onay — §9'daki bütün sorularda önerilen seçenek); v2 eki Sahip kararı 2026-11-20 |
+| Ek belgeler | `ARASTIRMA.md`, `MIMARI.md` (v1, K1 onaylı), `GDD.md` (v2), `STIL.md` (taslak, görsel onayı Sahip'te), `tasarim/referans/MASA-DUZENI.md` |
 
 ## 1. Ne yapıyoruz?
 Tarayıcıda oynanan, klasik Türk taş oyunu Okey'i ("Taş Okey") temel alan bir web oyunu. Oyuncu kurallara uygun bir Okey eli
@@ -53,6 +55,11 @@ Her gereksinim numara alır (`R-001`). Numara işe, teste ve Denetçi kontrolün
 | R-008 | Oyuncu arayüz dilini TR/EN arasında değiştirebilir; arayüzde sabit (koda gömülü) metin yoktur | evet | M2 | Dil dosyası taraması: yeni ekranda anahtarsız metin = 0 | açık |
 | R-009 | Oyun arayüzü en az 3 tarayıcı penceresi oranında (ör. geniş masaüstü, dar masaüstü/tablet, mobil dikey) kullanılabilir biçimde görüntülenir | evet | M2 | Ekran görüntüsü kanıtı: 3 oranda taşlar/düğmeler kesilmiyor, okunur | açık |
 | R-010 | Oyuncu bir eli yeniden başlatabilir/yeni el isteyebilir (M1 kapsamında tek elden fazlasını oynamak isterse) | hayır | M2 | Elle deneme: "yeni el" eylemi çalışır | açık |
+| R-011 | Sistem arayüzde atılan taşları oyuncu başına ayrı köşe yığını olarak gösterir (atan oyuncu ile sıradaki oyuncu arasındaki köşe); en üstteki taş tam, alttakiler kısmi görünür, kaç taş biriktiği anlaşılır | evet | M2 | Ekran görüntüsü + öz-test: 4 köşe yığını doğru oyuncuya atfedilir, üstteki taş görünür | açık — not: `docs/cekirdek/el.js` şu an tek ortak `atilanYigin` dizisi tutuyor (bkz. `GDD.md` §6 "Bulgu"); bu gereksinim için ayrı bir motor değişikliği gerekir (yapılacak, bu işin kapsamı dışı) |
+| R-012 | Oyuncu taş çekerken desteden ya da kendisinden önceki oyuncunun köşe yığınının üstünden seçer (sürükle-bırak ya da dokun); başka köşeden çekemez | evet | M2 | Elle deneme: iki çekme kaynağı da çalışır, geçersiz kaynak engellenir (motor tarafı zaten R-003'le karşılanıyor) | açık |
+| R-013 | Oyuncu elini bitirirken son taşını ortadaki desteye bırakır; el bitirilebilir durumdaysa deste görsel olarak vurgulanır (dil anahtarlı metin) | evet | M2 | Elle deneme: bitirme hareketi ortadaki desteye bırakmayla çalışır, vurgulama görünür | açık |
+| R-014 | Oyun telefon dikey yönde açıldığında oyun alanı yerine dil anahtarlı "telefonu yan çevir" uyarısı gösterilir; telefon yatay döndürüldüğünde dört kenar düzeni sığdırılmış biçimde görünür | evet | M2 | Ekran görüntüsü: dikey telefon oranında uyarı görünür, yatayda masa görünür | açık |
+| R-015 | Masa, ıstaka ve taş görselleri `STIL.md`'de tanımlı görünüme uygun çizilir: desenli yeşil keçe masa + ahşap çerçeve, iki kademeli kalın ahşap ıstaka, fildişi taş gövdesi, kalın düz (sistem yazı tipi) rakam ve altında aynı renkte daire | evet | M2/M3 | Ekran görüntüsü karşılaştırması: `STIL.md` ve `tasarim/referans/MASA-DUZENI.md` ile eşleşiyor | açık |
 
 Kilometre taşları: **M1** çekirdek (kurallar, testler; bota karşı tek el) · **M2** oynanabilir (sonuç ekranı, diller, duyarlı arayüz) ·
 **M3** cila (bkz. `GDD.md` §5).
@@ -117,3 +124,4 @@ Kapsamı değiştiren her istek önce bir **PRD farkı** olur ve Sahip'e sorulur
 |---|---|---|---|---|
 | 1 | 2026-11-19 | İlk sürüm (taslak, R-001…R-010) | `tasokey#1` | K1 onaylandı (toplu, 2026-11-19) |
 | 1 | 2026-11-19 | §9'un altı sorusu kapatıldı, "onaylandı" damgası eklendi; gereksinim numaraları (R-001…R-010) değişmedi | `tasokey#2` | K1 onaylandı (toplu, 2026-11-19) |
+| 2 | 2026-11-20 | Masa düzeni ve etkileşim (dört köşe yığını, deste/gösterge, bitirme hedefi, telefon dikey uyarısı, masa/ıstaka/taş görseli) gereksinim olarak eklendi: R-011…R-015. Kaynak: `tasarim/referans/MASA-DUZENI.md`, `tasarim/referans/masa-duzeni-sema.svg`. Yalnız belge; arayüz ve kural kodu değişmedi | `tasokey#22` | Sahip onaylandı (2026-11-20) |
