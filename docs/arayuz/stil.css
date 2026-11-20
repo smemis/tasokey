@@ -57,6 +57,21 @@
   --durum-font-boyutu: 0.95rem;
   --durum-dolgu-dikey: 6px;
   --durum-dolgu-yatay: 16px;
+
+  /* Yığılma kademeleri — TEK KAYNAK (ADR-015, tasokey#38). Hiçbir kuralda çıplak z-index sayısı
+     yazılmaz; her kural buradan okur (testler/yigilma-kademeleri.test.js tarar). Sıra:
+     masa < seçili/sürüklenen taş < kalıcı pencere (sonuç, başlangıç, onay).
+     Belirti (is/tasokey-35/ekler/image-2.png): deste taşı JS'te z-index 10 alıyordu, "El bitti!"
+     penceresinin (sabit konumlu, z-index'i `auto`) üstüne boyanıp metnini örtüyordu — konumlanmış
+     ve pozitif z-index'li eleman, aynı yığılma bağlamındaki `auto` elemandan sonra boyanır.
+     --kademe-masa-pay: masa yığınlarının (köşe/deste) kendi içindeki sıra payı; yığın katmanı
+     kademe + sıra olarak hesaplanır (--yigin-sira, ekran.js), bu yüzden bir sonraki kademe paydan
+     uzakta durur. Aradaki boşluk ileride araya kademe eklenebilsin diye geniş bırakıldı. */
+  --kademe-masa: 0;
+  --kademe-masa-pay: 20;
+  --kademe-tas-secili: 100;
+  --kademe-tas-surukleniyor: 110;
+  --kademe-pencere: 300;
 }
 
 * { box-sizing: border-box; }
@@ -173,6 +188,9 @@ html, body {
   left: 50%;
   margin-top: calc(var(--tas-arka-yukseklik) / -2);
   margin-left: calc(var(--tas-arka-genislik) / -2);
+  /* Yığın içi sıra JS'ten yalnız --yigin-sira olarak gelir (1…DESTE_GORUNEN_MAKSIMUM); kademe
+     buradan okunur, böylece deste masa kademesinin dışına çıkamaz (ADR-015). */
+  z-index: calc(var(--kademe-masa) + var(--yigin-sira, 0));
 }
 
 .yigin-sayac {
@@ -278,7 +296,14 @@ html, body {
   height: var(--tas-yukseklik);
 }
 
-.kose-yigin .tas { position: absolute; left: 0; top: 0; cursor: default; }
+.kose-yigin .tas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  cursor: default;
+  /* Deste ile aynı dil: sıra JS'ten (--yigin-sira), kademe tek kaynaktan (ADR-015). */
+  z-index: calc(var(--kademe-masa) + var(--yigin-sira, 0));
+}
 
 .kose.cekilebilir .kose-yigin .tas:last-child {
   cursor: pointer;
@@ -354,7 +379,13 @@ html, body {
 .tas.mavi { color: var(--renk-mavi); }
 .tas.sari { color: var(--renk-sari); }
 
-.tas.secili { transform: translateY(-10px); box-shadow: 0 4px 10px #00000055; }
+/* Seçili taş yukarı kalkar; komşu taşların üstünde kalsın diye masa kademesinin üstüne çıkar,
+   ama kalıcı pencerenin altında kalır (ADR-015). */
+.tas.secili {
+  transform: translateY(-10px);
+  box-shadow: 0 4px 10px #00000055;
+  z-index: var(--kademe-tas-secili);
+}
 
 .tas-arka {
   width: var(--tas-arka-genislik);
@@ -413,10 +444,12 @@ html, body {
 .tas.surukleniyor {
   opacity: 0.7;
   position: relative;
-  z-index: 5;
+  z-index: var(--kademe-tas-surukleniyor);
   pointer-events: none;
 }
 
+/* Kalıcı pencere (sonuç; ileride başlangıç/onay pencereleri de aynı kademeyi kullanır — ADR-015):
+   masadaki hiçbir taş bu pencerenin üstüne çıkamaz. */
 #sonucPaneli {
   position: fixed;
   inset: 0;
@@ -424,6 +457,7 @@ html, body {
   display: none;
   align-items: center;
   justify-content: center;
+  z-index: var(--kademe-pencere);
 }
 
 #sonucPaneli.gorunur { display: flex; }

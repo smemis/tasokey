@@ -223,7 +223,9 @@ function koseYiginiCiz(kutu, yiginAlani, sayacEl, yigin, oyuncu, okeyTasi) {
       const alttanSira = gorunenler.length - 1 - index;
       const kaydirma = alttanSira * CSS_VAR_KOSE_KAYDIRMA_PX;
       tasElemani.style.transform = `translate(${-kaydirma}px, ${-kaydirma}px)`;
-      tasElemani.style.zIndex = String(10 - alttanSira);
+      // Yığılma kademesi JS'te yazılmaz (ADR-015, tasokey#38): burada yalnız yığın İÇİ sıra verilir
+      // (1 = en alt), gerçek z-index stil.css'teki --kademe-masa üstüne eklenir.
+      tasElemani.style.setProperty('--yigin-sira', String(gorunenler.length - alttanSira));
       yiginAlani.appendChild(tasElemani);
     });
     sayacEl.textContent = String(yigin.length);
@@ -241,7 +243,8 @@ function yerDestesiYiginiCiz(alan, adet) {
     const alttanSira = gorunenSayi - 1 - index;
     const kaydirma = alttanSira * CSS_VAR_KOSE_KAYDIRMA_PX;
     tersTas.style.transform = `translate(${-kaydirma}px, ${-kaydirma}px)`;
-    tersTas.style.zIndex = String(10 - alttanSira);
+    // Köşe yığınıyla aynı dil: yalnız yığın içi sıra; kademe stil.css'te (ADR-015).
+    tersTas.style.setProperty('--yigin-sira', String(gorunenSayi - alttanSira));
     alan.appendChild(tersTas);
   }
 }
