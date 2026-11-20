@@ -11,10 +11,10 @@ import { surukleBagla } from './surukle.js';
 import { kayitOku, kayitYaz } from '../kayit/depo.js';
 import { gorselOlustur, gorselleriOnYukle } from './gorseller.js';
 
-// tasokey#15'in ürettiği 17 taş/boşluk SVG'si (masa-zemin.svg ve istaka.svg CSS arka planı
-// olarak kullanılır, bkz. arayuz/stil.css #masa / #rafAlani — burada önceden yüklenmesi gerekmez).
-const TAS_YUZ_DOSYALARI = Array.from({ length: 13 }, (_, i) => `tas-${String(i + 1).padStart(2, '0')}.svg`);
-const GORSEL_DOSYALARI = [...TAS_YUZ_DOSYALARI, 'tas-sahte-okey.svg', 'tas-okey-cerceve.svg', 'tas-arka.svg', 'yuva-bos.svg'];
+// masa-zemin.svg ve istaka.svg CSS arka planı olarak kullanılır (arayuz/stil.css #masa / #rafAlani
+// — burada önceden yüklenmesi gerekmez). Sayı yüzü artık tek paylaşılan gövde (tas-govde.svg) +
+// DOM rakam katmanı; ADR-011 (tasokey#28), eski tas-01.svg…tas-13.svg deseni kaldırıldı.
+const GORSEL_DOSYALARI = ['tas-govde.svg', 'tas-sahte-okey.svg', 'tas-okey-cerceve.svg', 'tas-arka.svg', 'yuva-bos.svg'];
 
 const INSAN_OYUNCUSU = 0;
 const BOT_GECIKME_MS = 450;
@@ -74,15 +74,28 @@ function tasiYuvayaTasi(tasId, hedefIndex) {
   rafCiz();
 }
 
-function tasYuzDosyasi(tas) {
-  return tas.tur === 'sahteOkey' ? 'tas-sahte-okey.svg' : `tas-${String(tas.sayi).padStart(2, '0')}.svg`;
+// ADR-011: sahte okey rakamsız kendi gövde varyantını kullanır (yıldız işareti SVG içinde),
+// sayılı taş paylaşılan gövdeyi (tas-govde.svg) + ayrı DOM rakam katmanını kullanır.
+function tasGovdeDosyasi(tas) {
+  return tas.tur === 'sahteOkey' ? 'tas-sahte-okey.svg' : 'tas-govde.svg';
+}
+
+// Rakam gerçek (seçilebilir, erişilebilir) DOM metni olarak gövdenin üstüne bindirilir; rengi
+// ayrıca tanımlanmaz, `.tas`/`.tas.<renk>` sınıfının `color`ı miras alınır (tas-govde.svg'deki
+// daire de aynı currentColor'ı kullanır) → rakam ve daire tek kaynaktan renklenir (STIL.md §4).
+function tasRakamElemaniOlustur(tas) {
+  const span = document.createElement('span');
+  span.className = 'tas-rakam';
+  span.textContent = String(tas.sayi);
+  return span;
 }
 
 function tasElemaniOlustur(tas, okeyTasi) {
   const div = document.createElement('div');
   div.className = 'tas';
   if (tas.tur !== 'sahteOkey') div.classList.add(tas.renk);
-  div.appendChild(gorselOlustur(tasYuzDosyasi(tas), 'tas-yuz'));
+  div.appendChild(gorselOlustur(tasGovdeDosyasi(tas), 'tas-yuz'));
+  if (tas.tur !== 'sahteOkey') div.appendChild(tasRakamElemaniOlustur(tas));
   if (tasOkeyMi(tas, okeyTasi)) div.appendChild(gorselOlustur('tas-okey-cerceve.svg', 'tas-cerceve'));
   div.dataset.tasId = tas.id;
   return div;

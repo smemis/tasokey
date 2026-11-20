@@ -17,6 +17,13 @@
   --tas-yukseklik: 82px;
   --tas-arka-genislik: 36px;
   --tas-arka-yukseklik: 52px;
+  /* Rakam alanı: tas-govde.svg'deki data-alan="rakam" dikdörtgeniyle (viewBox 100x140,
+     x=18 y=16 w=64 h=78) eşleşen yüzde konum/ölçü; ADR-011 (tasokey#28). */
+  --tas-rakam-sol: 18%;
+  --tas-rakam-ust: 11.43%;
+  --tas-rakam-genislik: 64%;
+  --tas-rakam-yukseklik: 55.71%;
+  --tas-rakam-font-boyutu: calc(var(--tas-yukseklik) * 0.42);
   --raf-yuva-bosluk: 6px;
   --rakip-raf-bosluk: 4px;
   --rakip-raf-genislik: 280px;
@@ -134,6 +141,25 @@ html, body {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+/* Rakam DOM katmanı (ADR-011): gövde SVG'nin üstüne bindirilir; kendi rengini tanımlamaz —
+   `.tas`/`.tas.<renk>` sınıfının `color`ı miras alınır (tek kaynak, altındaki daireyle aynı). */
+.tas-rakam {
+  position: absolute;
+  left: var(--tas-rakam-sol);
+  top: var(--tas-rakam-ust);
+  width: var(--tas-rakam-genislik);
+  height: var(--tas-rakam-yukseklik);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-weight: 700;
+  font-size: var(--tas-rakam-font-boyutu);
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
 }
 
 .tas-cerceve {
