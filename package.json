@@ -1,0 +1,8 @@
+{
+  "name": "tasokey",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"testler/**/*.test.js\""
+  }
+}
