@@ -201,3 +201,17 @@ test('madde-4-b: erişilebilir adet etiketi (aria-label) boşken de gerçek say�
     'koseYiginiCiz aria-label\'ı görsel "0" gizlemesinden bağımsız olarak hâlâ ayarlamıyor',
   );
 });
+
+// Sahip ek bilgisi (2026-11-20): "Istakanın tek sırası 12 taş alacak genişlikte olsun ve taşlar
+// arasında boşluk olmasın" — gerçek okey ıstakasında taşlar bitişik durur.
+test('madde-ek-a: ıstakanın bir sırası 12 taş alıyor', () => {
+  assert.match(EKRAN_JS, /const RAF_SUTUN_SAYISI = 12;/, 'ekran.js RAF_SUTUN_SAYISI 12 değil');
+});
+
+test('madde-ek-b: ıstaka yuvaları arasında boşluk yok (hiçbir kademede)', () => {
+  const tanimlar = [...STIL_CSS.matchAll(/--raf-yuva-bosluk:\s*([^;]+);/g)].map((e) => e[1].trim());
+  assert.ok(tanimlar.length > 0, 'stil.css --raf-yuva-bosluk tanımlamıyor');
+  for (const deger of tanimlar) {
+    assert.match(deger, /^0(px)?$/, `--raf-yuva-bosluk sıfır değil: ${deger}`);
+  }
+});

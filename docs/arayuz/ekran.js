@@ -25,9 +25,11 @@ const BOT_GECIKME_MS = 450;
 
 // Oyuncunun ıstakası gerçek okey ıstakası gibi 2 sıra (tasokey#13 ek bilgi); yuva sayısı en
 // yüksek el boyutundan (15, dagitim.js BASLAYAN_OYUNCU_EL_BOYUTU) fazla tutulur ki oyuncu taşları
-// aralıklı dizerken boş yuva kalsın. Tek kaynak: CSS `--raf-sutun-sayisi` bu sabitten okunur (baslat()).
+// aralıklı dizerken boş yuva kalsın. Bir sıra 12 taş alır (Sahip ek bilgisi, 2026-11-20 — gerçek
+// ıstaka ölçüsü), taşlar arasında boşluk yoktur (stil.css --raf-yuva-bosluk: 0).
+// Tek kaynak: CSS `--raf-sutun-sayisi` bu sabitten okunur (baslat()).
 const RAF_SATIR_SAYISI = 2;
-const RAF_SUTUN_SAYISI = 9;
+const RAF_SUTUN_SAYISI = 12;
 const RAF_SLOT_SAYISI = RAF_SATIR_SAYISI * RAF_SUTUN_SAYISI;
 
 // ADR-012 (tasokey#29): Sahip (oyuncu 0) her zaman alt kenarda; diğer kenarlar/köşeler

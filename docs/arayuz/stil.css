@@ -24,7 +24,10 @@
   --tas-rakam-genislik: 64%;
   --tas-rakam-yukseklik: 55.71%;
   --tas-rakam-font-boyutu: calc(var(--tas-yukseklik) * 0.42);
-  --raf-yuva-bosluk: 6px;
+  /* Taşlar ıstakada bitişik durur (Sahip ek bilgisi, 2026-11-20): yuva arası boşluk her kademede
+     sıfır, sütun sayısı 12 (ekran.js RAF_SUTUN_SAYISI). Kademe geçişlerinde yalnız --tas-genislik
+     küçülür; boşluk değişkeni tek yerde kalır ki "bitişik" kuralı bir kademede kaçmasın. */
+  --raf-yuva-bosluk: 0;
   /* Rakip ıstakası artık yalnız ince ahşap sırt (taş çizilmez — Sahip ek bilgisi, 2026-11-20):
      --rakip-raf-kalinlik çubuğun gerçek inceliğidir (sol/sağda genişlik, üstte yükseklik).
      --rakip-raf-uzunluk sol/sağ çubuğun taban (min-height) uzunluğu; gerçek uzunluk ızgaranın orta
@@ -456,7 +459,6 @@ html, body {
     --tas-yukseklik: 60px;
     --tas-arka-genislik: 24px;
     --tas-arka-yukseklik: 36px;
-    --raf-yuva-bosluk: 5px;
     --masa-bosluk: 14px;
     --masa-dolgu: 10px;
     --masa-cerceve-kalinlik: 8px;
@@ -472,7 +474,6 @@ html, body {
     --tas-yukseklik: 50px;
     --tas-arka-genislik: 18px;
     --tas-arka-yukseklik: 28px;
-    --raf-yuva-bosluk: 4px;
     --masa-bosluk: 8px;
     --masa-dolgu: 6px;
     --masa-cerceve-kalinlik: 6px;
@@ -495,7 +496,6 @@ html, body {
     --tas-yukseklik: 36px;
     --tas-arka-genislik: 13px;
     --tas-arka-yukseklik: 20px;
-    --raf-yuva-bosluk: 2px;
     --masa-bosluk: 6px;
     --masa-dolgu: 4px;
     --masa-cerceve-kalinlik: 4px;
