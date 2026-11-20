@@ -215,3 +215,32 @@ test('madde-ek-b: ıstaka yuvaları arasında boşluk yok (hiçbir kademede)', (
     assert.match(deger, /^0(px)?$/, `--raf-yuva-bosluk sıfır değil: ${deger}`);
   }
 });
+
+// Denetçi bulguları (tur 1). #rafAlani `.kenar` sınıfındadır, `.kenar` da bu işte
+// `justify-content: center` kazandı: panelin kutusu içeriğinden kısa kalırsa taşlar iki uca da
+// taşar ve alt sıra ahşabın dışında kalır. Kutunun içerikten kısa kalması yasaklanırsa ortalama
+// zaten etkisizdir (kutu = içerik yüksekliği).
+test('denetci-1: Sahip\'in ıstaka paneli kutusu içeriğinden kısa kalamaz', () => {
+  assert.match(
+    STIL_CSS,
+    /#rafAlani\s*\{[^}]*min-height:\s*max-content/,
+    '#rafAlani min-height: max-content tanımlamıyor (kutu içerikten kısa kalabilir)',
+  );
+});
+
+test('denetci-2: sol/sağ rakip çubuğu dar kademelerde taban orandan daha uzun', () => {
+  const tabanEslesme = STIL_CSS.match(/\.kenar-raf-dikey\s*\{[^}]*height:\s*(\d+)%/);
+  assert.ok(tabanEslesme, '.kenar-raf-dikey taban yüzde yüksekliği tanımlı değil');
+
+  const bas = STIL_CSS.indexOf('@media (max-width: 1300px)');
+  assert.ok(bas > 0, 'stil.css 1300px kademesini tanımlamıyor');
+  const sonraki = STIL_CSS.indexOf('@media', bas + 1);
+  const darKademe = STIL_CSS.slice(bas, sonraki > 0 ? sonraki : STIL_CSS.length);
+
+  const darEslesme = darKademe.match(/\.kenar-raf-dikey\s*\{[^}]*height:\s*(\d+)%/);
+  assert.ok(darEslesme, '1300px kademesi .kenar-raf-dikey yüksekliğini artırmıyor');
+  const taban = Number(tabanEslesme[1]);
+  const dar = Number(darEslesme[1]);
+  assert.ok(dar > taban, `dar kademe oranı (${dar}%) tabandan (${taban}%) büyük değil`);
+  assert.ok(dar <= 100, `dar kademe oranı (${dar}%) satırın dışına taşıyor`);
+});

@@ -31,7 +31,8 @@
   /* Rakip ıstakası artık yalnız ince ahşap sırt (taş çizilmez — Sahip ek bilgisi, 2026-11-20):
      --rakip-raf-kalinlik çubuğun gerçek inceliğidir (sol/sağda genişlik, üstte yükseklik).
      --rakip-raf-uzunluk sol/sağ çubuğun taban (min-height) uzunluğu; gerçek uzunluk ızgaranın orta
-     satırının %86'sı olarak büyür (aşağıda .kenar-raf-dikey, madde 1 tasokey#33). Orta satır masa
+     satırının %86'sı olarak büyür (dar kademelerde %96 — aşağıdaki 1300px sorgusu; orta satır
+     orada masanın daha küçük bir parçası kalıyor), bkz. .kenar-raf-dikey, madde 1 tasokey#33. Orta satır masa
      yüksekliğinin ~%60'ı olduğundan bu, "masa yüksekliğinin yaklaşık yarısı"na denk gelir —
      1. tur ekran görüntüsünde %60 denenmiş, ölçülen sonuç masanın yalnız %34'ü çıkmıştı. */
   --rakip-raf-uzunluk: 240px;
@@ -363,12 +364,19 @@ html, body {
   height: 100%;
 }
 
+/* Sahip'in kendi ıstakası. min-height: max-content (denetçi bulgusu, tasokey#33): #rafAlani hem
+   `.kenar` (justify-content: center) hem de #masa ızgarasının "alt" satırındadır; ızgara satırı
+   sıkışırsa kutu içerikten kısa kalır ve ortalanmış içerik iki uca birden taşar — alt sıra taşlar
+   ahşabın dışında kalır. max-content tabanı bunu yapısal olarak imkânsız kılar: kutu hiçbir
+   kademede içeriğinden (dolgu + başlık + 2 sıra taş) kısa olamaz, taşlar rafa oturur
+   (MASA-DUZENI.md). Kutu = içerik yüksekliği olduğunda `.kenar`ın ortalaması zaten etkisizdir. */
 #rafAlani {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
   padding: var(--panel-dolgu);
+  min-height: max-content;
   background-image: url('../gorsel/istaka.svg');
   background-size: 100% 100%;
 }
@@ -451,6 +459,15 @@ html, body {
     --rakip-raf-uzunluk: 190px;
     --rakip-raf-kalinlik: 22px;
   }
+
+  /* Yan çubuk oranı (denetçi bulgusu, tasokey#33): çubuk ızgaranın ORTA satırının yüzdesidir, orta
+     satır da masanın ne kadarını kapladığına göre kademeden kademeye değişir. Geniş masaüstünde
+     orta satır masanın ~%60'ı (çubuk %86 → masanın %51'i = "yaklaşık yarısı"), dar kademelerde ise
+     ıstaka paneli ve köşe satırları aynı kalıp masa kısaldığı için orta satır masanın ancak
+     ~%50'si; aynı %86 orada masanın yalnız %43'ünü veriyordu (4 ekran görüntüsünde ölçüldü).
+     Bu kademelerde çubuk satırı neredeyse tamamen doldurur; satırın dışına taşmaz, köşe
+     yığınları ayrı ızgara satırlarında durduğu için çakışma olmaz. */
+  .kenar-raf-dikey { height: 96%; }
 }
 
 @media (max-width: 900px) {
