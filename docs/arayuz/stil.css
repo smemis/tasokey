@@ -39,6 +39,8 @@
     var(--raf-sutun-sayisi) * var(--tas-genislik) + (var(--raf-sutun-sayisi) - 1) * var(--raf-yuva-bosluk) +
       2 * var(--panel-dolgu)
   );
+  /* Keçe dokusunun döşeme karesi (masa-zemin.svg viewBox birimiyle 1:1 → ızgara 20px). */
+  --masa-doku-olcu: 240px;
   --kose-kaydirma: 5px;
   --masa-bosluk: 24px;
   --masa-dolgu: 16px;
@@ -110,8 +112,13 @@ html, body {
   justify-items: center;
   gap: var(--masa-bosluk);
   padding: var(--masa-dolgu);
+  /* Doku DÖŞENİR, gerilmez (madde 3, tasokey#33): masa-zemin.svg kare bir döşeme deseni (240x240,
+     içinde 20 birimlik ızgara) — kutuya gerilirse (background-size: 100% 100%) kendi oranında
+     ortalanıp yalnız masa yüksekliği kadar bir kareyi kaplar, kenarlar dokusuz kalır (2. tur ekran
+     görüntüsünde ölçüldü: 1920x1080'de doku yalnız x=471..1448). Sabit ölçü + repeat tam kaplar. */
   background-image: url('../gorsel/masa-zemin.svg');
-  background-size: 100% 100%;
+  background-size: var(--masa-doku-olcu) var(--masa-doku-olcu);
+  background-repeat: repeat;
   background-origin: padding-box;
   background-clip: padding-box;
   /* Masanın çevresine ahşap çerçeve (madde 3, tasokey#33): masa-cerceve.svg 120×120 birimlik bir

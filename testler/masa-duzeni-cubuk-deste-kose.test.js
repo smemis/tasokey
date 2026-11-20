@@ -18,6 +18,7 @@ const MASA_ZEMIN_SVG = readFileSync(join(DOCS_KOK, 'gorsel', 'masa-zemin.svg'), 
 const MASA_CERCEVE_SVG = readFileSync(join(DOCS_KOK, 'gorsel', 'masa-cerceve.svg'), 'utf8');
 const ISTAKA_DIKEY_SVG = readFileSync(join(DOCS_KOK, 'gorsel', 'istaka-dikey.svg'), 'utf8');
 const ISTAKA_YATAY_SVG = readFileSync(join(DOCS_KOK, 'gorsel', 'istaka-yatay.svg'), 'utf8');
+const ISTAKA_SVG = readFileSync(join(DOCS_KOK, 'gorsel', 'istaka.svg'), 'utf8');
 
 test('madde-1-a: .kenar artık gri kutu (beyaz saydam arka plan) taşımıyor', () => {
   assert.ok(
@@ -89,6 +90,21 @@ test('madde-1-f: sol/sağ çubuk orta satırın en az %80\'ini kaplar (≈ masa 
   );
 });
 
+// 2. turun ekran görüntüsünden ölçüldü (is/tasokey-33/ekran, 1920x1080, PNG piksel taraması):
+// Sahip'in kendi ıstaka panelinin (#rafAlani) DOM kutusu içeriğe göre doğru (227 px: 16 px dolgu +
+// başlık + 2 sıra taş + 16 px dolgu), ama boyanan ahşap yalnız 846..1026 = 181 px. 603 px genişlik /
+// (400/120) = 181 — yani istaka.svg de kendi oranında ortalanıyor (madde-1-e'deki hatanın aynısı:
+// background-size: 100% 100% kutuyu gerer, preserveAspectRatio varsayılanı resmi germez). Sonuç:
+// taşların alt sırası ahşabın alt kenarından taşıyor, panelin altında boş keçe kalıyor —
+// MASA-DUZENI.md "taşlar rafa oturur" karşılanmıyor.
+test('madde-1-g: Sahip\'in kendi ıstaka görseli de oran korumasını kapatır (taşlar ahşaba oturur)', () => {
+  assert.match(
+    ISTAKA_SVG,
+    /preserveAspectRatio="none"/,
+    'istaka.svg preserveAspectRatio="none" taşımıyor — ahşap panel kutusu kadar uzamaz, alt sıra taşlar dışarı taşar',
+  );
+});
+
 // border-image-slice sayıları, görselin KENDİ (intrinsic) piksel uzayında okunur. Yalnız viewBox
 // taşıyan bir SVG'nin intrinsic boyutu yoktur; tarayıcı onu çerçeve alanına göre ölçekler ve
 // "36" artık viewBox birimi olmaz → çerçeve ahşap deseni yerine düz kahverengi şerit olur.
@@ -130,6 +146,31 @@ test('madde-3-a: masa zemin dokusu eski (neredeyse görünmez) opaklıktan daha 
   const eslesme = MASA_ZEMIN_SVG.match(/opacity="([\d.]+)"/);
   assert.ok(eslesme, 'masa-zemin.svg deseninde opacity tanımlı değil');
   assert.ok(Number(eslesme[1]) > 0.12, `doku opaklığı ${eslesme[1]}, eski değer 0.12'den büyük olmalı (madde 3)`);
+});
+
+// 2. turun ekran görüntüsünde ölçüldü (1920x1080): doku yalnız x=471..1448 arasında, yani masanın
+// yüksekliği kadar (978 px) bir KARE alanda görünüyordu — masa-zemin.svg kare viewBox'ını (240x240)
+// background-size: 100% 100% ile gerilen kutuda kendi oranında ortalıyordu. Doku bir döşeme deseni
+// olduğu için doğru çözüm germek değil, sabit ölçüyle döşemek (background-repeat varsayılanı).
+test('madde-3-d: masa zemin dokusu masanın TAMAMINI kaplar (gerilmiş kare değil, döşenmiş desen)', () => {
+  // Açıklama satırları eski değeri anlatmak için metinde geçebilir → yalnız gerçek bildirimler okunur.
+  const bildirimler = STIL_CSS.replace(/\/\*[\s\S]*?\*\//g, '');
+  const eslesme = bildirimler.match(/#masa\s*\{[\s\S]*?background-size:\s*([^;]+);/);
+  assert.ok(eslesme, '#masa background-size tanımlamıyor');
+  assert.doesNotMatch(
+    eslesme[1],
+    /100%\s+100%/,
+    '#masa dokusu hâlâ kutuya geriliyor (background-size: 100% 100%) — kare görsel ortada kalır, kenarlar dokusuz',
+  );
+  const degiskenAdi = eslesme[1].match(/var\((--[\w-]+)\)/);
+  assert.ok(degiskenAdi, '#masa dokusu ölçüsü değişkenden gelmiyor (kodda sihirli sayı olmamalı)');
+  const degiskenDegeri = bildirimler.match(new RegExp(`${degiskenAdi[1]}:\\s*([^;]+);`));
+  assert.ok(degiskenDegeri, `${degiskenAdi[1]} :root içinde tanımlı değil`);
+  assert.match(
+    degiskenDegeri[1],
+    /\d+px/,
+    `${degiskenAdi[1]} sabit (px) döşeme ölçüsü değil — doku yine kutuya gerilir`,
+  );
 });
 
 test('madde-3-b: masanın çevresine ahşap çerçeve (masa-cerceve.svg) gerçekten uygulanıyor', () => {
