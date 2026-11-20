@@ -12,12 +12,16 @@
 > Kaynak: `GDD.md` §6 "Bulgu" (tasokey#22), `PRD.md` R-011/R-012/R-014/R-015, `STIL.md` §4-5, `docs/gorsel/tas-01.svg`
 > (ölçüldü: rakam şu an sabit SVG `<path>`, gerçek yazı tipi glifi değil). Bu iş yalnız belge; `arayuz/`, `cekirdek/` kodu
 > değişmedi.
+>
+> **Sürüm 4** (`tasokey#37`, Geliştirici, 2026-11-20): ADR-017 (bitiş iki ayrı denetimin VEYA'sı; per = seri + sayı peri,
+> çift = birebir aynı taş) eklendi; karar Sahip'in (`tasokey#35`), bu iş kodu yazdı. Kaynak: `GDD.md` v3 §1 kural 6, 7, 13.
+> ADR-013…016 numaraları kullanılmadı — 017 numarası GDD/PRD v3'te bu karara verilmişti.
 
 | Alan | Değer |
 |---|---|
 | Proje | `tasokey` |
-| Mimari karar sürümü | `3` (ADR-010/011/012 eklendi, Mimar-K2, 2026-11-20, tasokey#24; önceki: ADR-004 sürüm 2, 2026-11-19, tasokey#3) |
-| Bağlı PRD sürümü | `2` (`tasokey#22`, R-011…R-015 eki) |
+| Mimari karar sürümü | `4` (ADR-017 eklendi, Sahip kararı + Geliştirici uygulaması, 2026-11-20, tasokey#37; önceki: ADR-010/011/012 sürüm 3, 2026-11-20, tasokey#24) |
+| Bağlı PRD sürümü | `3` (`tasokey#36`, R-004/R-005 kural düzeltmesi) |
 | Profil | `kit\profiller\` içinde yok → `profil-oyun-web-taslak.md` (bu klasör; kit'e girmesi Sahip onayı ister, D-26) |
 | Hazırlayan | Mimar, 2026-11-19 |
 
@@ -61,8 +65,8 @@ Değerlendirilen ama önerilmeyen yollar ADR-001'in "Seçenekler" satırında.
 | `cekirdek/karma.js` | Tohumlu (deterministik) karıştırıcı | — | evet |
 | `cekirdek/kural.js` | K1 kural varsayılanları (ADR-008) tek nesnede; motorun okuduğu tek kural kaynağı | — | evet |
 | `cekirdek/dagitim.js` | 15/14/14/14 dağıtım, gösterge açma, o elin okey taşını belirleme | tas, karma, kural | evet |
-| `cekirdek/dizilim.js` | Per ve çift geçerliliği; okey/sahte okey yerine geçme | tas, kural | evet |
-| `cekirdek/cozucu.js` | "Bu el bitirilebilir mi?" — elin tamamını geçerli gruplara tam bölme araması | dizilim | evet |
+| `cekirdek/dizilim.js` (ADR-017) | Per (seri + sayı peri) ve çift (birebir aynı taş) geçerliliği; okey/sahte okey yerine geçme | tas, kural | evet |
+| `cekirdek/cozucu.js` (ADR-017) | "Bu el bitirilebilir mi?" — iki ayrı arama: elin tamamen per gruplarına bölünmesi **ya da** tam 7 birebir çift olması | dizilim | evet |
 | `cekirdek/el.js` | El durumu, sıra, hamle doğrulama (çek/at), el sonu koşulları | dagitim, cozucu, kural | evet |
 | `cekirdek/puan.js` | El sonucu ve puan | el | evet |
 | `bot/kolay.js` | Hangi taşı çeker / atar (sezgisel); hamleyi `el.js`'e onaylatır | cekirdek | evet |
@@ -222,6 +226,19 @@ Sınır kuralı: `cekirdek/` ve `bot/` altında `document`, `window`, `localStor
 | Seçenekler | B) Dikeyde ızgarayı küçülterek sığdırmaya çalışmak (risk 4'ün önceki "doğrulanacak" hâli) — reddedildi: 15 taşlık raf + masa + 4 köşe yığını küçük ekranda okunur kalmaz (R-015 ihlali riski); Sahip kararı doğrudan uyarıyı seçti (`MASA-DUZENI.md`). C) Yön tespitini tamamen CSS `@media` sorgusuna bırakmak — kısmen kabul: CSS uyarı/ızgara gösterme-gizlemeyi yapar, ama hangi oyuncunun hangi köşede olduğu kural ayarına (sıra yönü) bağlı olduğundan JS'te de hesaplanması gerekir (`yerlesim.js`) |
 | Sonuçlar | §7 risk 4 **kapanır** (R-014 ile: sığdırma denenmez, uyarı gösterilir). Yeni saf modüller (`yerlesim.js`, `etkilesim.js`) DOM'suz test edilebilir hâle gelir. Kolaylaştırır: düzen mantığı tek yerde, öz-testle doğrulanır. Zorlaştırır: `ekran.js` artık bu iki modüle bağımlı olur; gerçek CSS Grid ve modül dosyaları bu işte **yazılmadı** (belge güncellemesi, kod değişmedi) — ayrı Geliştirici işi |
 | Etkilenen gereksinimler | R-011, R-012, R-013, R-014 |
+
+### ADR-017: Bitiş iki ayrı denetimin VEYA'sı; per = seri + sayı peri, çift = birebir aynı taş
+> Numara `GDD.md` v3 ve `PRD.md` v3'te (tasokey#36) bu kararı gösteriyordu; ADR-013…016 boş kaldı.
+
+| Alan | Değer |
+|---|---|
+| Tarih | 2026-11-20 · Durum: **kabul** (karar Sahip, `tasokey#35`; motor karşılığı `tasokey#37`) |
+| Karar veren | Sahip (kural kararı) · uygulama Geliştirici |
+| Bağlam | Motor `tasokey#6/#7`'den beri eski (yanlış) tanımla çalışıyordu: "çift = aynı sayı, 2 farklı renk" ve "bitiş = elin per/çift gruplarına herhangi bir bölünüşü". Sahip'in ekran görüntüsünde (`is/tasokey-35/ekler/image.png`) bu yüzden bitmeyen bir el "Elini bitirebilirsin" diye vurgulandı. `GDD.md` v3 kural 6, 7, 13 gerçek Klasik Okey tanımını yazdı; kod karşılığı yoktu |
+| Karar | (1) `cekirdek/dizilim.js` `perGecerliMi` iki biçimi birden kabul eder: **seri** (aynı renk, ardışık ≥3) **veya sayı peri** (aynı sayının 3-4 farklı renkteki taşı; aynı renk bir perde iki kez bulunamaz). (2) `ciftGecerliMi` yalnız **birebir aynı** iki taşı kabul eder (aynı sayı **ve** aynı renk); okey/sahte okey çiftte de yerine geçer, gösterge taşının kendisi çift sayılmaz (kural 9). (3) `cekirdek/cozucu.js` `elBitirilebilirMi` **iki ayrı aramanın VEYA'sıdır**: (a) el tamamen per gruplarına bölünüyor mu, (b) el tam 7 birebir çift mi (14 taş). İki arama ayrı yürür; tek bir "grup" aramasında birleştirilmez, böylece karışık dizilim yapı gereği reddedilir. (4) Bu üçü `kural.js`'e ayar olarak **girmez** — ADR-008'in dört ayarı kaynak çelişkisiydi, bunlar kuralın kendisi |
+| Seçenekler | B) Tek geri izlemeli aramaya "grup = per ya da çift" diye devam edip sonunda karışımı elemek — reddedildi: karışık çözümü önce bulup sonra atmak hem daha pahalı hem de "neden bitmedi" sorusunu kodda okunmaz kılar. C) Çifti `kural.js`'e ayar yapmak (eski/yeni tanım arasında anahtar) — reddedildi: iş metninde açıkça yasaklandı ve iki tanım aynı anda doğru olamaz; eski tanım yanlıştı, ayar değil |
+| Sonuçlar | Kolaylaştırır: bitiş kuralı GDD kural 13'le birebir okunur; ekran görüntüsündeki el regresyon testi oldu (`el-bitiren-taslar.test.js` (e)). Ölçüm: tek el kontrolü ort. **0,0295 ms**, `elBitirenTaslar` ort. **1,2777 ms** (20 ms bütçesinin altında). **Zorlaştırır:** bitirmek gerçekten zorlaştı — `bot/kolay.js`'in sezgiseli hâlâ eski tanıma göre puanlıyor (aynı sayı/farklı renk = "çift adayı") ve 200 ellik dayanıklılık koşusunda 20 el tur sınırına çarpıyor (ölçüldü; 10 000 turda da bitmiyor, deste hiç boşalmıyor çünkü botlar sürekli atılandan çekiyor). Bot sezgiselinin ADR-017'ye göre yenilenmesi **ayrı iş**tir (R-006, `GDD.md` §4 "Karar yöntemi") |
+| Etkilenen gereksinimler | R-004, R-005 (karşılandı) · R-006 (bot işi açık kalır) |
 
 ## 6. Test yaklaşımı
 
