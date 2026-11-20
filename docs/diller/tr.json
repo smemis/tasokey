@@ -33,5 +33,6 @@
   "sonuc.kalanTas": "{0}: {1} taş kaldı",
   "yeniEl": "Yeni el",
   "oyuncu.sen": "Sen",
-  "oyuncu.bot": "Bot {0}"
+  "oyuncu.bot": "Bot {0}",
+  "telefonuCevir": "Oynamak için telefonunu yatay çevir."
 }

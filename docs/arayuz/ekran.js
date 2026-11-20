@@ -36,10 +36,14 @@ const RAF_SLOT_SAYISI = RAF_SATIR_SAYISI * RAF_SUTUN_SAYISI;
 const KENAR_HARITASI = oyuncuKenarHaritasi(sonrakiOyuncu);
 const KOSE_HARITASI = [0, 1, 2, 3].map((oyuncu) => oyuncununAtilanKosesi(oyuncu, sonrakiOyuncu));
 
+// Rakip kenarlarının ıstaka çubuğu yalnız CSS'te durur (kenar-raf-yatay/dikey, stil.css) — ahşap
+// sırt dışında içerik basılmaz (Sahip ek bilgisi, 2026-11-20: rakip taşları hiç görünmemeli, ne
+// yüz ne kapalı taş; gerçek okeydeki gibi yalnız ıstakanın arkası). Bu yüzden burada JS'in
+// doldurduğu bir "raf" elemanı yok.
 const KENAR_ELEMAN_ADLARI = {
-  ust: { kutu: 'kenarUst', ad: 'kenarUstAd', raf: 'kenarUstRaf' },
-  sol: { kutu: 'kenarSol', ad: 'kenarSolAd', raf: 'kenarSolRaf' },
-  sag: { kutu: 'kenarSag', ad: 'kenarSagAd', raf: 'kenarSagRaf' },
+  ust: { kutu: 'kenarUst', ad: 'kenarUstAd' },
+  sol: { kutu: 'kenarSol', ad: 'kenarSolAd' },
+  sag: { kutu: 'kenarSag', ad: 'kenarSagAd' },
 };
 
 const KOSE_ELEMAN_ADLARI = {
@@ -239,12 +243,9 @@ function masaCiz() {
   eleman.gosterge.appendChild(tasElemaniOlustur(durum.gosterge, durum.okeyTasi));
 
   for (const oyuncu of [1, 2, 3]) {
-    const { kutu, ad, raf } = KENAR_ELEMAN_ADLARI[KENAR_HARITASI[oyuncu]];
+    const { kutu, ad } = KENAR_ELEMAN_ADLARI[KENAR_HARITASI[oyuncu]];
     eleman[ad].textContent = oyuncuAdi(oyuncu);
     eleman[kutu].classList.toggle('aktif', durum.sira === oyuncu && durum.sonuc === EL_SONUCU.SUREN);
-    const rafDiv = eleman[raf];
-    rafDiv.innerHTML = '';
-    for (let i = 0; i < durum.eller[oyuncu].length; i++) rafDiv.appendChild(tersTasElemaniOlustur());
   }
 
   // R-012: yalnız önceki oyuncunun köşesi geçerli çekme kaynağıdır; o köşe `cekilebilir` sınıfıyla
@@ -311,11 +312,18 @@ function sonucPaneliCiz() {
   eleman.yeniElButonu.textContent = metinAl('yeniEl');
 }
 
+// R-014: dikey/yatay geçişi CSS ortam sorgusu yönetir (stil.css `orientation: portrait`); burada
+// yalnız dil anahtarlı uyarı metni basılır — JS yön tespiti yapmaz, sabit metin yazmaz.
+function telefonUyarisiCiz() {
+  eleman.telefonUyarisiMetni.textContent = metinAl('telefonuCevir');
+}
+
 function ciz() {
   ustCubukCiz();
   durumSatiriCiz();
   masaCiz();
   rafCiz();
+  telefonUyarisiCiz();
   sonucPaneliCiz();
 }
 
@@ -442,9 +450,10 @@ function elemanlariTopla() {
     'baslikMetni', 'dilDugmesi', 'durumSatiri',
     'yerDestesiBaslik', 'yerDestesi', 'yerDestesiSayac', 'yerDestesiIpucu',
     'gostergeBaslik', 'gosterge',
-    'kenarUst', 'kenarUstAd', 'kenarUstRaf',
-    'kenarSol', 'kenarSolAd', 'kenarSolRaf',
-    'kenarSag', 'kenarSagAd', 'kenarSagRaf',
+    'kenarUst', 'kenarUstAd',
+    'kenarSol', 'kenarSolAd',
+    'kenarSag', 'kenarSagAd',
+    'telefonUyarisiMetni',
     'koseSolUst', 'koseSolUstYigin', 'koseSolUstSayac',
     'koseSagUst', 'koseSagUstYigin', 'koseSagUstSayac',
     'koseSolAlt', 'koseSolAltYigin', 'koseSolAltSayac',
