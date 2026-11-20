@@ -91,9 +91,9 @@ Değerlendirilen ama önerilmeyen yollar ADR-001'in "Seçenekler" satırında.
 | `cekirdek/puan.js` | El sonucu ve puan: kalan taş sayıları + oyuncu başına döküm (`dokumler`: per / çift / per olmayan / okey sayıları — `tasokey#39` ek bilgisi) | el, cozucu, kural | evet |
 | `bot/kolay.js` (ADR-018) | Hangi taşı çeker / atar (sezgisel): bitiş yolunu seçer, en izole taşı atar, atılandan yalnız gerçek tamamlamada çeker. Kural sorularını `dizilim.js`/`cozucu.js`'in saf işlevlerine sorar, kendi per/çift tanımını yazmaz; hamleyi `el.js`'e onaylatır | cekirdek (dizilim, cozucu, el, kural, tas, dagitim) | evet |
 | `arayuz/ekran.js` | Masa, raf, atılan taş yığını; olay bağlama | cekirdek, dil, yerlesim | hayır (DOM) |
-| `arayuz/surukle.js` | Taş seçme ve rafta sürükleyerek dizme | ekran, etkilesim | hayır (DOM) |
+| `arayuz/surukle.js` | Sürükleme hareketi (Pointer Events): raftan sürükleyip rafa dizme ya da raf dışı hedefe bırakma; **desteden/köşe yığınından ıstakaya sürükleyerek çekme** (`tasokey#40`). Hangi hareketin hangi eyleme karşılık geldiğini `etkilesim.js`e sorar | ekran, etkilesim | hayır (DOM) |
 | `arayuz/yerlesim.js` (ADR-012) | Dört kenar/köşe ızgarası: sıra yönüne göre hangi oyuncunun hangi kenarda, hangi köşe yığınının hangi oyuncuya ait olduğunu hesaplar; sonucu grid-area adı olarak döner | cekirdek (kural — sıra yönü) | evet |
-| `arayuz/etkilesim.js` (ADR-010/012) | Sürükleme/dokunma hedefinin (deste, köşe yığını, raf konumu) hangi oyun eylemine (çek/at/bitir) karşılık geldiğini saf mantıkla çözer; hamleyi yine `cekirdek/el.js` onaylar | cekirdek, yerlesim | evet |
+| `arayuz/etkilesim.js` (ADR-010/012) | Sürükleme/dokunma **hedefinin** (deste, köşe yığını, raf konumu) ve sürüklemenin **kaynağının** (deste, köşe yığını — `cekmeKararVer`, `tasokey#40`) hangi oyun eylemine (çek/at/bitir) karşılık geldiğini saf mantıkla çözer; çekme kuralı tek yerde durur (dokunma ve sürükleme yolu aynı işlevi çağırır), hamleyi yine `cekirdek/el.js` onaylar | cekirdek, yerlesim | evet |
 | `dil/cevir.js` | Anahtar → metin; eksik anahtarda görünür hata | — | evet |
 | `kayit/depo.js` | `localStorage` sarmalayıcı + şema sürümü kontrolü | — | hayır (tarayıcı API) |
 
