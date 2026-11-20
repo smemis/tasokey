@@ -179,6 +179,149 @@ function ciftSinifi(tas, okeyTasi) {
 // bakar; okey ve sahte okey hiçbir zaman aday olmaz (ADR-008/2, `kural.okeyVeSahteOkeyAtmaYasak`
 // açıksa) — arayüz bu listeyi deste vurgusu ve bırakma denetimi için kullanır, kuralı
 // kendisi tekrar yazmaz.
+// "Bu el neye bölünüyor?" dökümü (tasokey#39 ek bilgileri, Sahip 2026-11-20): el bittiğinde
+// (a) rakip ıstakasındaki taşlar anlamlı sırayla (perler, sonra çiftler, sonra per dışı kalanlar)
+// serilsin, (b) sonuç penceresinde per / per dışı / çift / okey sayıları AYRI AYRI yazılsın.
+// Bitiş kararı DEĞİLDİR (`elBitirilebilirMi` ayrı durur): burada el bitmemiş de olabilir, bu yüzden
+// "en çok taşı kapsayan" bölüm aranır. Kural yeniden yazılmaz — geçerlilik yine `dizilim.js`'ten
+// (`perGecerliMi`, `ciftGecerliMi`) sorulur; bu işlev yalnız o kapıyı kullanarak bölümleme yapar.
+// Deterministiktir: aynı taş listesi her çağrıda aynı dökümü verir.
+export function elDokumu(taslar, okeyTasi, kural = KURAL_VARSAYILAN, gosterge = null) {
+  const el = Array.isArray(taslar) ? taslar : [];
+  const { perler } = enIyiPerBolumu(el, okeyTasi, kural, new Map());
+  const perTasIdleri = new Set(perler.flat().map((tas) => tas.id));
+  const perDisi = el.filter((tas) => !perTasIdleri.has(tas.id));
+  const { ciftler, kalanlar } = ciftleriAyir(perDisi, okeyTasi, kural, gosterge);
+
+  const siraliPerler = perler.map((per) => per.slice().sort(tasKarsilastir)).sort(grupKarsilastir);
+  const siraliCiftler = ciftler.map((cift) => cift.slice().sort(tasKarsilastir)).sort(grupKarsilastir);
+  const siraliKalanlar = kalanlar.slice().sort(tasKarsilastir);
+
+  return {
+    perler: siraliPerler,
+    ciftler: siraliCiftler,
+    kalanlar: siraliKalanlar,
+    perSayisi: siraliPerler.length,
+    perTasSayisi: perTasIdleri.size,
+    ciftSayisi: siraliCiftler.length,
+    ciftTasSayisi: siraliCiftler.length * 2,
+    // "Per olmayan" = hiçbir pere girmeyen taş (çift kurmuş olanlar dahil); Sahip'in istediği
+    // dört sayı bu yüzden toplamda eli iki kez saymaz: perTasSayisi + perDisiSayisi = el boyu.
+    perDisiSayisi: perDisi.length,
+    kalanSayisi: siraliKalanlar.length,
+    okeySayisi: el.filter((tas) => tasOkeyMi(tas, okeyTasi)).length,
+  };
+}
+
+// Dökümün görüntüleme sırası (ADR-014 ek bilgisi: "ıstakada taşlar dizili olsun"): perler,
+// sonra çiftler, sonra per dışı kalanlar. Saf tutulur ki arayüz kendi sıralama kuralı yazmasın.
+export function dokumSirasi(dokum) {
+  return [...dokum.perler.flat(), ...dokum.ciftler.flat(), ...dokum.kalanlar];
+}
+
+// En çok taşı per gruplarına sokan bölüm. `perAra`nın (bitiş kararı) aksine "hepsi kapsanmalı"
+// koşulu yoktur: ankor ya bir pere girer ya da hiçbirine girmez, en iyi kapsama seçilir.
+function enIyiPerBolumu(kalan, okeyTasi, kural, onbellek) {
+  if (kalan.length < EN_KISA_PER) return { perler: [], kapsanan: 0 };
+
+  if (kalan.every((tas) => tasOkeyMi(tas, okeyTasi))) {
+    // Yalnız jokerden kurulu grup: geçerlilik yine tek kapıdan sorulur (perGecerliMi, en çok 13).
+    if (perGecerliMi(kalan, okeyTasi, kural)) return { perler: [kalan], kapsanan: kalan.length };
+    return { perler: [], kapsanan: 0 };
+  }
+
+  const imza = tasImzasi(kalan);
+  if (onbellek.has(imza)) return onbellek.get(imza);
+
+  const ankor = kalan.find((tas) => !tasOkeyMi(tas, okeyTasi));
+  // Uzun adaylar önce denenir: tam kapsama bulunursa arama hemen durur (budama).
+  const adaylar = perAdaylariUret(kalan, ankor, okeyTasi, kural).sort((a, b) => b.length - a.length);
+
+  let enIyi = { perler: [], kapsanan: 0 };
+  for (const aday of adaylar) {
+    const alt = enIyiPerBolumu(kalanCikar(kalan, aday), okeyTasi, kural, onbellek);
+    const kapsanan = aday.length + alt.kapsanan;
+    if (kapsanan > enIyi.kapsanan) enIyi = { perler: [aday, ...alt.perler], kapsanan };
+    if (enIyi.kapsanan === kalan.length) break;
+  }
+
+  // Ankoru hiçbir pere koymama dalı: en çok (kalan.length - 1) taş kapsayabilir, bu yüzden
+  // ankorlu dal zaten o kadarını kapsadıysa hiç denenmez (budama).
+  if (enIyi.kapsanan < kalan.length - 1) {
+    const ankorsuz = enIyiPerBolumu(kalanCikar(kalan, [ankor]), okeyTasi, kural, onbellek);
+    if (ankorsuz.kapsanan > enIyi.kapsanan) enIyi = ankorsuz;
+  }
+
+  onbellek.set(imza, enIyi);
+  return enIyi;
+}
+
+// Per dışı kalan taşlardan birebir çiftleri ayırır. İki aşama (greedy tek aşama en iyi değildir:
+// [joker, kirmizi-5 x2, kirmizi-6] elinde joker önce 5'i kaparsa 1 çift çıkar, iki aşamada 2):
+// (1) gerçek taşlar kendi sınıfı içinde eşleşir, (2) artan tek taşlar jokerlerle, sonra jokerler
+// birbiriyle. Geçerlilik her eşleşmede `ciftGecerliMi`ye sorulur (gösterge taşı çift kurmaz).
+function ciftleriAyir(taslar, okeyTasi, kural, gosterge) {
+  const jokerler = taslar.filter((tas) => tasOkeyMi(tas, okeyTasi));
+  const siniflar = new Map();
+  for (const tas of taslar) {
+    if (tasOkeyMi(tas, okeyTasi)) continue;
+    const sinif = ciftSinifi(tas, okeyTasi);
+    if (!siniflar.has(sinif)) siniflar.set(sinif, []);
+    siniflar.get(sinif).push(tas);
+  }
+
+  const ciftler = [];
+  const tekler = [];
+  for (const grup of siniflar.values()) {
+    let bekleyen = null;
+    for (const tas of grup) {
+      if (bekleyen === null) {
+        bekleyen = tas;
+      } else if (ciftGecerliMi(bekleyen, tas, okeyTasi, kural, gosterge)) {
+        ciftler.push([bekleyen, tas]);
+        bekleyen = null;
+      } else {
+        tekler.push(bekleyen);
+        bekleyen = tas;
+      }
+    }
+    if (bekleyen !== null) tekler.push(bekleyen);
+  }
+
+  const kalanlar = [];
+  let jokerIndex = 0;
+  for (const tek of tekler) {
+    if (jokerIndex < jokerler.length && ciftGecerliMi(tek, jokerler[jokerIndex], okeyTasi, kural, gosterge)) {
+      ciftler.push([tek, jokerler[jokerIndex]]);
+      jokerIndex += 1;
+    } else {
+      kalanlar.push(tek);
+    }
+  }
+  while (jokerIndex + 1 < jokerler.length
+    && ciftGecerliMi(jokerler[jokerIndex], jokerler[jokerIndex + 1], okeyTasi, kural, gosterge)) {
+    ciftler.push([jokerler[jokerIndex], jokerler[jokerIndex + 1]]);
+    jokerIndex += 2;
+  }
+  kalanlar.push(...jokerler.slice(jokerIndex));
+
+  return { ciftler, kalanlar };
+}
+
+// Görüntüleme sırası (tek kaynak): renk sırası `tas.js` RENKLER, sonra sayı; joker/sahte okey sona.
+function tasKarsilastir(a, b) {
+  // Rengi olmayan taş (sahte okey) sona: RENKLER.indexOf(undefined) -1 verir, bu da onu başa alırdı.
+  const renkSirasi = (tas) => (tas.renk === undefined ? RENKLER.length : RENKLER.indexOf(tas.renk));
+  const renkA = renkSirasi(a);
+  const renkB = renkSirasi(b);
+  if (renkA !== renkB) return renkA - renkB;
+  return (a.sayi ?? EN_YUKSEK_SAYI + 1) - (b.sayi ?? EN_YUKSEK_SAYI + 1);
+}
+
+function grupKarsilastir(a, b) {
+  return tasKarsilastir(a[0], b[0]);
+}
+
 export function elBitirenTaslar(taslar, okeyTasi, kural = KURAL_VARSAYILAN, gosterge = null) {
   if (!Array.isArray(taslar) || taslar.length === 0) return [];
 
