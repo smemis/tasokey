@@ -234,6 +234,66 @@ test('el bitince (son taş atılınca) sonuç BITTI olur ve kazanan belirlenir',
   assert.equal(sonuc.durum.kazanan, 0);
 });
 
+// ADR-017 (GDD §1 kural 13): el akışında da bitiş yalnız iki biçimde kabul edilir.
+test('el biter: son taş atılınca kalan 14 taş tam 7 birebir çift', () => {
+  const fazlaTas = t('sari', 9);
+  const cift = (renk, sayi) => [t(renk, sayi, 1), t(renk, sayi, 2)];
+  const durum = temelDurum({
+    sira: 0,
+    cekildiMi: true,
+    eller: [
+      [
+        // mavi-6 kullanılmaz: GOSTERGE taşının kendisi (kural 9) çift sayılmaz.
+        ...cift('kirmizi', 3), ...cift('siyah', 4), ...cift('mavi', 5), ...cift('sari', 11),
+        ...cift('kirmizi', 8), ...cift('siyah', 13), ...cift('mavi', 1), fazlaTas,
+      ],
+      temelDurum().eller[1], temelDurum().eller[2], temelDurum().eller[3],
+    ],
+  });
+  const sonuc = at(durum, 0, fazlaTas.id);
+  assert.equal(sonuc.durum.sonuc, EL_SONUCU.BITTI);
+  assert.equal(sonuc.durum.kazanan, 0);
+});
+
+test('el bitmez: karışık dizilim (per + çift) bitiş sayılmaz, sıra ilerler', () => {
+  const fazlaTas = t('sari', 9);
+  const cift = (renk, sayi) => [t(renk, sayi, 1), t(renk, sayi, 2)];
+  const durum = temelDurum({
+    sira: 0,
+    cekildiMi: true,
+    eller: [
+      [
+        t('kirmizi', 1), t('kirmizi', 2), t('kirmizi', 3), t('kirmizi', 4),
+        ...cift('siyah', 6), ...cift('mavi', 9), ...cift('sari', 12), ...cift('kirmizi', 13),
+        ...cift('siyah', 2), fazlaTas,
+      ],
+      temelDurum().eller[1], temelDurum().eller[2], temelDurum().eller[3],
+    ],
+  });
+  const sonuc = at(durum, 0, fazlaTas.id);
+  assert.equal(sonuc.basarili, true);
+  assert.equal(sonuc.durum.sonuc, EL_SONUCU.SUREN);
+  assert.equal(sonuc.durum.sira, 1);
+});
+
+test('el bitmez: eski kuralın "aynı sayı farklı renk" ikilileri artık bitirmiyor', () => {
+  const fazlaTas = t('sari', 9);
+  const ikili = (sayi) => [t('kirmizi', sayi), t('siyah', sayi)];
+  const durum = temelDurum({
+    sira: 0,
+    cekildiMi: true,
+    eller: [
+      [
+        ...ikili(1), ...ikili(2), ...ikili(3), ...ikili(4),
+        ...ikili(5), ...ikili(6), ...ikili(8), fazlaTas,
+      ],
+      temelDurum().eller[1], temelDurum().eller[2], temelDurum().eller[3],
+    ],
+  });
+  const sonuc = at(durum, 0, fazlaTas.id);
+  assert.equal(sonuc.durum.sonuc, EL_SONUCU.SUREN);
+});
+
 test('el bittiyse başka hamle kabul edilmez (sebep: elBitti)', () => {
   const fazlaTas = t('sari', 9);
   const durum = temelDurum({

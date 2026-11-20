@@ -109,10 +109,13 @@ test('(c) ret: bitirilemez elde seçili taşı desteye bırakınca "bitirilemez"
 // --- (d) bitirilebilirde kabul ---
 
 test('(d) kabul: bitirilebilir elde doğru taşı desteye bırakınca "bitir" eylemi döner', () => {
-  // per(4) kirmizi 1-2-3-4 + çift mavi-8/sari-8: uçtaki taş (1) atılırsa kalan geçerli
-  // (el-bitiren-taslar.test.js (a) ile aynı desen).
+  // seri(4) kirmizi 1-2-3-4 + sayı peri 8 (siyah/mavi/sari): uçtaki taş (1) atılırsa kalan
+  // tamamen per olur (ADR-017; el-bitiren-taslar.test.js (a) ile aynı desen).
   const kirmizi1 = t('kirmizi', 1);
-  const el = [kirmizi1, t('kirmizi', 2), t('kirmizi', 3), t('kirmizi', 4), t('mavi', 8), t('sari', 8)];
+  const el = [
+    kirmizi1, t('kirmizi', 2), t('kirmizi', 3), t('kirmizi', 4),
+    t('siyah', 8), t('mavi', 8), t('sari', 8),
+  ];
   const durum = temelElDurumu({ cekildiMi: true, eller: [el, [], [], []] });
   const karar = eylemKararVer(kirmizi1.id, HEDEF_TURU.YER_DESTESI, durum, OYUNCU);
   assert.deepEqual(karar, { eylem: EYLEM.BITIR, tasId: kirmizi1.id });
@@ -120,7 +123,10 @@ test('(d) kabul: bitirilebilir elde doğru taşı desteye bırakınca "bitir" ey
 
 test('(d) ret: aynı bitirilebilir elde ortadaki (yanlış) taş bırakılırsa bitirilemez döner', () => {
   const kirmizi2 = t('kirmizi', 2);
-  const el = [t('kirmizi', 1), kirmizi2, t('kirmizi', 3), t('kirmizi', 4), t('mavi', 8), t('sari', 8)];
+  const el = [
+    t('kirmizi', 1), kirmizi2, t('kirmizi', 3), t('kirmizi', 4),
+    t('siyah', 8), t('mavi', 8), t('sari', 8),
+  ];
   const durum = temelElDurumu({ cekildiMi: true, eller: [el, [], [], []] });
   const karar = eylemKararVer(kirmizi2.id, HEDEF_TURU.YER_DESTESI, durum, OYUNCU);
   assert.equal(karar.eylem, EYLEM.GECERSIZ);
