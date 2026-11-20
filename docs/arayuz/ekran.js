@@ -7,7 +7,7 @@ import { tasOkeyMi } from '../cekirdek/dagitim.js';
 import { elBitirenTaslar, elDokumu, dokumSirasi } from '../cekirdek/cozucu.js';
 import { KURAL_VARSAYILAN } from '../cekirdek/kural.js';
 import { elSonucunuHesapla } from '../cekirdek/puan.js';
-import { kolayBotTurOyna } from '../bot/kolay.js';
+import { botTurOyna, VARSAYILAN_KADEME } from '../bot/bot.js';
 import { cevir } from '../dil/cevir.js';
 import { surukleBagla, cekmeSurukleBagla } from './surukle.js';
 import { HEDEF_TURU, EYLEM, eylemKararVer, cekmeKararVer, rakipEliAcikMi } from './etkilesim.js';
@@ -472,7 +472,9 @@ function kaynaktanCekUygula(kaynakTuru, kaynak) {
 
 function botAdimiOyna() {
   const { durum } = durumKutu;
-  const sonuc = kolayBotTurOyna(durum, durum.sira);
+  // ADR-013: kademe adı dışarıdan verilir; bugün sabit varsayılan (orta). Oyuncuya kademe seçimi
+  // sunmak arayüz işidir (dil anahtarı + ayar kaydı gerekir), bu işin kapsamında değildi.
+  const sonuc = botTurOyna(durum, durum.sira, VARSAYILAN_KADEME);
   if (!sonuc.basarili) {
     // Bot her zaman geçerli hamle seçmeli (ADR-002 değişmezi); burası yalnız teşhis için.
     console.error('bot hamlesi motor tarafından reddedildi', sonuc.sebep);

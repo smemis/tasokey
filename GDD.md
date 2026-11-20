@@ -10,11 +10,15 @@
 > (per = seri **+ sayı peri**), kural 7 (çift = iki birebir aynı taş) düzeltildi, kural 13 (bitiş ya tamamen per ya tam 7 çift,
 > karışık yok) eklendi, "Kazanma / bitiş koşulu" paragrafı yeniden yazıldı. Bu da yalnız belge güncellemesidir; motor karşılığı
 > (ADR-017) ayrı bir iştir, kural kodu bu işte değişmedi.
+> **v4** (`tasokey#41`, Mimar/Geliştirici kararı, 2026-11-21): §7 **Soru 3 kapandı — B** (M1'den itibaren üç bot kademesi:
+> kolay/orta/zor) ve §4 "Botlar" tablosunun "Zorluk kademeleri", "Karar yöntemi", "Ölçüm" satırları buna göre güncellendi.
+> Bu soruyu belge zaten Mimar/Geliştirici'ye bırakmıştı; kural (§1) ve bitiş koşulu değişmedi, yeni gereksinim yok.
+> Karşılığı `MIMARI.md` ADR-013 ve `docs/bot/bot.js`.
 
 | Alan | Değer |
 |---|---|
 | Proje | `tasokey` |
-| GDD sürümü | `3` (v3: gerçek Klasik Okey bitiş kuralı, `tasokey#36`) |
+| GDD sürümü | `4` (v4: bot zorluk kademeleri — §7 Soru 3 kapandı, `tasokey#41`) |
 | Bağlı PRD sürümü | `3` (`tasokey#36` ile birlikte) |
 | Son onay | Sahip onayı 2026-11-20, tasokey#35 |
 
@@ -79,10 +83,10 @@ değildir.
 ## 4. Botlar
 | Konu | Tanım |
 |---|---|
-| Zorluk kademeleri | En az 1 kademe M1'de (ör. "kolay": rastgele geçerli hamle); ek kademeler (orta/zor) M2/M3'te değerlendirilir — kesin sayı Mimar/Geliştirici'nin işi |
-| Karar yöntemi | Kural tabanlı basit sezgisel (hangi taşı çekeceği/atacağı per-çift tamamlama olasılığına göre); ayrıntılı algoritma bu v0'da tanımlı değil, Mimar/Geliştirici tamamlar |
+| Zorluk kademeleri | **Üç kademe M1'de: kolay / orta / zor** (§7 Soru 3 kapandı — B; karar Mimar/Geliştirici, `MIMARI.md` ADR-013, `tasokey#41`). Üçü aynı sezgiselin üç ayarıdır, kuralı değiştirmez: orta ADR-018 sezgiselinin kendisi, kolay zayıflatılmış (bitirme fırsatını kaçırabilir, köşeden çekmeyi çoğunlukla kullanmaz, en izole taşı her zaman seçmez), zor güçlendirilmiş (bitiren taşı çözücüyle görür, atacağı taşı elin gerçek bölümüne göre seçer). Oyuncuya kademe **seçtiren arayüz** henüz yok: oyun varsayılan kademeyi (orta) oynatır |
+| Karar yöntemi | Kural tabanlı basit sezgisel (hangi taşı çekeceği/atacağı per-çift tamamlama olasılığına göre); ayrıntılı algoritma bu v0'da tanımlı değil, Mimar/Geliştirici tamamlar → `MIMARI.md` ADR-018 (sezgisel) + ADR-013 (kademeler) |
 | Oyunla aynı kural sınıfını kullanır mı | Evet — bot ve insan oyuncu aynı saf kural motorunu (per/çift geçerlilik, bitiş kontrolü) kullanır |
-| Ölçüm | Örnek hedef: N bot × M el öz-testi hatasız biter (kesin N/M Mimar/Geliştirici belirler); değişmez: botun asla kurala aykırı hamle yapmaması |
+| Ölçüm | Örnek hedef: N bot × M el öz-testi hatasız biter (kesin N/M Mimar/Geliştirici belirler); değişmez: botun asla kurala aykırı hamle yapmaması. **Ölçüldü** (`tasokey#41`, kademe başına 200 el, 4 bot, sabit tohum): motorun reddettiği öneri 0 ve sonlanmayan el 0 — üç kademede de. Kademe gücü aynı dağıtımlarda kazanma oranıyla ölçülür: kolay **%5,5** · orta **%26,5** · zor **%34,5** (`testler/bot-zorluk.olcum.js`) |
 
 ## 5. Kilometre taşı testleri
 | Kilometre taşı | Test (ölçülebilir) |
@@ -137,10 +141,12 @@ görüntüsü kanıtı `tasokey#32`).
 
 ## 7. Açık sorular
 
-Soru 1 ve 2 K1'de kapandı (Sahip, 2026-11-19 — bkz. §1 kural 6 ve 10). Soru 3 açık kalıyor; M1 planında Mimar/Geliştirici kararı.
+Soru 1 ve 2 K1'de kapandı (Sahip, 2026-11-19 — bkz. §1 kural 6 ve 10). Soru 3 de kapandı
+(2026-11-21, Mimar/Geliştirici kararı — bu soruyu bu belge onlara bırakmıştı; bkz. §4 ve
+`MIMARI.md` ADR-013). Açık soru kalmadı.
 
 | # | Soru | Seçenekler (önerilen ilk sırada) | Durum |
 |---|---|---|---|
 | 1 | 12-13-1 geçişi (sayı sırasının "tur" yapıp yapmaması) per olarak geçerli mi? | A) Geçersiz — çoğu kaynakta per ardışık sayılar 1'den 13'e düz sıradır, tur yapma belirtilmemiş **(önerilen)** · B) Geçerli — bazı yerel kurallarda tur yapabiliyor olabilir (doğrulanmadı) | **kapandı — A** (K1, §1 kural 6) |
 | 2 | Okey atma cezası kesin puan/çarpanı ne olacak? | A) `PRD.md` §9 Soru 4 ile birlikte M2'de Sahip'in bildiği yerel kuralla sabitlensin **(önerilen)** · B) `101buddy.com` tablosu (101/202/404/808) birebir uygulansın | **kapandı — değişti**: okey/sahte okey atmak baştan yasak (motor engelliyor), ceza puanı/tablosu yok (K1, §1 kural 10) |
-| 3 | Bot zorluk kademesi sayısı M1'de kaç olacak? | A) 1 kademe, M2/M3'te artırılsın **(önerilen)** · B) M1'den itibaren 3 kademe (kolay/orta/zor) | açık — K1 kapsamında değildi |
+| 3 | Bot zorluk kademesi sayısı M1'de kaç olacak? | A) 1 kademe, M2/M3'te artırılsın **(önerilen)** · B) M1'den itibaren 3 kademe (kolay/orta/zor) | **kapandı — B** (Mimar/Geliştirici, 2026-11-21, `tasokey#41`): üç kademe tek sezgiselin üç ayarı olduğu için M1'de karşılanabildi — kademe başına ayrı bot yazılmadı, kural kodu değişmedi (`MIMARI.md` ADR-013). Kademe farkı ölçüldü: kazanma oranı %5,5 / %26,5 / %34,5. Oyuncuya kademe seçtiren **arayüz** ayrı iştir (ADR-013 §7 risk 11) |
