@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   elBaslat, cek, at, KAYNAK, REDDEDILME_SEBEBI, EL_SONUCU, VARSAYILAN_MAKSIMUM_TUR,
+  sonrakiOyuncu, oncekiOyuncu,
 } from '../docs/cekirdek/el.js';
-import { tasOkeyMi } from '../docs/cekirdek/dagitim.js';
+import { tasOkeyMi, OYUNCU_SAYISI } from '../docs/cekirdek/dagitim.js';
 import { tasOlustur, sahteOkeyOlustur } from '../docs/cekirdek/tas.js';
 import { KURAL_VARSAYILAN } from '../docs/cekirdek/kural.js';
 
@@ -23,7 +24,7 @@ function temelDurum(ekler = {}) {
       [t('sari', 4), t('sari', 12)],
     ],
     yerDestesi: [t('kirmizi', 5), t('siyah', 6)],
-    atilanYigin: [],
+    atilanYiginlar: [[], [], [], []],
     gosterge: GOSTERGE,
     okeyTasi: OKEY_TASI,
     sira: 0,
@@ -82,12 +83,43 @@ test('yerden çekme: yer destesinin baştaki taşı ele geçer, deste bir kısal
   assert.ok(sonuc.durum.eller[0].some((tas) => tas.id === beklenenTas.id));
 });
 
-test('atılan taştan çekme: yığının en üstteki (son atılan) taşı ele geçer', () => {
+// --- tasokey#25 — ADR-010: atılan taşlar oyuncu başına yığın ---
+
+test('sonrakiOyuncu/oncekiOyuncu: 4 koltukta ileri/geri tek kaynaktan dönen sıra hesabı', () => {
+  assert.equal(sonrakiOyuncu(0), 1);
+  assert.equal(sonrakiOyuncu(3), 0);
+  assert.equal(oncekiOyuncu(0), 3);
+  assert.equal(oncekiOyuncu(1), 0);
+});
+
+test('kabul (a): atılan taş atan oyuncunun kendi yığınına konur', () => {
   const sonAtilan = t('mavi', 13);
-  const durum = temelDurum({ sira: 0, cekildiMi: false, atilanYigin: [t('sari', 8), sonAtilan] });
+  const durum = temelDurum({
+    sira: 2,
+    cekildiMi: true,
+    eller: [temelDurum().eller[0], temelDurum().eller[1], [sonAtilan, t('siyah', 9)], temelDurum().eller[3]],
+  });
+  const sonuc = at(durum, 2, sonAtilan.id);
+  assert.equal(sonuc.basarili, true);
+  assert.deepEqual(sonuc.durum.atilanYiginlar[2], [sonAtilan], 'taş atan oyuncunun (2) yığınına girmeli');
+  assert.deepEqual(sonuc.durum.atilanYiginlar[0], []);
+  assert.deepEqual(sonuc.durum.atilanYiginlar[1], []);
+  assert.deepEqual(sonuc.durum.atilanYiginlar[3], []);
+});
+
+test('kabul (c): atılan taştan çekme yalnız önceki oyuncunun yığınının üstündeki taşı alır, yalnız o yığın eksilir', () => {
+  const altTas = t('sari', 8);
+  const sonAtilan = t('mavi', 13);
+  const durum = temelDurum({
+    sira: 0,
+    cekildiMi: false,
+    atilanYiginlar: [[], [t('kirmizi', 11)], [t('siyah', 12)], [altTas, sonAtilan]],
+  });
   const sonuc = cek(durum, 0, KAYNAK.ATILAN);
   assert.equal(sonuc.basarili, true);
-  assert.deepEqual(sonuc.durum.atilanYigin, [t('sari', 8)], 'yalnız en üstteki taş alınmalı');
+  assert.deepEqual(sonuc.durum.atilanYiginlar[3], [altTas], 'yalnız en üstteki taş alınmalı, önceki oyuncunun (3) yığınından');
+  assert.deepEqual(sonuc.durum.atilanYiginlar[1], [t('kirmizi', 11)], 'ilgisiz yığınlar değişmemeli');
+  assert.deepEqual(sonuc.durum.atilanYiginlar[2], [t('siyah', 12)], 'ilgisiz yığınlar değişmemeli');
   assert.ok(sonuc.durum.eller[0].some((tas) => tas.id === sonAtilan.id));
 });
 
@@ -99,10 +131,43 @@ test('yer destesi boşken yerden çekilemez (sebep: yerDestesiBos)', () => {
 });
 
 test('atılan yığın boşken atılandan çekilemez (sebep: atilanYok)', () => {
-  const durum = temelDurum({ sira: 0, cekildiMi: false, atilanYigin: [] });
+  const durum = temelDurum({ sira: 0, cekildiMi: false, atilanYiginlar: [[], [], [], []] });
   const sonuc = cek(durum, 0, KAYNAK.ATILAN);
   assert.equal(sonuc.basarili, false);
   assert.equal(sonuc.sebep, REDDEDILME_SEBEBI.ATILAN_YOK);
+});
+
+test('kabul (b): önceki oyuncunun yığını boşken başka oyuncunun dolu yığınından çekilemez (sebep: atilanYok)', () => {
+  // Sıra 0'da: önceki oyuncu 3 (boş yığın). Oyuncu 1 ve 2'nin yığınları dolu ama bunlar motor
+  // için geçerli bir kaynak değil — başka köşeden çekme yasağı (R-012) motorda da geçerli olmalı.
+  const durum = temelDurum({
+    sira: 0,
+    cekildiMi: false,
+    atilanYiginlar: [[], [t('kirmizi', 11)], [t('siyah', 12)], []],
+  });
+  const sonuc = cek(durum, 0, KAYNAK.ATILAN);
+  assert.equal(sonuc.basarili, false);
+  assert.equal(sonuc.sebep, REDDEDILME_SEBEBI.ATILAN_YOK);
+  assert.deepEqual(sonuc.durum, durum, 'reddedilen hamle durumu değiştirmemeli');
+});
+
+test('kabul (d): tam turda (4 atış) dört yığının da uzunluğu 1 olur', () => {
+  let durum = elBaslat(5050);
+  for (let i = 0; i < OYUNCU_SAYISI; i++) {
+    const oyuncu = durum.sira;
+    if (!durum.cekildiMi) {
+      const cekSonuc = cek(durum, oyuncu, KAYNAK.YER);
+      assert.equal(cekSonuc.basarili, true);
+      durum = cekSonuc.durum;
+    }
+    const atilacakTas = durum.eller[oyuncu].find((tas) => !tasOkeyMi(tas, durum.okeyTasi));
+    const atSonuc = at(durum, oyuncu, atilacakTas.id);
+    assert.equal(atSonuc.basarili, true);
+    durum = atSonuc.durum;
+  }
+  for (let oyuncu = 0; oyuncu < OYUNCU_SAYISI; oyuncu++) {
+    assert.equal(durum.atilanYiginlar[oyuncu].length, 1, `oyuncu ${oyuncu} yığını tam turda tam 1 taş içermeli`);
+  }
 });
 
 // --- (d) okey/sahte okey atma engelleniyor (ADR-008/2), sebep çağırana döner ---

@@ -53,41 +53,44 @@ test('atilacakTasiSec: elin tamamı jokerse (aday havuzu boşalır) hâlâ elden
 
 // --- cekimKaynaginiSec: atılanı yalnız gerçekten bağlantılıysa seçer ---
 
-test('cekimKaynaginiSec: atılan taş elde çift tamamlıyorsa ATILAN seçilir', () => {
+// tasokey#25 — ADR-010: oyuncu 0 için önceki oyuncu 3'tür (oncekiOyuncu); bot da motorun
+// cek(ATILAN) ile kabul edeceği tek kaynağa (yalnız oyuncu 3'ün yığını) bakmalı.
+
+test('cekimKaynaginiSec: önceki oyuncunun atılan taşı elde çift tamamlıyorsa ATILAN seçilir', () => {
   const durum = {
     eller: [[t('kirmizi', 5), t('mavi', 2)], [], [], []],
     yerDestesi: [t('sari', 1)],
-    atilanYigin: [t('siyah', 5)], // kirmizi-5 ile çift adayı
+    atilanYiginlar: [[], [], [], [t('siyah', 5)]], // kirmizi-5 ile çift adayı, oyuncu 3'ün yığınında
     okeyTasi: OKEY_TASI,
   };
   assert.equal(cekimKaynaginiSec(durum, 0, KURAL_VARSAYILAN), KAYNAK.ATILAN);
 });
 
-test('cekimKaynaginiSec: atılan taş elle bağlantısızsa YER seçilir', () => {
+test('cekimKaynaginiSec: önceki oyuncunun atılan taşı elle bağlantısızsa YER seçilir', () => {
   const durum = {
     eller: [[t('kirmizi', 5), t('mavi', 2)], [], [], []],
     yerDestesi: [t('sari', 1)],
-    atilanYigin: [t('sari', 11)], // hiçbir elde taşla bağlantısı yok
+    atilanYiginlar: [[], [], [], [t('sari', 11)]], // hiçbir elde taşla bağlantısı yok
     okeyTasi: OKEY_TASI,
   };
   assert.equal(cekimKaynaginiSec(durum, 0, KURAL_VARSAYILAN), KAYNAK.YER);
 });
 
-test('cekimKaynaginiSec: yer destesi boşsa atılan boş olmadıkça ATILAN seçilir', () => {
+test('cekimKaynaginiSec: yer destesi boşsa önceki oyuncunun yığını boş olmadıkça ATILAN seçilir', () => {
   const durum = {
     eller: [[t('kirmizi', 5)], [], [], []],
     yerDestesi: [],
-    atilanYigin: [t('sari', 11)],
+    atilanYiginlar: [[], [], [], [t('sari', 11)]],
     okeyTasi: OKEY_TASI,
   };
   assert.equal(cekimKaynaginiSec(durum, 0, KURAL_VARSAYILAN), KAYNAK.ATILAN);
 });
 
-test('cekimKaynaginiSec: atılan yığın boşsa YER seçilir', () => {
+test('cekimKaynaginiSec: önceki oyuncunun yığını boşsa YER seçilir (başka oyuncunun dolu yığınına bakılmaz)', () => {
   const durum = {
     eller: [[t('kirmizi', 5)], [], [], []],
     yerDestesi: [t('sari', 1)],
-    atilanYigin: [],
+    atilanYiginlar: [[], [t('kirmizi', 11)], [], []], // oyuncu 1'in yığını dolu ama oyuncu 0'ın öncekisi değil
     okeyTasi: OKEY_TASI,
   };
   assert.equal(cekimKaynaginiSec(durum, 0, KURAL_VARSAYILAN), KAYNAK.YER);

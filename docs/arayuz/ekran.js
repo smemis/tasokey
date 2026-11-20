@@ -2,7 +2,7 @@
 // Kural bilgisi burada yok: her çek/at çağrısı `cekirdek/el.js`'e gider; bu dosya yalnız
 // sonucu DOM'a yansıtır (R-003, R-005, R-006, R-009; tasokey#10).
 
-import { elBaslat, cek, at, KAYNAK, EL_SONUCU } from '../cekirdek/el.js';
+import { elBaslat, cek, at, KAYNAK, EL_SONUCU, oncekiOyuncu } from '../cekirdek/el.js';
 import { tasOkeyMi } from '../cekirdek/dagitim.js';
 import { elSonucunuHesapla } from '../cekirdek/puan.js';
 import { kolayBotTurOyna } from '../bot/kolay.js';
@@ -142,8 +142,12 @@ function masaCiz() {
   if (durum.yerDestesi.length > 0) eleman.yerDestesi.appendChild(tersTasElemaniOlustur());
   eleman.yerDestesiSayac.textContent = String(durum.yerDestesi.length);
 
+  // ADR-010: atılan taşlar artık oyuncu başına yığın; bu görünümde yalnız o anda geçerli
+  // çekme kaynağı (sıradaki oyuncudan önceki oyuncunun yığını) gösterilir. Dört köşe yığınının
+  // hepsini ayrı ayrı göstermek R-011/R-012 kapsamında ayrı bir arayüz işidir (açık, ADR-012).
   eleman.atilanYigin.innerHTML = '';
-  const ustTas = durum.atilanYigin[durum.atilanYigin.length - 1];
+  const gecerliYigin = durum.atilanYiginlar[oncekiOyuncu(durum.sira)];
+  const ustTas = gecerliYigin[gecerliYigin.length - 1];
   if (ustTas) eleman.atilanYigin.appendChild(tasElemaniOlustur(ustTas, durum.okeyTasi));
 
   for (const oyuncu of [1, 2, 3]) {

@@ -1,7 +1,7 @@
 // Kolay bot: çekme/atma sezgiseli (per-çift tamamlama yakınlığı); hamleyi her zaman
 // cekirdek/el.js'e onaylatır, kuralı kendi yorumlamaz (MIMARI.md ADR-002, GDD.md §4, tasokey#9).
 
-import { cek, at, KAYNAK, VARSAYILAN_MAKSIMUM_TUR } from '../cekirdek/el.js';
+import { cek, at, KAYNAK, VARSAYILAN_MAKSIMUM_TUR, oncekiOyuncu } from '../cekirdek/el.js';
 import { tasOkeyMi } from '../cekirdek/dagitim.js';
 import { KURAL_VARSAYILAN } from '../cekirdek/kural.js';
 import { EN_DUSUK_SAYI, EN_YUKSEK_SAYI } from '../cekirdek/tas.js';
@@ -53,14 +53,17 @@ export function atilacakTasiSec(el, okeyTasi, kural = KURAL_VARSAYILAN) {
   return secilen;
 }
 
-// Çekim kaynağını seçer: atılan yığının üstündeki taş eldeki taşlarla bir çift adayı ya da
-// bitişik per adayı oluşturacak kadar bağlantılıysa oradan, değilse yerden çekilir. Kaynaklar
-// boşsa (deste tükenmişken bile cek() çağrılabilmesi diye) hâlâ geçerli olan kaynak seçilir.
+// Çekim kaynağını seçer: ADR-010 ile atılan taşlar oyuncu başına yığın olduğundan bot da
+// yalnız önceki oyuncunun yığınının üst taşına bakar (motorun cek(ATILAN) ile kabul edeceği
+// tek kaynak budur). O taş eldeki taşlarla bir çift adayı ya da bitişik per adayı oluşturacak
+// kadar bağlantılıysa oradan, değilse yerden çekilir. Kaynaklar boşsa (deste tükenmişken bile
+// cek() çağrılabilmesi diye) hâlâ geçerli olan kaynak seçilir.
 export function cekimKaynaginiSec(durum, oyuncu, kural = KURAL_VARSAYILAN) {
   if (durum.yerDestesi.length === 0) return KAYNAK.ATILAN;
-  if (durum.atilanYigin.length === 0) return KAYNAK.YER;
+  const oncekiYigin = durum.atilanYiginlar[oncekiOyuncu(oyuncu)];
+  if (oncekiYigin.length === 0) return KAYNAK.YER;
 
-  const ustTas = durum.atilanYigin[durum.atilanYigin.length - 1];
+  const ustTas = oncekiYigin[oncekiYigin.length - 1];
   const el = durum.eller[oyuncu];
   const puan = baglantiPuani(ustTas, el, durum.okeyTasi, kural.onUcBirGecisiPerSayilir);
   return puan >= 3 ? KAYNAK.ATILAN : KAYNAK.YER;
