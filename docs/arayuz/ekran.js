@@ -57,6 +57,10 @@ const KOSE_ELEMAN_ADLARI = {
 // çizilir (daha eskisi birikse de görsel karmaşayı sınırlamak için — adet gerçek sayıyı gösterir).
 const KOSE_GORUNEN_MAKSIMUM = 3;
 
+// Deste de aynı kaydırılmış-katman diliyle çizilir (madde 2, tasokey#33): tek taş yerine birkaç
+// ters taş üst üste görünür; gerçek kalan sayı ayrıca sayaçta okunur.
+const DESTE_GORUNEN_MAKSIMUM = 4;
+
 const durumKutu = {
   durum: null,
   diller: {},
@@ -202,19 +206,42 @@ function durumSatiriCiz() {
 // CSS değişkeni hesaplaması olmadığı için — ekran.js'in sabit değerleri CSS_VAR_* önekiyle anılır).
 const CSS_VAR_KOSE_KAYDIRMA_PX = 5;
 
+// Madde 4 (tasokey#33): boşken "0" yazısı yerine boş yuva/silik taş çerçevesi (yuva-bos.svg,
+// rafın boş yuvasıyla aynı görsel dil) görünür; erişilebilir adet etiketi (aria-label) gerçek
+// sayıyı (0 dahil) yine de taşır, yalnız görünen sayaç metni boşken basılmaz.
 function koseYiginiCiz(kutu, yiginAlani, sayacEl, yigin, oyuncu, okeyTasi) {
   yiginAlani.innerHTML = '';
-  const gorunenler = yigin.slice(-KOSE_GORUNEN_MAKSIMUM);
-  gorunenler.forEach((tas, index) => {
-    const tasElemani = tasElemaniOlustur(tas, okeyTasi);
-    const alttanSira = gorunenler.length - 1 - index;
-    const kaydirma = alttanSira * CSS_VAR_KOSE_KAYDIRMA_PX;
-    tasElemani.style.transform = `translate(${-kaydirma}px, ${-kaydirma}px)`;
-    tasElemani.style.zIndex = String(10 - alttanSira);
-    yiginAlani.appendChild(tasElemani);
-  });
-  sayacEl.textContent = String(yigin.length);
+  if (yigin.length === 0) {
+    yiginAlani.appendChild(gorselOlustur('yuva-bos.svg', 'kose-yuva-bos'));
+    sayacEl.textContent = '';
+  } else {
+    const gorunenler = yigin.slice(-KOSE_GORUNEN_MAKSIMUM);
+    gorunenler.forEach((tas, index) => {
+      const tasElemani = tasElemaniOlustur(tas, okeyTasi);
+      const alttanSira = gorunenler.length - 1 - index;
+      const kaydirma = alttanSira * CSS_VAR_KOSE_KAYDIRMA_PX;
+      tasElemani.style.transform = `translate(${-kaydirma}px, ${-kaydirma}px)`;
+      tasElemani.style.zIndex = String(10 - alttanSira);
+      yiginAlani.appendChild(tasElemani);
+    });
+    sayacEl.textContent = String(yigin.length);
+  }
   kutu.setAttribute('aria-label', metinAl('koseYigini.adet', [oyuncuAdi(oyuncu), yigin.length]));
+}
+
+// Madde 2 (tasokey#33): ortadaki deste de köşe yığınıyla aynı mantıkla üst üste kaydırılmış
+// birkaç ters taş olarak görünür (tek taş yerine); kalan gerçek sayı ayrı sayaçta okunur.
+function yerDestesiYiginiCiz(alan, adet) {
+  alan.innerHTML = '';
+  const gorunenSayi = Math.min(adet, DESTE_GORUNEN_MAKSIMUM);
+  for (let index = 0; index < gorunenSayi; index++) {
+    const tersTas = tersTasElemaniOlustur();
+    const alttanSira = gorunenSayi - 1 - index;
+    const kaydirma = alttanSira * CSS_VAR_KOSE_KAYDIRMA_PX;
+    tersTas.style.transform = `translate(${-kaydirma}px, ${-kaydirma}px)`;
+    tersTas.style.zIndex = String(10 - alttanSira);
+    alan.appendChild(tersTas);
+  }
 }
 
 // R-013: elin bitirilebilir olup olmadığı yalnız iş 3'ün sorgusuyla (`elBitirenTaslar`) anlaşılır;
@@ -229,8 +256,7 @@ function masaCiz() {
   const { durum } = durumKutu;
 
   eleman.yerDestesiBaslik.textContent = metinAl('yerDestesi');
-  eleman.yerDestesi.innerHTML = '';
-  if (durum.yerDestesi.length > 0) eleman.yerDestesi.appendChild(tersTasElemaniOlustur());
+  yerDestesiYiginiCiz(eleman.yerDestesi, durum.yerDestesi.length);
   eleman.yerDestesiSayac.textContent = String(durum.yerDestesi.length);
   eleman.yerDestesi.setAttribute('aria-label', metinAl('yerDestesi'));
 
