@@ -27,8 +27,10 @@
   --raf-yuva-bosluk: 6px;
   /* Rakip ıstakası artık yalnız ince ahşap sırt (taş çizilmez — Sahip ek bilgisi, 2026-11-20):
      --rakip-raf-kalinlik çubuğun gerçek inceliğidir (sol/sağda genişlik, üstte yükseklik).
-     --rakip-raf-uzunluk sol/sağ çubuğun taban (min-height) uzunluğu; gerçek uzunluk satırın
-     %60'ı olarak büyür (aşağıda .kenar-raf-dikey, madde 1 tasokey#33). */
+     --rakip-raf-uzunluk sol/sağ çubuğun taban (min-height) uzunluğu; gerçek uzunluk ızgaranın orta
+     satırının %86'sı olarak büyür (aşağıda .kenar-raf-dikey, madde 1 tasokey#33). Orta satır masa
+     yüksekliğinin ~%60'ı olduğundan bu, "masa yüksekliğinin yaklaşık yarısı"na denk gelir —
+     1. tur ekran görüntüsünde %60 denenmiş, ölçülen sonuç masanın yalnız %34'ü çıkmıştı. */
   --rakip-raf-uzunluk: 240px;
   --rakip-raf-kalinlik: 26px;
   /* Üst rakibin çubuğu Sahip'in kendi ıstakası kadar geniş olsun diye #raf'ın genişlik formülüyle
@@ -236,7 +238,7 @@ html, body {
 
 .kenar-raf-dikey {
   width: var(--rakip-raf-kalinlik);
-  height: 60%;
+  height: 86%;
   min-height: var(--rakip-raf-uzunluk);
   background-image: url('../gorsel/istaka-dikey.svg');
   background-size: 100% 100%;
@@ -501,10 +503,11 @@ html, body {
 
   /* Rafım/Yer destesi/Gösterge panelindeki dikey boşluk da bu kademede daralır (844x390'da
      iki satırlık ıstaka + panel dolgusu + başlık toplamı viewport'a taşıyordu — tasokey#32).
-     Sol/sağ rakip çubuğu da bu en dar kademede %60 büyümez, doğrudan taban uzunlukta sabit kalır
+     Sol/sağ rakip çubuğu bu en dar kademede taban uzunluğunu (min-height) bırakır: yüzde yükseklik
+     satırın dışına taşamaz, ama min-height satırı büyütüp Sahip'in kendi ıstakasını sıkıştırabilir
      (R-014/#32 düzeltmesini bozmamak için — Sahip'in kendi ıstakası öncelikli, tasokey#33). */
   #rafAlani, .yigin { gap: 4px; }
-  .kenar-raf-dikey { height: var(--rakip-raf-uzunluk); }
+  .kenar-raf-dikey { min-height: 0; }
 }
 
 /* Telefon dikey uyarısı (R-014, ADR-012, tasokey#31): yön tespiti tamamen CSS ortam sorgusuyla

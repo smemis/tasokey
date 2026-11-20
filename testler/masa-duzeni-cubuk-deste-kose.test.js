@@ -15,6 +15,9 @@ const DOCS_KOK = join(import.meta.dirname, '..', 'docs');
 const STIL_CSS = readFileSync(join(DOCS_KOK, 'arayuz', 'stil.css'), 'utf8');
 const EKRAN_JS = readFileSync(join(DOCS_KOK, 'arayuz', 'ekran.js'), 'utf8');
 const MASA_ZEMIN_SVG = readFileSync(join(DOCS_KOK, 'gorsel', 'masa-zemin.svg'), 'utf8');
+const MASA_CERCEVE_SVG = readFileSync(join(DOCS_KOK, 'gorsel', 'masa-cerceve.svg'), 'utf8');
+const ISTAKA_DIKEY_SVG = readFileSync(join(DOCS_KOK, 'gorsel', 'istaka-dikey.svg'), 'utf8');
+const ISTAKA_YATAY_SVG = readFileSync(join(DOCS_KOK, 'gorsel', 'istaka-yatay.svg'), 'utf8');
 
 test('madde-1-a: .kenar artık gri kutu (beyaz saydam arka plan) taşımıyor', () => {
   assert.ok(
@@ -52,6 +55,49 @@ test('madde-1-d: rakip taş hâlâ çizilmiyor (Sahip ek bilgisi korunuyor)', ()
   assert.ok(
     !/rafDiv\.appendChild\(tersTasElemaniOlustur/.test(EKRAN_JS),
     'ekran.js hâlâ rakip ıstakasına kapalı taş ekliyor olmamalı',
+  );
+});
+
+// 1. turun ekran görüntüsünde ölçüldü (is/tasokey-33/ekran, 1920x1080): sarı odak çerçevesi
+// (.kenar.aktif .kenar-raf-dikey) 345 px uzundu, yani DOM kutusu gerçekten uzuyordu; ama boyanan
+// ahşap yalnız ~26x78 px (viewBox 160x480 = 1:3) kalıyordu. Sebep: SVG'nin varsayılan
+// preserveAspectRatio="xMidYMid meet" değeri, background-size: 100% 100% ile kutu gerilse bile
+// resmi kendi oranında ortalıyor. Çubuğun kenar boyunca gerçekten uzaması için SVG'nin oran
+// koruması kapatılmalı.
+test('madde-1-e: rakip ıstaka SVG\'leri oran korumasını kapatır (kutu gerilince ahşap da gerilir)', () => {
+  assert.match(
+    ISTAKA_DIKEY_SVG,
+    /preserveAspectRatio="none"/,
+    'istaka-dikey.svg preserveAspectRatio="none" taşımıyor — çubuk kutu kadar uzamaz, ortada kısa kalır',
+  );
+  assert.match(
+    ISTAKA_YATAY_SVG,
+    /preserveAspectRatio="none"/,
+    'istaka-yatay.svg preserveAspectRatio="none" taşımıyor — çubuk kendi ıstaka genişliğine uzamaz',
+  );
+});
+
+// Ölçüm (1. tur, 1920x1080): çubuk 345 px / masa 1008 px = %34, "masa yüksekliğinin yaklaşık
+// yarısı" değil. Çubuk ızgaranın orta satırını kaplar; orta satır masa yüksekliğinin ~%60'ı
+// olduğundan "yarısına" ulaşmak için satırın en az %80'i gerekir.
+test('madde-1-f: sol/sağ çubuk orta satırın en az %80\'ini kaplar (≈ masa yüksekliğinin yarısı)', () => {
+  const eslesme = STIL_CSS.match(/\.kenar-raf-dikey\s*\{[^}]*height:\s*(\d+)%/);
+  assert.ok(eslesme, '.kenar-raf-dikey yüzde yükseklik tanımlamıyor');
+  assert.ok(
+    Number(eslesme[1]) >= 80,
+    `.kenar-raf-dikey yüksekliği %${eslesme[1]}; masa yüksekliğinin yarısına ulaşmak için en az %80 olmalı`,
+  );
+});
+
+// border-image-slice sayıları, görselin KENDİ (intrinsic) piksel uzayında okunur. Yalnız viewBox
+// taşıyan bir SVG'nin intrinsic boyutu yoktur; tarayıcı onu çerçeve alanına göre ölçekler ve
+// "36" artık viewBox birimi olmaz → çerçeve ahşap deseni yerine düz kahverengi şerit olur.
+// width/height verilince 36, viewBox'taki iç kesimle (36..84) birebir eşleşir.
+test('madde-3-c: masa-cerceve.svg intrinsic boyut taşır (border-image-slice 36 viewBox birimine denk gelsin)', () => {
+  assert.match(
+    MASA_CERCEVE_SVG,
+    /<svg[^>]*\bwidth="120"[^>]*\bheight="120"/,
+    'masa-cerceve.svg width/height taşımıyor — border-image-slice: 36 viewBox birimine karşılık gelmez',
   );
 });
 
