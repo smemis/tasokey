@@ -41,6 +41,13 @@ function gecersiz(sebep) {
   return { eylem: EYLEM.GECERSIZ, sebep };
 }
 
+// El sürerken rakip taşı HİÇ görünmez (Sahip ek bilgisi, 2026-11-20: rakip ıstakasının yalnız
+// ahşap sırtı); el bittiğinde (kazanan, berabere ya da tur sınırı — hepsi "el bitti") rakiplerin
+// ıstakası açılır (Sahip ek bilgisi, 2026-11-20). Karar burada saf tutulur, `ekran.js` uygular.
+export function rakipEliAcikMi(elDurumu) {
+  return elDurumu.sonuc !== EL_SONUCU.SUREN;
+}
+
 // `oyuncu`: etkileşimi başlatan oyuncu (insan oyuncunun index'i). `hedef`: ek bilgi — köşe
 // hedefinde `{ kose }` (index.html `data-kose` adı), raf yuvası hedefinde `{ slotIndex }`.
 export function eylemKararVer(secilenTasId, hedefTuru, elDurumu, oyuncu, hedef = {}) {

@@ -23,7 +23,19 @@
   --tas-rakam-ust: 11.43%;
   --tas-rakam-genislik: 64%;
   --tas-rakam-yukseklik: 55.71%;
-  --tas-rakam-font-boyutu: calc(var(--tas-yukseklik) * 0.42);
+  /* Rakam/gövde oranı tek kaynak: küçültülmüş taşlar (rakip ıstakası açıkken) da bunu kullanır. */
+  --tas-rakam-oran: 0.42;
+  --tas-rakam-font-boyutu: calc(var(--tas-yukseklik) * var(--tas-rakam-oran));
+  /* El bittiğinde açılan rakip ıstakası (Sahip ek bilgisi, 2026-11-20): taşlar kendi ölçüsünün
+     bu oranında çizilir ki 14-15 taş kenara sığsın; sütun sayıları yatay (üst) ve dikey
+     (sol/sağ) kenar için ayrı. Ölçek her duyarlı kademede kendiliğinden küçülür, çünkü taban
+     --tas-genislik/--tas-yukseklik'ten türer (tek kaynak). */
+  --rakip-acik-olcek: 0.6;
+  --rakip-acik-tas-genislik: calc(var(--tas-genislik) * var(--rakip-acik-olcek));
+  --rakip-acik-tas-yukseklik: calc(var(--tas-yukseklik) * var(--rakip-acik-olcek));
+  --rakip-acik-bosluk: 2px;
+  --rakip-acik-sutun-yatay: 8;
+  --rakip-acik-sutun-dikey: 2;
   /* Taşlar ıstakada bitişik durur (Sahip ek bilgisi, 2026-11-20): yuva arası boşluk her kademede
      sıfır, sütun sayısı 12 (ekran.js RAF_SUTUN_SAYISI). Kademe geçişlerinde yalnız --tas-genislik
      küçülür; boşluk değişkeni tek yerde kalır ki "bitişik" kuralı bir kademede kaçmasın.
@@ -275,6 +287,58 @@ html, body {
   background-image: url('../gorsel/istaka-dikey.svg');
   background-size: 100% 100%;
 }
+
+/* El bittiğinde rakiplerin ıstakası açılır (Sahip ek bilgisi, 2026-11-20; ekran.js rakipTaslariCiz
+   + etkilesim.js rakipEliAcikMi). Taşlar AKIŞA GİRMEDEN (mutlak konum) çubuğun masa tarafına
+   serilir: el sürerken kutu boş kalır (`:empty` → gizli) ve düzen hiç kaymaz, el bitince de kenar
+   kutusu büyüyüp ızgarayı bozmaz. Kademe verilmez → masa kademesinde kalır, yani sonuç penceresinin
+   ALTINDA (ADR-015). Taşlar yalnız gösterilir: tıklanmaz (pointer-events: none). */
+.kenar-taslar {
+  position: absolute;
+  display: grid;
+  gap: var(--rakip-acik-bosluk);
+  justify-content: center;
+  pointer-events: none;
+}
+
+.kenar-taslar:empty { display: none; }
+
+/* Çubuktan uzaklık `calc(100% + boşluk)` yerine konum + kenar boşluğu olarak yazılır: calc()
+   içinde yüzde ile px toplamak tarayıcıda geçerli olsa da projenin birim denetimi (denetci-4,
+   masa-duzeni-cubuk-deste-kose.test.js) bunu riskli sayıyor — aynı sonucu veren güvenli biçim. */
+.kenar-ust .kenar-taslar {
+  top: 100%;
+  margin-top: var(--rakip-acik-bosluk);
+  left: 50%;
+  transform: translateX(-50%);
+  grid-template-columns: repeat(var(--rakip-acik-sutun-yatay), auto);
+}
+
+.kenar-sol .kenar-taslar {
+  left: 100%;
+  margin-left: var(--rakip-acik-bosluk);
+  top: 50%;
+  transform: translateY(-50%);
+  grid-template-columns: repeat(var(--rakip-acik-sutun-dikey), auto);
+}
+
+.kenar-sag .kenar-taslar {
+  right: 100%;
+  margin-right: var(--rakip-acik-bosluk);
+  top: 50%;
+  transform: translateY(-50%);
+  grid-template-columns: repeat(var(--rakip-acik-sutun-dikey), auto);
+}
+
+.kenar-taslar .tas {
+  width: var(--rakip-acik-tas-genislik);
+  height: var(--rakip-acik-tas-yukseklik);
+  cursor: default;
+}
+
+/* Rakam oranı --tas-rakam-font-boyutu'yla aynı kaynaktan (--tas-rakam-oran), yalnız taban ölçü
+   küçültülmüş taşınki. */
+.kenar-taslar .tas-rakam { font-size: calc(var(--rakip-acik-tas-yukseklik) * var(--tas-rakam-oran)); }
 
 /* Köşeler: her oyuncunun attığı taş kendi köşe yığınında durur (R-011); en üstteki taş tam
    görünür, alttakiler `arayuz/ekran.js`de satır/sütun kaydırmasıyla (translate) kısmi görünür.

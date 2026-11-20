@@ -10,7 +10,7 @@ import { elSonucunuHesapla } from '../cekirdek/puan.js';
 import { kolayBotTurOyna } from '../bot/kolay.js';
 import { cevir } from '../dil/cevir.js';
 import { surukleBagla } from './surukle.js';
-import { HEDEF_TURU, EYLEM, eylemKararVer } from './etkilesim.js';
+import { HEDEF_TURU, EYLEM, eylemKararVer, rakipEliAcikMi } from './etkilesim.js';
 import { kayitOku, kayitYaz } from '../kayit/depo.js';
 import { gorselOlustur, gorselleriOnYukle } from './gorseller.js';
 import { oyuncuKenarHaritasi, oyuncununAtilanKosesi } from './yerlesim.js';
@@ -39,13 +39,13 @@ const KENAR_HARITASI = oyuncuKenarHaritasi(sonrakiOyuncu);
 const KOSE_HARITASI = [0, 1, 2, 3].map((oyuncu) => oyuncununAtilanKosesi(oyuncu, sonrakiOyuncu));
 
 // Rakip kenarlarının ıstaka çubuğu yalnız CSS'te durur (kenar-raf-yatay/dikey, stil.css) — ahşap
-// sırt dışında içerik basılmaz (Sahip ek bilgisi, 2026-11-20: rakip taşları hiç görünmemeli, ne
-// yüz ne kapalı taş; gerçek okeydeki gibi yalnız ıstakanın arkası). Bu yüzden burada JS'in
-// doldurduğu bir "raf" elemanı yok.
+// sırt dışında içerik basılmaz (Sahip ek bilgisi, 2026-11-20: rakip taşları EL SÜRERKEN hiç
+// görünmemeli, ne yüz ne kapalı taş; gerçek okeydeki gibi yalnız ıstakanın arkası). El bitince
+// aynı kenarın `taslar` kutusu rakibin elini açar (Sahip ek bilgisi, 2026-11-20).
 const KENAR_ELEMAN_ADLARI = {
-  ust: { kutu: 'kenarUst', ad: 'kenarUstAd' },
-  sol: { kutu: 'kenarSol', ad: 'kenarSolAd' },
-  sag: { kutu: 'kenarSag', ad: 'kenarSagAd' },
+  ust: { kutu: 'kenarUst', ad: 'kenarUstAd', taslar: 'kenarUstTaslar' },
+  sol: { kutu: 'kenarSol', ad: 'kenarSolAd', taslar: 'kenarSolTaslar' },
+  sag: { kutu: 'kenarSag', ad: 'kenarSagAd', taslar: 'kenarSagTaslar' },
 };
 
 const KOSE_ELEMAN_ADLARI = {
@@ -249,6 +249,23 @@ function yerDestesiYiginiCiz(alan, adet) {
   }
 }
 
+// El bitince rakibin ıstakası açılır (Sahip ek bilgisi, 2026-11-20): kutu rakibin bütün taşlarını
+// yüzü açık gösterir. "Açık mı" kararı saf modülde (etkilesim.js rakipEliAcikMi); burada yalnız
+// çizim var. El sürerken kutu boşaltılır — rakip taşı bir an bile görünmez.
+function rakipTaslariCiz(kutu, el, okeyTasi, acikMi, oyuncu) {
+  kutu.innerHTML = '';
+  if (!acikMi) {
+    kutu.removeAttribute('aria-label');
+    return;
+  }
+  for (const tas of el) {
+    const tasElemani = tasElemaniOlustur(tas, okeyTasi);
+    tasElemani.setAttribute('aria-label', tasAriaEtiketi(tas, okeyTasi));
+    kutu.appendChild(tasElemani);
+  }
+  kutu.setAttribute('aria-label', metinAl('rakipAcikEl', [oyuncuAdi(oyuncu), el.length]));
+}
+
 // R-013: elin bitirilebilir olup olmadığı yalnız iş 3'ün sorgusuyla (`elBitirenTaslar`) anlaşılır;
 // kural burada yeniden yazılmaz. Çekilmeden önce ya da sıra bende değilken anlamsız olduğundan
 // o durumlarda boş liste döner.
@@ -273,10 +290,12 @@ function masaCiz() {
   eleman.gosterge.innerHTML = '';
   eleman.gosterge.appendChild(tasElemaniOlustur(durum.gosterge, durum.okeyTasi));
 
+  const rakipEliAcik = rakipEliAcikMi(durum);
   for (const oyuncu of [1, 2, 3]) {
-    const { kutu, ad } = KENAR_ELEMAN_ADLARI[KENAR_HARITASI[oyuncu]];
+    const { kutu, ad, taslar } = KENAR_ELEMAN_ADLARI[KENAR_HARITASI[oyuncu]];
     eleman[ad].textContent = oyuncuAdi(oyuncu);
     eleman[kutu].classList.toggle('aktif', durum.sira === oyuncu && durum.sonuc === EL_SONUCU.SUREN);
+    rakipTaslariCiz(eleman[taslar], durum.eller[oyuncu], durum.okeyTasi, rakipEliAcik, oyuncu);
   }
 
   // R-012: yalnız önceki oyuncunun köşesi geçerli çekme kaynağıdır; o köşe `cekilebilir` sınıfıyla
@@ -481,9 +500,9 @@ function elemanlariTopla() {
     'baslikMetni', 'dilDugmesi', 'durumSatiri',
     'yerDestesiBaslik', 'yerDestesi', 'yerDestesiSayac', 'yerDestesiIpucu',
     'gostergeBaslik', 'gosterge',
-    'kenarUst', 'kenarUstAd',
-    'kenarSol', 'kenarSolAd',
-    'kenarSag', 'kenarSagAd',
+    'kenarUst', 'kenarUstAd', 'kenarUstTaslar',
+    'kenarSol', 'kenarSolAd', 'kenarSolTaslar',
+    'kenarSag', 'kenarSagAd', 'kenarSagTaslar',
     'telefonUyarisiMetni',
     'koseSolUst', 'koseSolUstYigin', 'koseSolUstSayac',
     'koseSagUst', 'koseSagUstYigin', 'koseSagUstSayac',
