@@ -120,7 +120,7 @@ html, body {
   gap: 6px;
 }
 
-.yigin-baslik { font-size: 0.8rem; opacity: 0.85; }
+.yigin-baslik, #rafBaslik { font-size: 0.8rem; opacity: 0.85; }
 
 .yigin-tas-alani {
   min-width: var(--tas-genislik);
@@ -416,14 +416,14 @@ html, body {
    çünkü telefon yatayda genişlik 900px kademesine düşse de yükseklik çok daha dar kalır. */
 @media (orientation: landscape) and (max-height: 500px) {
   :root {
-    --tas-genislik: 30px;
-    --tas-yukseklik: 44px;
-    --tas-arka-genislik: 16px;
-    --tas-arka-yukseklik: 24px;
-    --raf-yuva-bosluk: 3px;
-    --masa-bosluk: 8px;
-    --masa-dolgu: 6px;
-    --panel-dolgu: 6px;
+    --tas-genislik: 25px;
+    --tas-yukseklik: 36px;
+    --tas-arka-genislik: 13px;
+    --tas-arka-yukseklik: 20px;
+    --raf-yuva-bosluk: 2px;
+    --masa-bosluk: 6px;
+    --masa-dolgu: 4px;
+    --panel-dolgu: 4px;
     --rakip-raf-uzunluk: 90px;
     --rakip-raf-kalinlik: 10px;
     --baslik-font-boyutu: 0.9rem;
@@ -431,6 +431,10 @@ html, body {
     --durum-dolgu-dikey: 3px;
     --durum-dolgu-yatay: 8px;
   }
+
+  /* Rafım/Yer destesi/Gösterge panelindeki dikey boşluk da bu kademede daralır (844x390'da
+     iki satırlık ıstaka + panel dolgusu + başlık toplamı viewport'a taşıyordu — tasokey#32). */
+  #rafAlani, .yigin { gap: 4px; }
 }
 
 /* Telefon dikey uyarısı (R-014, ADR-012, tasokey#31): yön tespiti tamamen CSS ortam sorgusuyla
