@@ -43,6 +43,8 @@
 > Kaynak: `GDD.md` §7 Soru 3'ün kararı açıkça Mimar/Geliştirici'ye bırakması ve `tasokey#41`
 > isteği. `GDD.md` §4 "Zorluk kademeleri" satırı ile §7 Soru 3 ("kapandı — B") bu işte güncellendi;
 > `kural.js`, `PRD.md` gereksinim metinleri ve kayıt şeması değişmedi.
+> Düzeltme (Denetçi bulgusu, aynı iş): §7 risk 1'e kanıtsız yazılan çözücü süreleri (0,47 / 0,49 ms)
+> deponun ölçüm betikleriyle yeniden ölçülüp üreten komutla birlikte yazıldı.
 
 | Alan | Değer |
 |---|---|
@@ -337,7 +339,7 @@ uyarısı görünür, R-014).
 
 | # | Konu | Durum | Nasıl ölçülecek |
 |---|---|---|---|
-| 1 | **Bitirilebilirlik çözücüsü** (eli per/çift gruplarına tam bölme, 2 okey + 2 sahte okey joker olarak) işin en zor parçası; geri izlemeli arama yanlış ya da yavaş olabilir. Bot her turda çağırdığı için maliyet çarpılır | **ölçüldü** (tasokey#37): tek el kontrolü ort. 0,0295 ms, `elBitirenTaslar` ort. 1,2777 ms (bütçe 20 ms); 200 ellik bot koşusu 17,6 s (bütçe 60 s, ADR-018 sonrası). tasokey#41: zor kademe tur başına bir çözücü + bir döküm çağrısı daha ekliyor → gerçek dağıtımlarda `elBitirenTaslar` ort. **0,47 ms**, `elDokumu` ort. **0,49 ms**; üç kademeli dayanıklılık koşusu **41,4 s** | İş 5 ve iş 7 kabul ölçütü: ölçülen süre rapora yazılır; tahmin tutmazsa önbellek/budama ayrı iş olur |
+| 1 | **Bitirilebilirlik çözücüsü** (eli per/çift gruplarına tam bölme, 2 okey + 2 sahte okey joker olarak) işin en zor parçası; geri izlemeli arama yanlış ya da yavaş olabilir. Bot her turda çağırdığı için maliyet çarpılır | **ölçüldü** (tasokey#37): tek el kontrolü ort. 0,0295 ms, `elBitirenTaslar` ort. 1,2777 ms (bütçe 20 ms); 200 ellik bot koşusu 17,6 s (bütçe 60 s, ADR-018 sonrası). tasokey#41 (yeniden ölçüldü; günlük `is/tasokey-41/cozucu-maliyet.log`): `node testler/el-bitiren-taslar.olcum.js` → `elBitirenTaslar` ort. **1,2306 ms** (en yavaş tek çağrı 13,74 ms), `node testler/el-dokumu.olcum.js` → `elDokumu` ort. **0,3492 ms** (en yavaş 3,94 ms) — ikisi de 20 ms bütçesinin altında. Zor kademe tur başına bir çözücü + bir döküm çağrısı daha ekliyor; bedeli el başına ölçüldü (`node --test testler/bot-dayaniklilik.test.js`): orta 200 el 17,1 s (**~86 ms/el**), zor 100 el 15,7 s (**~157 ms/el**, orta'nın ~1,8 katı), kolay 100 el 7,3 s (~73 ms/el); üç kademe toplam **40,7 s** (bütçe 60 s; ADR-013'teki 41,4 s aynı koşunun önceki çalıştırmasıdır) | İş 5 ve iş 7 kabul ölçütü: ölçülen süre rapora yazılır; tahmin tutmazsa önbellek/budama ayrı iş olur |
 | 2 | Deste tükenmesi (kural boşluğu) | **kapandı** (ADR-008/4: el berabere) | İş 6'nın öz-testi bu durumu kapsar; bot koşusunda "0 sonlanmayan el" ölçülür |
 | 3 | `12-13-1` geçişi, gösterge sahte okey çıkması, okey atma | **kapandı** (ADR-008/1-3) | İş 3, 4, 6 tablo testleri |
 | 4 | Mobil dikeyde 15 taşlık raf + masa + atılan yığın sığmayabilir | **kapandı** (R-014 ile: dikeyde sığdırma denenmez, oyun alanı yerine dil anahtarlı uyarı gösterilir; bkz. ADR-012) | 390×844 ekran görüntüsü: oyun alanı değil, uyarı görünür; 844×390 (yatay): dört kenar düzeni sığdırılmış görünür |
