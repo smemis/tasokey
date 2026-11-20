@@ -86,11 +86,16 @@ function enUsttekiTas(kaynakElemani) {
 export function cekmeSurukleBagla(masaElemani, rafElemani, kaynaktanCekCallback) {
   let kaynakTuru = null;
   let kaynak = {};
+  let kaynakOgesi = null;
   let ustTas = null;
+  // Hareketi başlatan işaretçinin kimliği: masada aynı anda birden çok parmak olabilir, yalnız
+  // bunun hareketi ve bırakması bu sürüklemeye aittir (tasokey#40).
+  let aktifIsaretciId = null;
   let baslangicX = 0;
   let baslangicY = 0;
   let tasindiMi = false;
   let yutulacakTiklamaZamani = -Infinity;
+  let yutulacakKaynak = null;
 
   function sifirla() {
     if (ustTas) {
@@ -99,8 +104,15 @@ export function cekmeSurukleBagla(masaElemani, rafElemani, kaynaktanCekCallback)
     }
     kaynakTuru = null;
     kaynak = {};
+    kaynakOgesi = null;
     ustTas = null;
+    aktifIsaretciId = null;
     tasindiMi = false;
+  }
+
+  function yutmayiBirak() {
+    yutulacakTiklamaZamani = -Infinity;
+    yutulacakKaynak = null;
   }
 
   // Taşınmış bir sürüklemenin ardından tarayıcı aynı işaretçi dizisi için `click` de üretir; deste
@@ -109,14 +121,23 @@ export function cekmeSurukleBagla(masaElemani, rafElemani, kaynaktanCekCallback)
   // `document` üstünde dinlenir ki hedefin kendi dinleyicilerinden önce çalışsın. Yutma yalnız
   // gerçekten hamle yapıldığında (ıstakaya bırakma) kurulur ve üç yoldan düşer: yeni işaretçi
   // basışı, beklenen tıklamanın gelmesi, pencerenin dolması.
-  document.addEventListener('pointerdown', () => { yutulacakTiklamaZamani = -Infinity; }, true);
+  document.addEventListener('pointerdown', yutmayiBirak, true);
   document.addEventListener('click', (e) => {
-    if (performance.now() - yutulacakTiklamaZamani > UYUM_TIKLAMASI_PENCERESI_MS) return;
-    yutulacakTiklamaZamani = -Infinity;
+    if (!yutulacakKaynak) return;
+    if (performance.now() - yutulacakTiklamaZamani > UYUM_TIKLAMASI_PENCERESI_MS) {
+      yutmayiBirak();
+      return;
+    }
     // `detail === 0`: tıklama işaretçiden değil klavyeden geliyor (native düğmede Enter/Space).
     // Sürüklemenin uyum tıklaması değildir, yutulmaz — yoksa dokunmatikte uyum tıklaması
     // üretilmediğinde kullanıcının sıradaki klavye etkinleştirmesi sessizce düşer.
     if (e.detail === 0) return;
+    // Yutulacak tek tıklama, çekme yolunu ikinci kez tetikleyebilecek olandır: hareketin başladığı
+    // kaynağın (deste ya da o köşe) üstünden geçen tıklama. Dokunmatikte uyum tıklaması hiç
+    // gelmediğinden pencere sonuna kadar açık kalabilir; başka bir yere — çekilen taşı hemen
+    // oynamak için rafa — dokunan oyuncunun dokunuşu bu yüzden ölmemeli (tasokey#40).
+    if (!e.target || !yutulacakKaynak.contains(e.target)) return;
+    yutmayiBirak();
     e.stopPropagation();
     e.preventDefault();
   }, true);
@@ -125,25 +146,35 @@ export function cekmeSurukleBagla(masaElemani, rafElemani, kaynaktanCekCallback)
     const yerDestesi = e.target.closest('[data-hedef="yerDestesi"]');
     const kose = e.target.closest('.kose[data-kose]');
     const kaynakElemani = yerDestesi || kose;
-    if (!kaynakElemani) return;
+    if (!kaynakElemani) {
+      // Kaynak dışında başlayan basış: aynı işaretçiden (fare her zaman aynı kimlikle gelir) kalmış
+      // bayat bir durum varsa — `pointerup` pencere dışında kaybolduysa oluşur — burada düşürülür,
+      // yoksa bu hareketin bırakması bir önceki kaynağın çekmesi gibi görünür. Başka bir parmağın
+      // sürdürdüğü sürüklemeye dokunulmaz.
+      if (aktifIsaretciId !== null && e.pointerId === aktifIsaretciId) sifirla();
+      return;
+    }
     kaynakTuru = yerDestesi ? CEKME_KAYNAGI.YER_DESTESI : CEKME_KAYNAGI.KOSE;
     kaynak = yerDestesi ? {} : { kose: kose.dataset.kose };
+    kaynakOgesi = kaynakElemani;
     ustTas = enUsttekiTas(kaynakElemani);
+    aktifIsaretciId = e.pointerId;
     baslangicX = e.clientX;
     baslangicY = e.clientY;
     tasindiMi = false;
     // Yakalama yalnız kolaylıktır: dinleyiciler masanın kendisinde durduğundan (ıstaka da masanın
-    // içindedir) hareket yakalama olmadan da izlenir. Artık etkin olmayan bir işaretçide tarayıcı
-    // `setPointerCapture`i hata ile reddedebilir — bu, başlamış hareketi düşürmemeli.
+    // içindedir) hareket yakalama olmadan da izlenir. Ama hata ancak işaretçi artık etkin değilse
+    // (ya da öğe belgeye bağlı değilse) gelir: o hareketin sürmesi beklenmez, durum düşürülür —
+    // yoksa bayat kaynak sonraki bırakmaya karışır.
     try {
       kaynakElemani.setPointerCapture(e.pointerId);
     } catch {
-      // yakalama yok; hareket masadaki dinleyicilerle sürer
+      sifirla();
     }
   });
 
   masaElemani.addEventListener('pointermove', (e) => {
-    if (!kaynakTuru) return;
+    if (!kaynakTuru || e.pointerId !== aktifIsaretciId) return;
     const dx = e.clientX - baslangicX;
     const dy = e.clientY - baslangicY;
     if (!tasindiMi && Math.hypot(dx, dy) < SURUKLEME_ESIGI_PX) return;
@@ -157,9 +188,10 @@ export function cekmeSurukleBagla(masaElemani, rafElemani, kaynaktanCekCallback)
   });
 
   masaElemani.addEventListener('pointerup', (e) => {
-    if (!kaynakTuru) return;
+    if (!kaynakTuru || e.pointerId !== aktifIsaretciId) return;
     const tur = kaynakTuru;
     const bilgi = kaynak;
+    const oge = kaynakOgesi;
     const suruklendiMi = tasindiMi;
     sifirla();
     // Yerinde bırakma (eşiğin altında) sürükleme sayılmaz: dokunma/tıklama yolu kendi işini yapar.
@@ -170,9 +202,13 @@ export function cekmeSurukleBagla(masaElemani, rafElemani, kaynaktanCekCallback)
     // çekme gerçekten denendiğinde yutulur — yoksa ne sürükleme ne dokunma işler.
     if (!noktadakiEleman || !rafElemani.contains(noktadakiEleman)) return;
     yutulacakTiklamaZamani = performance.now();
+    yutulacakKaynak = oge;
     kaynaktanCekCallback(tur, bilgi);
   });
 
   // İptal edilen hareket (ör. işletim sisteminin el koyduğu dokunma) hamle sayılmaz.
-  masaElemani.addEventListener('pointercancel', sifirla);
+  masaElemani.addEventListener('pointercancel', (e) => {
+    if (aktifIsaretciId !== null && e.pointerId !== aktifIsaretciId) return;
+    sifirla();
+  });
 }
