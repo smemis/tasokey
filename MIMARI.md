@@ -15,17 +15,24 @@
 >
 > **Sürüm 4** (`tasokey#37`, Geliştirici, 2026-11-20): ADR-017 (bitiş iki ayrı denetimin VEYA'sı; per = seri + sayı peri,
 > çift = birebir aynı taş) eklendi; karar Sahip'in (`tasokey#35`), bu iş kodu yazdı. Kaynak: `GDD.md` v3 §1 kural 6, 7, 13.
-> ADR-013…016 numaraları kullanılmadı — 017 numarası GDD/PRD v3'te bu karara verilmişti.
+> ADR-013, ADR-014, ADR-016 numaraları kullanılmadı — 017 numarası GDD/PRD v3'te bu karara verilmişti.
+> ADR-015 boş kalan numaralardan biriydi, `tasokey#38`'de (Mimar hakemliği) yazıldı — aşağıda §5.
 >
 > **Sürüm 5** (`tasokey#37`, Mimar kararı + Geliştirici uygulaması, 2026-11-20): ADR-018 (bot kuralı kopyalamaz,
 > `cekirdek`'e sorar; el sonlanması sezgisele bağlı değildir) eklendi; durumu **kabul** (karar veren Mimar-K2).
 > Kaynak: ADR-017'nin ölçülen yan etkisi (200 elin 20'si sonlanmıyordu) ve `GDD.md` §4 "Karar yöntemi"nin
 > Mimar/Geliştirici'ye bıraktığı algoritma ayrıntısı. `GDD.md`, `PRD.md` gereksinim metinleri ve `kural.js` değişmedi.
+>
+> **Sürüm 6** (`tasokey#38`, Mimar kararı + Geliştirici uygulaması, 2026-11-20): ADR-015 (yığılma kademeleri tek
+> kaynak, kalıcı pencere her zaman en üstte) eklendi; durumu **kabul** (karar veren Mimar-K2). Kaynak: Sahip'in
+> `tasokey#38` isteği ("sonuç penceresi her zaman en üstte") ve belirti görüntüsü `is/tasokey-35/ekler/image-2.png`.
+> Karar `tasokey#38`'de uygulanmıştı ama belgeye yazılmamıştı (Denetçi "güncel mimari karara uyuyor mu" maddesini
+> bu yüzden ölçemedi); bu sürüm yalnız belge + yeni ADR atıf taraması testidir, `docs/` kodu değişmedi.
 
 | Alan | Değer |
 |---|---|
 | Proje | `tasokey` |
-| Mimari karar sürümü | `5` (ADR-018 eklendi, Mimar kararı + Geliştirici uygulaması, 2026-11-20, tasokey#37; önceki: ADR-017 sürüm 4, aynı gün/iş) |
+| Mimari karar sürümü | `6` (ADR-015 eklendi, Mimar kararı + Geliştirici uygulaması, 2026-11-20, tasokey#38; önceki: ADR-018 sürüm 5, aynı gün, tasokey#37) |
 | Bağlı PRD sürümü | `3` (`tasokey#36`, R-004/R-005 kural düzeltmesi) |
 | Profil | `kit\profiller\` içinde yok → `profil-oyun-web-taslak.md` (bu klasör; kit'e girmesi Sahip onayı ister, D-26) |
 | Hazırlayan | Mimar, 2026-11-19 |
@@ -232,8 +239,21 @@ Sınır kuralı: `cekirdek/` ve `bot/` altında `document`, `window`, `localStor
 | Sonuçlar | §7 risk 4 **kapanır** (R-014 ile: sığdırma denenmez, uyarı gösterilir). Yeni saf modüller (`yerlesim.js`, `etkilesim.js`) DOM'suz test edilebilir hâle gelir. Kolaylaştırır: düzen mantığı tek yerde, öz-testle doğrulanır. Zorlaştırır: `ekran.js` artık bu iki modüle bağımlı olur; gerçek CSS Grid ve modül dosyaları bu işte **yazılmadı** (belge güncellemesi, kod değişmedi) — ayrı Geliştirici işi |
 | Etkilenen gereksinimler | R-011, R-012, R-013, R-014 |
 
+### ADR-015: Yığılma kademeleri tek kaynak; kalıcı pencere her zaman en üstte
+
+| Alan | Değer |
+|---|---|
+| Tarih | 2026-11-20 · Durum: **kabul** (K2 — Mimar; uygulama `tasokey#38`, karar belgeye `tasokey#38` hakemliğinde yazıldı) |
+| Karar veren | Mimar (K2; arayüz katmanının iç düzeni, Sahip'in "sonuç penceresi her zaman en üstte" isteğinin teknik karşılığı) · uygulama Geliştirici |
+| Bağlam | Belirti `is/tasokey-35/ekler/image-2.png`: "El bitti!" penceresi açıkken deste taşı pencerenin metnini örtüyordu. Sebep (ölçüldü): deste taşı `ekran.js`'te JS'ten `z-index: 10` alıyordu, pencerenin z-index'i `auto` idi; aynı yığılma bağlamında konumlanmış ve pozitif z-index'li eleman `auto` elemandan sonra boyanır. `stil.css`'te ayrıca çıplak `z-index: 5` gibi sayılar vardı → aynı kural iki yerde (CSS + JS), hangi şeyin hangi şeyin üstünde olduğu hiçbir yerde okunamıyordu |
+| Karar | (1) Yığılma kademelerinin **tek kaynağı** `stil.css` `:root` içindeki `--kademe-*` değişkenleridir: `--kademe-masa: 0`, `--kademe-masa-pay: 20`, `--kademe-tas-secili: 100`, `--kademe-tas-surukleniyor: 110`, `--kademe-pencere: 300`. Sıra **masa < seçili taş < sürüklenen taş < kalıcı pencere**. (2) Hiçbir CSS kuralında çıplak z-index sayısı yazılmaz; her kural `var(--kademe-*)` okur, yığın içi sıra gerekiyorsa `calc(var(--kademe-masa) + var(--yigin-sira, 0))` biçiminde hesaplanır. (3) `arayuz/ekran.js` **z-index yazmaz**; JS yalnız yığın İÇİ sırayı `--yigin-sira` özel değişkeni olarak verir — kademe kararı CSS'te kalır. (4) Kalıcı pencereler (sonuç, ileride başlangıç/onay) `--kademe-pencere` kullanır ve açıkken masadaki ya da sürüklenen hiçbir taş bunların üstüne boyanmaz. (5) Kademeler arasındaki boşluk (20/100/110/300) araya yeni kademe eklenebilsin diye bilerek geniştir; yeni kademe eklemek bu ADR'yi günceller, kuralın içine sayı yazmak değil |
+| Seçenekler | B) Pencereye tek seferlik büyük bir z-index vermek (ör. `z-index: 9999`) — reddedildi: belirtiyi kapatır, sebebi (iki kaynak) kapatmaz; bir sonraki yeni katmanda aynı hata tekrarlar. C) Kademeleri JS'te bir sabit tabloda tutup DOM'a yazmak — reddedildi: sunum kararını `arayuz/ekran.js`'e taşır, kaynak CSS'ten okunamaz hâle gelir ve her çizimde yeniden yazılır. D) Pencereyi ayrı bir yığılma bağlamına/`dialog` üstüne almak — reddedildi (şimdilik): sıfır bağımlılık kısıtıyla uyumlu olsa da kademe sorununu ortadan kaldırmaz, yalnız bir örneğini gizler |
+| Sonuçlar | Kolaylaştırır: "ne neyin üstünde" tek dosyadan okunur; `testler/yigilma-kademeleri.test.js` kaynak taramasıyla (a) kademelerin tek kaynaktan geldiğini, (b) pencere kademesinin sürüklenen taşınkinden büyük olduğunu, (c) JS'in z-index yazmadığını, (d) `stil.css`'te çıplak z-index kalmadığını doğrular → kural bir daha sessizce bozulamaz (ADR-002'nin kaynak taraması dilinin aynısı). Ölçüldü: `npm test` 264/264; 4 yatay boyutta (1920×1080, 1280×800, 1180×820, 844×390) ekran görüntüsü — `image-2.png`'deki belirti tekrar etmedi. **Zorlaştırır / bilinen sınır:** kural "pencere her zaman en üstte" olduğu için **844×390**'da sonuç penceresi, el bitince açılan üst rakibin ıstakasını tamamen örtüyor (ölçüldü, `is/tasokey-38/ekran/el-bitti-pencere-telefon-yatay.png`); o el pencere kapanmadan okunamaz. Küçük ekranda pencerenin konumu/kapatılabilirliği **ayrı iş** ve ürün kararıdır (Sahip), kademe sırası bu yüzden değiştirilmez (§7 risk 9) |
+| Etkilenen gereksinimler | — (arayüz hatası + Sahip'in ek bilgisi: el bitince rakip ıstakaları açılır). İlgili: R-011, R-015 (okunurluk) |
+
 ### ADR-017: Bitiş iki ayrı denetimin VEYA'sı; per = seri + sayı peri, çift = birebir aynı taş
-> Numara `GDD.md` v3 ve `PRD.md` v3'te (tasokey#36) bu kararı gösteriyordu; ADR-013…016 boş kaldı.
+> Numara `GDD.md` v3 ve `PRD.md` v3'te (tasokey#36) bu kararı gösteriyordu; ADR-013, ADR-014 ve ADR-016 boş kaldı
+> (ADR-015 `tasokey#38`'de yazıldı, yukarıda).
 
 | Alan | Değer |
 |---|---|
@@ -285,3 +305,4 @@ uyarısı görünür, R-014).
 | 6 | Arayüz işlerinin manifesti: 8777 portu ve tarayıcı sürücüsü yazılı değilse iş `izin_gerek` döner | **bilinen eksik** | Çekirdek iş 8'i açarken manifeste port + sürücü yazar |
 | 7 | `kraftdcm/tasokey` uzak deposu ve Pages ayarı ofisten görülemez; `git remote` boş (**ölçüldü**) | **Masa'da** | Sahip depoyu açar/Pages'i açar; ofis yalnız `docs/` üretir |
 | 8 | Kit'te "web oyunu" profili yok (D-26) | **eksik** | `profil-oyun-web-taslak.md` yazıldı; kit'e girmesi Sahip onayı ister (kit değişikliği) |
+| 9 | 844×390'da (telefon yatay) sonuç penceresi, el bitince açılan üst rakibin ıstakasını örtüyor; o el pencere kapanmadan okunamaz. İki istek (pencere her zaman en üstte + el bitince rakip ıstakaları açılsın) bu ölçüde çakışıyor | **Masa'da / Sahip kararı** (pencere konumu ya da kapatılabilirlik ürün kararı; ADR-015 kademe sırası değişmez) | 844×390 ekran görüntüsü: pencere açıkken üst kenar ıstakası görünür mü (bugün görünmüyor — `is/tasokey-38/ekran/el-bitti-pencere-telefon-yatay.png`) |
