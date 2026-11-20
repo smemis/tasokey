@@ -533,6 +533,23 @@ html, body {
   pointer-events: none;
 }
 
+/* Sürükleyerek çekme (tasokey#40, R-012): destenin en üst taşı kapalıdır (.tas-arka), köşeninki
+   açık taştır (.tas, yukarıdaki kural). İkisi de aynı sürükleme dilini kullanır — soluklaşır,
+   sürüklenen taş kademesine çıkar (ADR-015) ve isabet testinden çekilir ki altındaki ıstaka
+   görünsün. Konumu burada değiştirilmez: deste taşı `#yerDestesi .tas-arka` ile ortalanmış durur. */
+.tas-arka.surukleniyor {
+  opacity: 0.7;
+  z-index: var(--kademe-tas-surukleniyor);
+  pointer-events: none;
+}
+
+/* Deste ve köşe yığını artık sürükleme KAYNAĞIDIR (tasokey#40): dokunmada hareketin sayfa kaydırma
+   (pan) sayılmaması için taşla aynı davranışı alırlar (.tas touch-action: none). */
+.kose,
+#yerDestesi {
+  touch-action: none;
+}
+
 /* Kalıcı pencere (sonuç; ileride başlangıç/onay pencereleri de aynı kademeyi kullanır — ADR-015):
    masadaki hiçbir taş bu pencerenin üstüne çıkamaz. */
 #sonucPaneli {

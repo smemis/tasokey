@@ -9,8 +9,8 @@ import { KURAL_VARSAYILAN } from '../cekirdek/kural.js';
 import { elSonucunuHesapla } from '../cekirdek/puan.js';
 import { kolayBotTurOyna } from '../bot/kolay.js';
 import { cevir } from '../dil/cevir.js';
-import { surukleBagla } from './surukle.js';
-import { HEDEF_TURU, EYLEM, eylemKararVer, rakipEliAcikMi } from './etkilesim.js';
+import { surukleBagla, cekmeSurukleBagla } from './surukle.js';
+import { HEDEF_TURU, EYLEM, eylemKararVer, cekmeKararVer, rakipEliAcikMi } from './etkilesim.js';
 import { kayitOku, kayitYaz } from '../kayit/depo.js';
 import { gorselOlustur, gorselleriOnYukle } from './gorseller.js';
 import { oyuncuKenarHaritasi, oyuncununAtilanKosesi } from './yerlesim.js';
@@ -464,6 +464,12 @@ function hedefeBirakUygula(tasId, hedefTuru, hedef) {
   eylemiUygula(karar);
 }
 
+// Sürükleyerek çekme yolu (tasokey#40, R-012): hareket destede/köşede başlayıp ıstakada bittiğinde
+// kaynağın hangi çekmeye karşılık geldiğine `etkilesim.js` karar verir, motor yine `el.js`.
+function kaynaktanCekUygula(kaynakTuru, kaynak) {
+  eylemiUygula(cekmeKararVer(kaynakTuru, durumKutu.durum, INSAN_OYUNCUSU, kaynak));
+}
+
 function botAdimiOyna() {
   const { durum } = durumKutu;
   const sonuc = kolayBotTurOyna(durum, durum.sira);
@@ -517,7 +523,7 @@ function yeniElBaslat() {
 
 function elemanlariTopla() {
   const idler = [
-    'baslikMetni', 'dilDugmesi', 'durumSatiri',
+    'baslikMetni', 'dilDugmesi', 'durumSatiri', 'masa',
     'yerDestesiBaslik', 'yerDestesi', 'yerDestesiSayac', 'yerDestesiIpucu',
     'gostergeBaslik', 'gosterge',
     'kenarUst', 'kenarUstAd', 'kenarUstTaslar',
@@ -545,6 +551,7 @@ function olaylariBagla() {
   eleman.dilDugmesi.addEventListener('click', dilDegistir);
   eleman.yeniElButonu.addEventListener('click', yeniElBaslat);
   surukleBagla(eleman.raf, hedefeBirakUygula);
+  cekmeSurukleBagla(eleman.masa, eleman.raf, kaynaktanCekUygula);
 }
 
 async function dilleriYukle() {
