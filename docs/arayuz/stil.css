@@ -27,6 +27,7 @@
   --raf-yuva-bosluk: 6px;
   --rakip-raf-bosluk: 4px;
   --rakip-raf-genislik: 280px;
+  --kose-kaydirma: 5px;
   --masa-bosluk: 24px;
   --masa-dolgu: 16px;
   --panel-dolgu: 16px;
@@ -81,17 +82,34 @@ html, body {
 
 #durumSatiri.ret { color: #ffb4a0; font-weight: bold; }
 
+/* Dört kenar + dört köşe + merkez ızgara (ADR-012, tasokey#29): hangi oyuncu hangi kenarda/köşede
+   olduğunu `arayuz/yerlesim.js` saf mantığı hesaplar, burada yalnız grid-area adlarına yerleşir. */
 #masa {
   flex: 1 1 auto;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    "solUst ust sagUst"
+    "sol merkez sag"
+    "solAlt alt sagAlt";
   align-items: center;
-  justify-content: center;
+  justify-items: center;
   gap: var(--masa-bosluk);
   padding: var(--masa-dolgu);
   background-image: url('../gorsel/masa-zemin.svg');
   background-size: 100% 100%;
 }
+
+#koseSolUst { grid-area: solUst; }
+#kenarUst { grid-area: ust; }
+#koseSagUst { grid-area: sagUst; }
+#kenarSol { grid-area: sol; }
+#merkez { grid-area: merkez; }
+#kenarSag { grid-area: sag; }
+#koseSolAlt { grid-area: solAlt; }
+#rafAlani { grid-area: alt; }
+#koseSagAlt { grid-area: sagAlt; }
 
 .yigin {
   display: flex;
@@ -115,7 +133,15 @@ html, body {
   opacity: 0.8;
 }
 
-.rakip {
+#merkez {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--masa-bosluk);
+}
+
+/* Kenarlar: üst/sol/sağ bot (ad + kapalı ıstaka), alt Sahip'in kendi ıstakası (#rafAlani). */
+.kenar {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -125,7 +151,62 @@ html, body {
   background: rgba(255, 255, 255, 0.06);
 }
 
-.rakip.aktif { outline: 2px solid #e8c547; }
+.kenar.aktif { outline: 2px solid #e8c547; }
+
+.kenar-ad { font-size: 0.85rem; }
+
+.kenar-raf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--rakip-raf-bosluk);
+  padding: 10px;
+}
+
+.kenar-raf-yatay {
+  width: var(--rakip-raf-genislik);
+  aspect-ratio: 3 / 1;
+  background-image: url('../gorsel/istaka-yatay.svg');
+  background-size: 100% 100%;
+}
+
+.kenar-raf-dikey {
+  flex-direction: column;
+  height: var(--rakip-raf-genislik);
+  aspect-ratio: 1 / 3;
+  background-image: url('../gorsel/istaka-dikey.svg');
+  background-size: 100% 100%;
+}
+
+/* Köşeler: her oyuncunun attığı taş kendi köşe yığınında durur (R-011); en üstteki taş tam
+   görünür, alttakiler `arayuz/ekran.js`de satır/sütun kaydırmasıyla (translate) kısmi görünür.
+   Erişilebilir adet etiketi görünen sayaçtan ayrı, köşenin aria-label'ında tutulur (ekran.js). */
+.kose {
+  position: relative;
+  min-width: calc(var(--tas-genislik) + 2 * var(--kose-kaydirma));
+  min-height: calc(var(--tas-yukseklik) + 2 * var(--kose-kaydirma));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.kose-yigin {
+  position: relative;
+  width: var(--tas-genislik);
+  height: var(--tas-yukseklik);
+}
+
+.kose-yigin .tas { position: absolute; left: 0; top: 0; cursor: default; }
+
+.kose.cekilebilir .kose-yigin .tas:last-child {
+  cursor: pointer;
+  outline: 2px solid #e8c547;
+}
+
+.kose-sayac { font-size: 0.75rem; opacity: 0.8; }
 
 .tas {
   position: relative;
@@ -190,16 +271,7 @@ html, body {
   height: 100%;
 }
 
-.rakip-raf {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--rakip-raf-bosluk);
-  max-width: var(--rakip-raf-genislik);
-  justify-content: center;
-}
-
 #rafAlani {
-  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;

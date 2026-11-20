@@ -2,7 +2,7 @@
 // Kural bilgisi burada yok: her çek/at çağrısı `cekirdek/el.js`'e gider; bu dosya yalnız
 // sonucu DOM'a yansıtır (R-003, R-005, R-006, R-009; tasokey#10).
 
-import { elBaslat, cek, at, KAYNAK, EL_SONUCU, oncekiOyuncu } from '../cekirdek/el.js';
+import { elBaslat, cek, at, KAYNAK, EL_SONUCU, sonrakiOyuncu, oncekiOyuncu } from '../cekirdek/el.js';
 import { tasOkeyMi } from '../cekirdek/dagitim.js';
 import { elSonucunuHesapla } from '../cekirdek/puan.js';
 import { kolayBotTurOyna } from '../bot/kolay.js';
@@ -10,6 +10,7 @@ import { cevir } from '../dil/cevir.js';
 import { surukleBagla } from './surukle.js';
 import { kayitOku, kayitYaz } from '../kayit/depo.js';
 import { gorselOlustur, gorselleriOnYukle } from './gorseller.js';
+import { oyuncuKenarHaritasi, oyuncununAtilanKosesi } from './yerlesim.js';
 
 // masa-zemin.svg ve istaka.svg CSS arka planı olarak kullanılır (arayuz/stil.css #masa / #rafAlani
 // — burada önceden yüklenmesi gerekmez). Sayı yüzü artık tek paylaşılan gövde (tas-govde.svg) +
@@ -25,6 +26,29 @@ const BOT_GECIKME_MS = 450;
 const RAF_SATIR_SAYISI = 2;
 const RAF_SUTUN_SAYISI = 9;
 const RAF_SLOT_SAYISI = RAF_SATIR_SAYISI * RAF_SUTUN_SAYISI;
+
+// ADR-012 (tasokey#29): Sahip (oyuncu 0) her zaman alt kenarda; diğer kenarlar/köşeler
+// `arayuz/yerlesim.js`in saf mantığıyla, el.js'in sıra yönüyle (sonrakiOyuncu) hesaplanır.
+// Oyuncu sayısı ve yön sabit olduğundan harita bir kere (modül yüklenirken) çıkarılır.
+const KENAR_HARITASI = oyuncuKenarHaritasi(sonrakiOyuncu);
+const KOSE_HARITASI = [0, 1, 2, 3].map((oyuncu) => oyuncununAtilanKosesi(oyuncu, sonrakiOyuncu));
+
+const KENAR_ELEMAN_ADLARI = {
+  ust: { kutu: 'kenarUst', ad: 'kenarUstAd', raf: 'kenarUstRaf' },
+  sol: { kutu: 'kenarSol', ad: 'kenarSolAd', raf: 'kenarSolRaf' },
+  sag: { kutu: 'kenarSag', ad: 'kenarSagAd', raf: 'kenarSagRaf' },
+};
+
+const KOSE_ELEMAN_ADLARI = {
+  solUst: { kutu: 'koseSolUst', yigin: 'koseSolUstYigin', sayac: 'koseSolUstSayac' },
+  sagUst: { kutu: 'koseSagUst', yigin: 'koseSagUstYigin', sayac: 'koseSagUstSayac' },
+  solAlt: { kutu: 'koseSolAlt', yigin: 'koseSolAltYigin', sayac: 'koseSolAltSayac' },
+  sagAlt: { kutu: 'koseSagAlt', yigin: 'koseSagAltYigin', sayac: 'koseSagAltSayac' },
+};
+
+// Köşe yığınında en üst taş tam, alttakiler kaydırılmış görünür (R-011 kabul); en fazla bu kadarı
+// çizilir (daha eskisi birikse de görsel karmaşayı sınırlamak için — adet gerçek sayıyı gösterir).
+const KOSE_GORUNEN_MAKSIMUM = 3;
 
 const durumKutu = {
   durum: null,
@@ -145,30 +169,57 @@ function durumSatiriCiz() {
   eleman.durumSatiri.classList.toggle('ret', retMi);
 }
 
+// R-011 kabul: köşe yığınında en üst taş tam, alttakiler kaydırılmış (translate); gerçek adet
+// erişilebilir etiketle (`koseYigini.adet`) kutunun aria-label'ına yazılır (görünen sayaç
+// aria-hidden, aynı bilgiyi tekrar okutmamak için). Kaydırma miktarı CSS `--kose-kaydirma` ile
+// aynı değeri kullanır (stil.css kök değişkeni; burada sayısal olarak tekrarlanır, JS tarafında
+// CSS değişkeni hesaplaması olmadığı için — ekran.js'in sabit değerleri CSS_VAR_* önekiyle anılır).
+const CSS_VAR_KOSE_KAYDIRMA_PX = 5;
+
+function koseYiginiCiz(kutu, yiginAlani, sayacEl, yigin, oyuncu, okeyTasi) {
+  yiginAlani.innerHTML = '';
+  const gorunenler = yigin.slice(-KOSE_GORUNEN_MAKSIMUM);
+  gorunenler.forEach((tas, index) => {
+    const tasElemani = tasElemaniOlustur(tas, okeyTasi);
+    const alttanSira = gorunenler.length - 1 - index;
+    const kaydirma = alttanSira * CSS_VAR_KOSE_KAYDIRMA_PX;
+    tasElemani.style.transform = `translate(${-kaydirma}px, ${-kaydirma}px)`;
+    tasElemani.style.zIndex = String(10 - alttanSira);
+    yiginAlani.appendChild(tasElemani);
+  });
+  sayacEl.textContent = String(yigin.length);
+  kutu.setAttribute('aria-label', metinAl('koseYigini.adet', [oyuncuAdi(oyuncu), yigin.length]));
+}
+
 function masaCiz() {
   const { durum } = durumKutu;
 
   eleman.yerDestesiBaslik.textContent = metinAl('yerDestesi');
-  eleman.atilanYiginBaslik.textContent = metinAl('atilanYigin');
-
   eleman.yerDestesi.innerHTML = '';
   if (durum.yerDestesi.length > 0) eleman.yerDestesi.appendChild(tersTasElemaniOlustur());
   eleman.yerDestesiSayac.textContent = String(durum.yerDestesi.length);
 
-  // ADR-010: atılan taşlar artık oyuncu başına yığın; bu görünümde yalnız o anda geçerli
-  // çekme kaynağı (sıradaki oyuncudan önceki oyuncunun yığını) gösterilir. Dört köşe yığınının
-  // hepsini ayrı ayrı göstermek R-011/R-012 kapsamında ayrı bir arayüz işidir (açık, ADR-012).
-  eleman.atilanYigin.innerHTML = '';
-  const gecerliYigin = durum.atilanYiginlar[oncekiOyuncu(durum.sira)];
-  const ustTas = gecerliYigin[gecerliYigin.length - 1];
-  if (ustTas) eleman.atilanYigin.appendChild(tasElemaniOlustur(ustTas, durum.okeyTasi));
+  eleman.gostergeBaslik.textContent = metinAl('gosterge');
+  eleman.gosterge.innerHTML = '';
+  eleman.gosterge.appendChild(tasElemaniOlustur(durum.gosterge, durum.okeyTasi));
 
   for (const oyuncu of [1, 2, 3]) {
-    eleman[`rakip${oyuncu}Ad`].textContent = oyuncuAdi(oyuncu);
-    eleman[`rakip${oyuncu}`].classList.toggle('aktif', durum.sira === oyuncu && durum.sonuc === EL_SONUCU.SUREN);
-    const rafDiv = eleman[`rakip${oyuncu}Raf`];
+    const { kutu, ad, raf } = KENAR_ELEMAN_ADLARI[KENAR_HARITASI[oyuncu]];
+    eleman[ad].textContent = oyuncuAdi(oyuncu);
+    eleman[kutu].classList.toggle('aktif', durum.sira === oyuncu && durum.sonuc === EL_SONUCU.SUREN);
+    const rafDiv = eleman[raf];
     rafDiv.innerHTML = '';
     for (let i = 0; i < durum.eller[oyuncu].length; i++) rafDiv.appendChild(tersTasElemaniOlustur());
+  }
+
+  // R-012: yalnız önceki oyuncunun köşesi geçerli çekme kaynağıdır; o köşe `cekilebilir` sınıfıyla
+  // işaretlenir (tıklama da yalnız o köşeye bağlıdır, bkz. olaylariBagla).
+  const cekilebilirKoseAdi = KOSE_HARITASI[oncekiOyuncu(durum.sira)];
+  for (const oyuncu of [0, 1, 2, 3]) {
+    const koseAdi = KOSE_HARITASI[oyuncu];
+    const { kutu, yigin, sayac } = KOSE_ELEMAN_ADLARI[koseAdi];
+    koseYiginiCiz(eleman[kutu], eleman[yigin], eleman[sayac], durum.atilanYiginlar[oyuncu], oyuncu, durum.okeyTasi);
+    eleman[kutu].classList.toggle('cekilebilir', koseAdi === cekilebilirKoseAdi);
   }
 }
 
@@ -327,19 +378,34 @@ function elemanlariTopla() {
   const idler = [
     'baslikMetni', 'dilDugmesi', 'durumSatiri',
     'yerDestesiBaslik', 'yerDestesi', 'yerDestesiSayac',
-    'atilanYiginBaslik', 'atilanYigin',
-    'rakip1', 'rakip1Ad', 'rakip1Raf',
-    'rakip2', 'rakip2Ad', 'rakip2Raf',
-    'rakip3', 'rakip3Ad', 'rakip3Raf',
+    'gostergeBaslik', 'gosterge',
+    'kenarUst', 'kenarUstAd', 'kenarUstRaf',
+    'kenarSol', 'kenarSolAd', 'kenarSolRaf',
+    'kenarSag', 'kenarSagAd', 'kenarSagRaf',
+    'koseSolUst', 'koseSolUstYigin', 'koseSolUstSayac',
+    'koseSagUst', 'koseSagUstYigin', 'koseSagUstSayac',
+    'koseSolAlt', 'koseSolAltYigin', 'koseSolAltSayac',
+    'koseSagAlt', 'koseSagAltYigin', 'koseSagAltSayac',
     'rafBaslik', 'raf', 'atButonu',
     'sonucPaneli', 'sonucMetni', 'sonucKalanTaslar', 'yeniElButonu',
   ];
   for (const id of idler) eleman[id] = document.getElementById(id);
 }
 
+// R-012: dört köşeden yalnız o anda geçerli olan (`cekilebilir` sınıflı — bkz. masaCiz) tıklamayı
+// çekme sayar; motor (`cek`) zaten yalnız önceki oyuncunun yığınından çeker (ADR-010), bu yüzden
+// her köşeye aynı davranış bağlanabilir — tıklanan köşe geçerli değilse hiçbir şey olmaz.
+function koseyeTikla(koseAdi) {
+  const { kutu } = KOSE_ELEMAN_ADLARI[koseAdi];
+  if (!eleman[kutu].classList.contains('cekilebilir')) return;
+  atilandanCek();
+}
+
 function olaylariBagla() {
   eleman.yerDestesi.addEventListener('click', yerdenCek);
-  eleman.atilanYigin.addEventListener('click', atilandanCek);
+  for (const koseAdi of Object.keys(KOSE_ELEMAN_ADLARI)) {
+    eleman[KOSE_ELEMAN_ADLARI[koseAdi].kutu].addEventListener('click', () => koseyeTikla(koseAdi));
+  }
   eleman.atButonu.addEventListener('click', ataBas);
   eleman.dilDugmesi.addEventListener('click', dilDegistir);
   eleman.yeniElButonu.addEventListener('click', yeniElBaslat);

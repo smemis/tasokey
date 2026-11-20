@@ -2,6 +2,8 @@
   "baslik": "Stone Rummikub",
   "yerDestesi": "Draw pile",
   "atilanYigin": "Discard",
+  "gosterge": "Indicator",
+  "koseYigini.adet": "{0}: {1} tiles",
   "rafim": "My rack",
   "atButonu": "Discard",
   "dilDegistir": "TR",
