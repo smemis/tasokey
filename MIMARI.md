@@ -6,12 +6,18 @@
 > **önerilen varsayılanlarla sabit**, görsel tonda **kumar/para çağrışımı yok**. ADR-001, ADR-005, ADR-008, ADR-009
 > durumu **kabul** (karar veren Sahip-K1); ADR-002, ADR-003, ADR-004, ADR-006, ADR-007 durumu **kabul** (karar veren
 > Mimar-K2, K1 kapsamında onaylı yığın/akışın ayrıntısı).
+>
+> **Sürüm 3** (`tasokey#24`, Geliştirici, 2026-11-20): ADR-010 (oyuncu başına atılan yığın), ADR-011 (taş gövdesi SVG +
+> DOM rakam katmanı), ADR-012 (dört kenar grid + telefon dikey uyarısı) eklendi; durumu **kabul** (karar veren Mimar-K2).
+> Kaynak: `GDD.md` §6 "Bulgu" (tasokey#22), `PRD.md` R-011/R-012/R-014/R-015, `STIL.md` §4-5, `docs/gorsel/tas-01.svg`
+> (ölçüldü: rakam şu an sabit SVG `<path>`, gerçek yazı tipi glifi değil). Bu iş yalnız belge; `arayuz/`, `cekirdek/` kodu
+> değişmedi.
 
 | Alan | Değer |
 |---|---|
 | Proje | `tasokey` |
-| Mimari karar sürümü | `2` (K1 onaylı; ADR-004 sürüm 2, Mimar-K2, 2026-11-19, tasokey#3) |
-| Bağlı PRD sürümü | `1` (K1 onaylı, `PRD.md`) |
+| Mimari karar sürümü | `3` (ADR-010/011/012 eklendi, Mimar-K2, 2026-11-20, tasokey#24; önceki: ADR-004 sürüm 2, 2026-11-19, tasokey#3) |
+| Bağlı PRD sürümü | `2` (`tasokey#22`, R-011…R-015 eki) |
 | Profil | `kit\profiller\` içinde yok → `profil-oyun-web-taslak.md` (bu klasör; kit'e girmesi Sahip onayı ister, D-26) |
 | Hazırlayan | Mimar, 2026-11-19 |
 
@@ -60,8 +66,10 @@ Değerlendirilen ama önerilmeyen yollar ADR-001'in "Seçenekler" satırında.
 | `cekirdek/el.js` | El durumu, sıra, hamle doğrulama (çek/at), el sonu koşulları | dagitim, cozucu, kural | evet |
 | `cekirdek/puan.js` | El sonucu ve puan | el | evet |
 | `bot/kolay.js` | Hangi taşı çeker / atar (sezgisel); hamleyi `el.js`'e onaylatır | cekirdek | evet |
-| `arayuz/ekran.js` | Masa, raf, atılan taş yığını; olay bağlama | cekirdek, dil | hayır (DOM) |
-| `arayuz/surukle.js` | Taş seçme ve rafta sürükleyerek dizme | ekran | hayır (DOM) |
+| `arayuz/ekran.js` | Masa, raf, atılan taş yığını; olay bağlama | cekirdek, dil, yerlesim | hayır (DOM) |
+| `arayuz/surukle.js` | Taş seçme ve rafta sürükleyerek dizme | ekran, etkilesim | hayır (DOM) |
+| `arayuz/yerlesim.js` (ADR-012) | Dört kenar/köşe ızgarası: sıra yönüne göre hangi oyuncunun hangi kenarda, hangi köşe yığınının hangi oyuncuya ait olduğunu hesaplar; sonucu grid-area adı olarak döner | cekirdek (kural — sıra yönü) | evet |
+| `arayuz/etkilesim.js` (ADR-010/012) | Sürükleme/dokunma hedefinin (deste, köşe yığını, raf konumu) hangi oyun eylemine (çek/at/bitir) karşılık geldiğini saf mantıkla çözer; hamleyi yine `cekirdek/el.js` onaylar | cekirdek, yerlesim | evet |
 | `dil/cevir.js` | Anahtar → metin; eksik anahtarda görünür hata | — | evet |
 | `kayit/depo.js` | `localStorage` sarmalayıcı + şema sürümü kontrolü | — | hayır (tarayıcı API) |
 
@@ -185,6 +193,36 @@ Sınır kuralı: `cekirdek/` ve `bot/` altında `document`, `window`, `localStor
 | Sonuçlar | İş 13'ün varlık listesi sadeleşir; "jeton" benzeri yer tutucu görsel üretilmez. Metinde de bahis/kumar sözcükleri dil dosyasına girmez |
 | Etkilenen gereksinimler | R-009 |
 
+### ADR-010: Atılan taş — oyuncu başına ayrı köşe yığını
+| Alan | Değer |
+|---|---|
+| Tarih | 2026-11-20 · Durum: kabul (K2 — Mimar) |
+| Bağlam | `GDD.md` §6 "Bulgu" (tasokey#22): `cekirdek/el.js` atılan taşı tek ortak `atilanYigin` dizisinde tutuyor, oyuncu başına ayrılmış bir yığın yok (ölçüldü, satır 41/77-80/103). `PRD.md` R-011 arayüzde dört ayrı köşe yığını, R-012 çekme kaynağının yalnız "önceki oyuncunun köşesi" olmasını istiyor; motor şu an hangi taşı hangi oyuncunun attığını ayrı ayrı bilmiyor |
+| Karar | `cekirdek/el.js`'teki atılan taş modeli, oyuncu başına ayrı yığın (ya da her taşa "atan oyuncu" etiketi) tutacak şekilde genişletilir; motor hâlâ tek kaynaktır (ADR-002), arayüz yalnız bu modeli görüntüler. Kodun kendisi bu işte (`tasokey#24`, belge güncellemesi) **değişmez** — ayrı bir Geliştirici işi (R-011 notu) |
+| Seçenekler | B) Arayüzde tek ortak diziyi görsel olarak dört köşeye bölüştürmek (atan oyuncuyu DOM tarafında sıra düzeninden tahmin ederek) — reddedildi: ADR-002'nin "tek kaynak" ilkesini bozar, R-012'nin "başka köşeden çekilemez" kısıtını motor doğrulayamaz, tahmin kuralla senkron kalmayabilir |
+| Sonuçlar | Kolaylaştırır: 4 köşe yığını ve R-012'nin çekme kaynağı kısıtı motor tarafından doğrulanabilir hâle gelir. Zorlaştırır: `cekirdek/el.js` veri şekli değişir → bu alanı kullanan öz-testler (`el.test.js`, `dizilim.test.js`) güncellenmeli; kayıt şemasına (ADR-006) etkisi varsa (yarım el saklanıyorsa) o iş ayrıca değerlendirilir |
+| Etkilenen gereksinimler | R-011, R-012 |
+
+### ADR-011: Taş gövdesi SVG + DOM rakam katmanı
+| Alan | Değer |
+|---|---|
+| Tarih | 2026-11-20 · Durum: kabul (K2 — Mimar) |
+| Bağlam | `tasokey#15/16`'dan gelen mevcut varlık seti sayı başına ayrı bir SVG dosyası üretiyor (`docs/gorsel/tas-01.svg`…`tas-13.svg`); rakam SVG içinde sabit bir `<path>` olarak çiziliyor (**ölçüldü**: `tas-01.svg` rakamı iki dikdörtgenden oluşan geometrik şekil, bir yazı tipi glifi değil). `STIL.md` §4-5 ve `PRD.md` R-015 rakamın **sistem/lisanslı yazı tipiyle, kalın düz** ve **6/9, 1/7 karışmadan** okunmasını istiyor; sabit path bu okunurluğu yazı tipi düzeyinde garanti etmiyor ve 13 dosyanın her biri aynı gövdeyi (fildişi renk, gölge, yuvarlak köşe) tekrarlıyor |
+| Karar | Taş gövdesi (fildişi renk, gölge, yuvarlak köşe, çerçeve) **tek paylaşılan SVG** parçası olur; rakam (1-13) ve altındaki küçük daire gövdenin üstüne bindirilen bir **DOM metin katmanı** (`<span>`/`<div>` + CSS) olarak, gerçek sistem/lisanslı yazı tipiyle render edilir. Sahte okey ve kapalı taş aynı paylaşılan gövdenin rakamsız varyantı kalır |
+| Seçenekler | B) 13 SVG dosyasının rakam yolunu seçilen yazı tipinden elle iz çıkararak yeniden çizmek — reddedildi: her yazı tipi/dil değişiminde 13 dosya elle güncellenir (tek kapı/tek kaynak ilkesine aykırı), gerçek metin erişilebilirliği (ekran okuyucu, seçilebilirlik) kazanılmaz. C) Rakamı SVG içine `<text>` olarak gömmek — reddedildi: CSS yazı tipi/boyut kontrolü DOM metninden daha sınırlı, kapalı/dönük taş durumunda görünürlük mantığı ekstra karmaşıklık getirir |
+| Sonuçlar | Kolaylaştırır: SVG varlık sayısı 13 yüz deseninden 1 paylaşılan gövdeye iner; rakam yazı tipi `STIL.md` §5'teki seçimle birebir eşleşir, 6/9-1/7 ayrımı ekran görüntüsüyle doğrulanır (R-015). Zorlaştırır: taş artık iki katman (SVG gövde + DOM metin) hizalanmalı; önceki `tas-01.svg`…`tas-13.svg` kaldırılır (kod ve varlık değişikliği bu işte **yapılmadı**, ayrı Geliştirici işi) |
+| Etkilenen gereksinimler | R-015 |
+
+### ADR-012: Dört kenar grid yerleşimi + telefon dikey uyarısı
+| Alan | Değer |
+|---|---|
+| Tarih | 2026-11-20 · Durum: kabul (K2 — Mimar) |
+| Bağlam | `GDD.md` §6 "Yerleşim"/"Ekran boyutları" ve `PRD.md` R-014: dört oyuncu dört kenarda (Sahip alt, botlar sol/üst/sağ), deste ortada, köşe yığınları kenarlar arasında; telefon dikey yönde oyun alanı yerine dil anahtarlı uyarı gösterilir. Mevcut `arayuz/ekran.js` tek bir raf/masa düzeni çiziyor, dört kenar + köşe konumlandırmasını ve yön tespitini henüz bilmiyor. §7 risk 4 ("mobil dikeyde sığmayabilir") bu kararla kapanır |
+| Karar | Masa düzeni CSS Grid ile üç satır/üç sütunluk bir ızgara olarak tanımlanır (4 kenar + 4 köşe + merkez); hangi oyuncunun hangi kenarda/köşede olacağını (sıra yönüne bağlı) hesaplayan mantık **saf** modül `arayuz/yerlesim.js`'te durur, `arayuz/ekran.js` yalnız sonucu (grid-area adları) DOM'a uygular. Dikey yön tespit edilince (`matchMedia('(orientation: portrait)')`) ızgara gizlenir, R-014'ün dil anahtarlı uyarısı gösterilir; yatayda ızgara aynı mantıkla kurulur. Çekme/atma hedefinin hangi köşe/deste olduğunu çözen mantık ayrıca saf modül `arayuz/etkilesim.js`'te durur (R-012, R-013) |
+| Seçenekler | B) Dikeyde ızgarayı küçülterek sığdırmaya çalışmak (risk 4'ün önceki "doğrulanacak" hâli) — reddedildi: 15 taşlık raf + masa + 4 köşe yığını küçük ekranda okunur kalmaz (R-015 ihlali riski); Sahip kararı doğrudan uyarıyı seçti (`MASA-DUZENI.md`). C) Yön tespitini tamamen CSS `@media` sorgusuna bırakmak — kısmen kabul: CSS uyarı/ızgara gösterme-gizlemeyi yapar, ama hangi oyuncunun hangi köşede olduğu kural ayarına (sıra yönü) bağlı olduğundan JS'te de hesaplanması gerekir (`yerlesim.js`) |
+| Sonuçlar | §7 risk 4 **kapanır** (R-014 ile: sığdırma denenmez, uyarı gösterilir). Yeni saf modüller (`yerlesim.js`, `etkilesim.js`) DOM'suz test edilebilir hâle gelir. Kolaylaştırır: düzen mantığı tek yerde, öz-testle doğrulanır. Zorlaştırır: `ekran.js` artık bu iki modüle bağımlı olur; gerçek CSS Grid ve modül dosyaları bu işte **yazılmadı** (belge güncellemesi, kod değişmedi) — ayrı Geliştirici işi |
+| Etkilenen gereksinimler | R-011, R-012, R-013, R-014 |
+
 ## 6. Test yaklaşımı
 
 | Tür | Ne ile | Tek komut |
@@ -195,8 +233,11 @@ Sınır kuralı: `cekirdek/` ve `bot/` altında `document`, `window`, `localStor
 | Bot dayanıklılığı | 200 el × sabit tohumlarla tam el koşusu | aynı komut (uzun test etiketiyle) |
 | Arayüz / kilometre taşı denemesi | `python -m http.server 8777` + başsız Edge/CDP ekran görüntüsü | işin raporunda komut + görüntü |
 
-Ekran görüntüsü kanıtı — sabit 4 boyut (profilin "3 oran + tablet" karşılığı):
-**1920×1080** (geniş masaüstü) · **1280×800** (dar masaüstü / tablet yatay) · **820×1180** (tablet dikey) · **390×844** (mobil dikey).
+Ekran görüntüsü kanıtı — sabit 4 boyut + 1 uyarı kanıtı (profilin "3 oran + tablet" karşılığı; ADR-012'den sonra set
+**yatay** yönlüdür, çünkü oyun alanı zaten yalnız yatayda gösterilir — R-014):
+**1920×1080** (geniş masaüstü) · **1280×800** (dar masaüstü) · **1180×820** (tablet yatay) · **844×390** (telefon yatay, dört
+kenar düzeni sığdırılmış) · **390×844** (telefon **dikey**, uyarı kanıtı — oyun alanı değil, "telefonu yan çevir" dil anahtarlı
+uyarısı görünür, R-014).
 
 ## 7. Bilinen riskler ve doğrulanacaklar
 
@@ -205,7 +246,7 @@ Ekran görüntüsü kanıtı — sabit 4 boyut (profilin "3 oran + tablet" karş
 | 1 | **Bitirilebilirlik çözücüsü** (eli per/çift gruplarına tam bölme, 2 okey + 2 sahte okey joker olarak) işin en zor parçası; geri izlemeli arama yanlış ya da yavaş olabilir. Bot her turda çağırdığı için maliyet çarpılır | **tahmin**: tek el kontrolü ≤ 20 ms, 200 el koşusu ≤ 60 s | İş 5 ve iş 7 kabul ölçütü: ölçülen süre rapora yazılır; tahmin tutmazsa önbellek/budama ayrı iş olur |
 | 2 | Deste tükenmesi (kural boşluğu) | **kapandı** (ADR-008/4: el berabere) | İş 6'nın öz-testi bu durumu kapsar; bot koşusunda "0 sonlanmayan el" ölçülür |
 | 3 | `12-13-1` geçişi, gösterge sahte okey çıkması, okey atma | **kapandı** (ADR-008/1-3) | İş 3, 4, 6 tablo testleri |
-| 4 | Mobil dikeyde 15 taşlık raf + masa + atılan yığın sığmayabilir | **doğrulanacak** | İş 11: 390×844 ekran görüntüsü; taş/düğme kesilmiyor ve okunur |
+| 4 | Mobil dikeyde 15 taşlık raf + masa + atılan yığın sığmayabilir | **kapandı** (R-014 ile: dikeyde sığdırma denenmez, oyun alanı yerine dil anahtarlı uyarı gösterilir; bkz. ADR-012) | 390×844 ekran görüntüsü: oyun alanı değil, uyarı görünür; 844×390 (yatay): dört kenar düzeni sığdırılmış görünür |
 | 5 | Sürükleyerek dizmenin dokunmatikte çalışması (tarayıcı işaretçi olayları) | **doğrulanacak** | İş 8: mobil boyutta işaretçi olaylarıyla deneme + ekran görüntüsü |
 | 6 | Arayüz işlerinin manifesti: 8777 portu ve tarayıcı sürücüsü yazılı değilse iş `izin_gerek` döner | **bilinen eksik** | Çekirdek iş 8'i açarken manifeste port + sürücü yazar |
 | 7 | `kraftdcm/tasokey` uzak deposu ve Pages ayarı ofisten görülemez; `git remote` boş (**ölçüldü**) | **Masa'da** | Sahip depoyu açar/Pages'i açar; ofis yalnız `docs/` üretir |

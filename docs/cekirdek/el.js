@@ -31,6 +31,16 @@ export const EL_SONUCU = Object.freeze({
 // sürebilir (ör. her tur atılandan çekip geri atmak); bu, o döngüye karşı son çare güvenlik sınırı.
 export const VARSAYILAN_MAKSIMUM_TUR = 500;
 
+// Sıra her zaman bu iki fonksiyondan geçer (ADR-010): el.js içindeki ileri/geri sıra hesabı
+// ve bot/kolay.js'in "önceki oyuncunun yığını" seçimi aynı tek kaynağı kullanır.
+export function sonrakiOyuncu(oyuncu) {
+  return (oyuncu + 1) % OYUNCU_SAYISI;
+}
+
+export function oncekiOyuncu(oyuncu) {
+  return (oyuncu - 1 + OYUNCU_SAYISI) % OYUNCU_SAYISI;
+}
+
 // Başlayan oyuncu 15 taşla başlar (dagitim.js); bu, elindeki "fazla" taşı zaten çekmiş gibi
 // sayılmasına karşılık gelir — ilk hamlesi doğrudan atma olur, çekme adımı atlanır.
 export function elBaslat(tohum, kural = KURAL_VARSAYILAN) {
@@ -38,7 +48,9 @@ export function elBaslat(tohum, kural = KURAL_VARSAYILAN) {
   return {
     eller: eller.map((el) => el.slice()),
     yerDestesi: yerDestesi.slice(),
-    atilanYigin: [],
+    // ADR-010: her oyuncunun kendi önüne attığı ayrı yığın (gerçek okeyde köşe yığınları);
+    // yalnız önceki oyuncunun yığınının üstünden çekilebilir (bkz. cek() KAYNAK.ATILAN).
+    atilanYiginlar: Array.from({ length: OYUNCU_SAYISI }, () => []),
     gosterge,
     okeyTasi,
     sira: 0,
@@ -73,11 +85,15 @@ export function cek(durum, oyuncu, kaynak) {
   }
 
   if (kaynak === KAYNAK.ATILAN) {
-    if (durum.atilanYigin.length === 0) return reddet(durum, REDDEDILME_SEBEBI.ATILAN_YOK);
-    const atilanYigin = durum.atilanYigin.slice();
-    const tas = atilanYigin.pop();
+    // ADR-010 / R-012: yalnız önceki oyuncunun yığınının üstünden çekilebilir; kendi ya da
+    // başka bir oyuncunun yığını dolu olsa da bu kaynaktan sayılmaz (kabul b).
+    const oncekiYigin = durum.atilanYiginlar[oncekiOyuncu(oyuncu)];
+    if (oncekiYigin.length === 0) return reddet(durum, REDDEDILME_SEBEBI.ATILAN_YOK);
+    const yeniYigin = oncekiYigin.slice();
+    const tas = yeniYigin.pop();
+    const atilanYiginlar = durum.atilanYiginlar.map((yigin, i) => (i === oncekiOyuncu(oyuncu) ? yeniYigin : yigin));
     const eller = elleriGuncelle(durum.eller, oyuncu, (el) => [...el, tas]);
-    return { basarili: true, durum: { ...durum, eller, atilanYigin, cekildiMi: true } };
+    return { basarili: true, durum: { ...durum, eller, atilanYiginlar, cekildiMi: true } };
   }
 
   throw new Error(`bilinmeyen çekme kaynağı: ${kaynak}`);
@@ -100,9 +116,10 @@ export function at(durum, oyuncu, tasId, kural = KURAL_VARSAYILAN, maksimumTur =
 
   const kalanEl = el.filter((t) => t.id !== tasId);
   const eller = elleriGuncelle(durum.eller, oyuncu, () => kalanEl);
-  const atilanYigin = [...durum.atilanYigin, tas];
+  // ADR-010: atılan taş atan oyuncunun kendi yığınına konur (kabul a).
+  const atilanYiginlar = durum.atilanYiginlar.map((yigin, i) => (i === oyuncu ? [...yigin, tas] : yigin));
   const turSayaci = durum.turSayaci + 1;
-  const ortakAlanlar = { eller, atilanYigin, turSayaci, cekildiMi: false };
+  const ortakAlanlar = { eller, atilanYiginlar, turSayaci, cekildiMi: false };
 
   if (elBitirilebilirMi(kalanEl, durum.okeyTasi, kural, durum.gosterge)) {
     return { basarili: true, durum: { ...durum, ...ortakAlanlar, sonuc: EL_SONUCU.BITTI, kazanan: oyuncu } };
@@ -116,6 +133,6 @@ export function at(durum, oyuncu, tasId, kural = KURAL_VARSAYILAN, maksimumTur =
     return { basarili: true, durum: { ...durum, ...ortakAlanlar, sonuc: EL_SONUCU.BERABERE } };
   }
 
-  const sira = (durum.sira + 1) % OYUNCU_SAYISI;
+  const sira = sonrakiOyuncu(durum.sira);
   return { basarili: true, durum: { ...durum, ...ortakAlanlar, sira } };
 }

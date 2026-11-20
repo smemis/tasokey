@@ -114,14 +114,12 @@ sahte okey rakamsız, ayrı işaretli (yıldız/rozet); kapalı taş ters dönm�
 Masaüstü (geniş/dar) ve tablet yatay düzende dört kenar yerleşimini kullanır. **Telefon dikey** yönde oyun alanı yerine dil
 anahtarlı "telefonu yan çevir" uyarısı gösterilir (R-014); telefon yatay döndürüldüğünde dört kenar düzeni sığdırılır.
 
-### Bulgu: kural motorunda köşe yığını (yapılacak)
-`docs/cekirdek/el.js` kontrol edildi (bu iş kapsamında kod **değiştirilmedi**): el durumu tek ortak `atilanYigin` dizisi
-tutuyor (satır 41, 77-80, 103), oyuncu başına ayrılmış bir yığın yok. Sıra sabit döngüde ilerlediği için "ATILAN" kaynağından
-çekilen taş (dizinin en üstü) her zaman fiilen **önceki oyuncunun** attığı taşla aynı sonucu verir — bu yüzden mevcut çekme
-mantığı (R-003) yanlış **değildir**. Ancak arayüzün dört ayrı köşe yığınını (her birinin kendi yüksekliği/geçmişiyle)
-göstermesi için motorun hangi taşın hangi oyuncu tarafından atıldığını ayrı ayrı bilmesi gerekir; bu bilgi şu an dizide yok.
-**Yapılacak** (bu işin kapsamı dışı, ayrı bir Geliştirici işi): `atilanYigin`'i oyuncu başına dizi (ya da her taşa "atan oyuncu"
-etiketi) olacak şekilde genişletmek — bkz. `PRD.md` R-011.
+### Bulgu: kural motorunda köşe yığını — kapatıldı (`tasokey#32`)
+v2'de (bu bölüm yazıldığında) `docs/cekirdek/el.js` tek ortak `atilanYigin` dizisi tutuyordu, oyuncu başına ayrılmış bir yığın
+yoktu. Bu, ayrı bir Geliştirici işi (`ADR-010`, `tasokey#25`) olarak çözüldü: motor artık `atilanYiginlar` (oyuncu başına 4
+ayrı dizi) tutuyor; `at()` taşı atan oyuncunun kendi yığınına koyuyor, `cek(ATILAN)` yalnız `oncekiOyuncu()` yığınının üstünden
+alıyor. Arayüz dört köşeyi `arayuz/ekran.js`te ayrı ayrı çiziyor (`tasokey#29`). `PRD.md` R-011 artık "karşılandı" (ekran
+görüntüsü kanıtı `tasokey#32`).
 
 ## 7. Açık sorular
 

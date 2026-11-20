@@ -1,10 +1,12 @@
-// Rafta taşları sürükleyerek yeniden dizme (yuvadan yuvaya) — yalnız görsel düzenleme, kural
-// motoruna hiçbir çağrı yapmaz (GDD.md §2 "Dizme/deneme": masaya açma değil). Fare ve dokunma
-// (Pointer Events) ile çalışır (MIMARI.md §3 `arayuz/surukle.js`, DOM katmanı; tasokey#13: ıstaka
-// artık 2 sıralı sabit yuvalardan oluşur, taş boş bir yuvaya bırakılırsa eski yuvası boş kalır —
-// oyuncu taşları aralıklı dizebilir).
+// Taşı sürükleyip bir hedefe bırakma: rafta yeniden dizme (yuvadan yuvaya) ya da raf dışı bir
+// hedefe (köşe yığını, yer destesi) bırakma — hangi eylemin yapılacağına burada karar verilmez,
+// hedef türü ve ek bilgi `etkilesim.js`e aktarılır (MIMARI.md §3 `arayuz/surukle.js`, DOM
+// katmanı; tasokey#13: ıstaka 2 sıralı sabit yuvalardan oluşur; tasokey#30: raf dışı hedefler).
+// Fare ve dokunma ikisi de Pointer Events ile aynı yoldan geçer (dokunmatik için ayrı kod yok).
 
-export function surukleBagla(rafElemani, hedefYuvayaTasiCallback) {
+import { HEDEF_TURU } from './etkilesim.js';
+
+export function surukleBagla(rafElemani, hedefeBirakCallback) {
   let suruklenenTasId = null;
   let suruklenenEleman = null;
   let baslangicMerkezX = 0;
@@ -35,11 +37,18 @@ export function surukleBagla(rafElemani, hedefYuvayaTasiCallback) {
     suruklenenEleman.classList.remove('surukleniyor');
 
     // .surukleniyor pointer-events: none bırakır ki elementFromPoint, sürüklenen taşın kendisini
-    // değil altındaki yuvayı/taşı görsün.
+    // değil altındaki yuvayı/köşeyi/desteyi görsün.
     const noktadakiEleman = document.elementFromPoint(e.clientX, e.clientY);
-    const hedefYuva = noktadakiEleman?.closest('.raf-yuva');
-    if (hedefYuva && rafElemani.contains(hedefYuva)) {
-      hedefYuvayaTasiCallback(suruklenenTasId, Number(hedefYuva.dataset.slotIndex));
+    const rafYuva = noktadakiEleman?.closest('.raf-yuva');
+    const kose = noktadakiEleman?.closest('.kose[data-kose]');
+    const yerDestesi = noktadakiEleman?.closest('[data-hedef="yerDestesi"]');
+
+    if (rafYuva && rafElemani.contains(rafYuva)) {
+      hedefeBirakCallback(suruklenenTasId, HEDEF_TURU.RAF_YUVA, { slotIndex: Number(rafYuva.dataset.slotIndex) });
+    } else if (kose) {
+      hedefeBirakCallback(suruklenenTasId, HEDEF_TURU.KOSE, { kose: kose.dataset.kose });
+    } else if (yerDestesi) {
+      hedefeBirakCallback(suruklenenTasId, HEDEF_TURU.YER_DESTESI, {});
     }
 
     suruklenenTasId = null;

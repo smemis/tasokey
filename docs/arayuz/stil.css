@@ -17,11 +17,41 @@
   --tas-yukseklik: 82px;
   --tas-arka-genislik: 36px;
   --tas-arka-yukseklik: 52px;
-  --raf-yuva-bosluk: 6px;
-  --rakip-raf-bosluk: 4px;
-  --rakip-raf-genislik: 280px;
+  /* Rakam alanı: tas-govde.svg'deki data-alan="rakam" dikdörtgeniyle (viewBox 100x140,
+     x=18 y=16 w=64 h=78) eşleşen yüzde konum/ölçü; ADR-011 (tasokey#28). */
+  --tas-rakam-sol: 18%;
+  --tas-rakam-ust: 11.43%;
+  --tas-rakam-genislik: 64%;
+  --tas-rakam-yukseklik: 55.71%;
+  --tas-rakam-font-boyutu: calc(var(--tas-yukseklik) * 0.42);
+  /* Taşlar ıstakada bitişik durur (Sahip ek bilgisi, 2026-11-20): yuva arası boşluk her kademede
+     sıfır, sütun sayısı 12 (ekran.js RAF_SUTUN_SAYISI). Kademe geçişlerinde yalnız --tas-genislik
+     küçülür; boşluk değişkeni tek yerde kalır ki "bitişik" kuralı bir kademede kaçmasın.
+     Sıfır BİRİMLE yazılır (0px, denetçi bulgusu tur 2): bu değişken aşağıda --rakip-ust-genislik'in
+     calc() toplamında uzunluklarla toplanıyor; birimsiz `0` orada <number> sayılır, uzunlukla
+     toplanamaz ve bütün formülü geçersiz kılar → üst rakibin çubuğu hiç çizilmez. */
+  --raf-yuva-bosluk: 0px;
+  /* Rakip ıstakası artık yalnız ince ahşap sırt (taş çizilmez — Sahip ek bilgisi, 2026-11-20):
+     --rakip-raf-kalinlik çubuğun gerçek inceliğidir (sol/sağda genişlik, üstte yükseklik).
+     --rakip-raf-uzunluk sol/sağ çubuğun taban (min-height) uzunluğu; gerçek uzunluk ızgaranın orta
+     satırının %86'sı olarak büyür (dar kademelerde %96 — aşağıdaki 1300px sorgusu; orta satır
+     orada masanın daha küçük bir parçası kalıyor), bkz. .kenar-raf-dikey, madde 1 tasokey#33. Orta satır masa
+     yüksekliğinin ~%60'ı olduğundan bu, "masa yüksekliğinin yaklaşık yarısı"na denk gelir —
+     1. tur ekran görüntüsünde %60 denenmiş, ölçülen sonuç masanın yalnız %34'ü çıkmıştı. */
+  --rakip-raf-uzunluk: 240px;
+  --rakip-raf-kalinlik: 26px;
+  /* Üst rakibin çubuğu Sahip'in kendi ıstakası kadar geniş olsun diye #raf'ın genişlik formülüyle
+     (sütun sayısı × taş genişliği + aralar + panel dolgusu) aynı hesap kullanılır — tek kaynak. */
+  --rakip-ust-genislik: calc(
+    var(--raf-sutun-sayisi) * var(--tas-genislik) + (var(--raf-sutun-sayisi) - 1) * var(--raf-yuva-bosluk) +
+      2 * var(--panel-dolgu)
+  );
+  /* Keçe dokusunun döşeme karesi (masa-zemin.svg viewBox birimiyle 1:1 → ızgara 20px). */
+  --masa-doku-olcu: 240px;
+  --kose-kaydirma: 5px;
   --masa-bosluk: 24px;
   --masa-dolgu: 16px;
+  --masa-cerceve-kalinlik: 14px;
   --panel-dolgu: 16px;
   --baslik-font-boyutu: 1.1rem;
   --durum-font-boyutu: 0.95rem;
@@ -74,17 +104,48 @@ html, body {
 
 #durumSatiri.ret { color: #ffb4a0; font-weight: bold; }
 
+/* Dört kenar + dört köşe + merkez ızgara (ADR-012, tasokey#29): hangi oyuncu hangi kenarda/köşede
+   olduğunu `arayuz/yerlesim.js` saf mantığı hesaplar, burada yalnız grid-area adlarına yerleşir. */
 #masa {
   flex: 1 1 auto;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    "solUst ust sagUst"
+    "sol merkez sag"
+    "solAlt alt sagAlt";
   align-items: center;
-  justify-content: center;
+  justify-items: center;
   gap: var(--masa-bosluk);
   padding: var(--masa-dolgu);
+  /* Doku DÖŞENİR, gerilmez (madde 3, tasokey#33): masa-zemin.svg kare bir döşeme deseni (240x240,
+     içinde 20 birimlik ızgara) — kutuya gerilirse (background-size: 100% 100%) kendi oranında
+     ortalanıp yalnız masa yüksekliği kadar bir kareyi kaplar, kenarlar dokusuz kalır (2. tur ekran
+     görüntüsünde ölçüldü: 1920x1080'de doku yalnız x=471..1448). Sabit ölçü + repeat tam kaplar. */
   background-image: url('../gorsel/masa-zemin.svg');
-  background-size: 100% 100%;
+  background-size: var(--masa-doku-olcu) var(--masa-doku-olcu);
+  background-repeat: repeat;
+  background-origin: padding-box;
+  background-clip: padding-box;
+  /* Masanın çevresine ahşap çerçeve (madde 3, tasokey#33): masa-cerceve.svg 120×120 birimlik bir
+     9-dilim çerçeve (iç kesim 36..84 birim = %30), border-image-slice bu kesimle birebir eşleşir. */
+  border: var(--masa-cerceve-kalinlik) solid transparent;
+  border-image-source: url('../gorsel/masa-cerceve.svg');
+  border-image-slice: 36;
+  border-image-width: var(--masa-cerceve-kalinlik);
+  border-image-repeat: stretch;
 }
+
+#koseSolUst { grid-area: solUst; }
+#kenarUst { grid-area: ust; }
+#koseSagUst { grid-area: sagUst; }
+#kenarSol { grid-area: sol; }
+#merkez { grid-area: merkez; }
+#kenarSag { grid-area: sag; }
+#koseSolAlt { grid-area: solAlt; }
+#rafAlani { grid-area: alt; }
+#koseSagAlt { grid-area: sagAlt; }
 
 .yigin {
   display: flex;
@@ -93,9 +154,10 @@ html, body {
   gap: 6px;
 }
 
-.yigin-baslik { font-size: 0.8rem; opacity: 0.85; }
+.yigin-baslik, #rafBaslik { font-size: 0.8rem; opacity: 0.85; }
 
 .yigin-tas-alani {
+  position: relative;
   min-width: var(--tas-genislik);
   min-height: var(--tas-yukseklik);
   display: flex;
@@ -103,22 +165,144 @@ html, body {
   justify-content: center;
 }
 
+/* Madde 2 (tasokey#33): deste üst üste kaydırılmış birkaç ters taştan oluşur (köşe yığınıyla aynı
+   dil, ekran.js yerDestesiYiginiCiz); taşlar burada mutlak konumlanıp ortada üst üste biner. */
+#yerDestesi .tas-arka {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-top: calc(var(--tas-arka-yukseklik) / -2);
+  margin-left: calc(var(--tas-arka-genislik) / -2);
+}
+
 .yigin-sayac {
   font-size: 0.8rem;
   opacity: 0.8;
 }
 
-.rakip {
+.yigin-ipucu {
+  font-size: 0.75rem;
+  color: #e8c547;
+  min-height: 1em;
+  text-align: center;
+}
+
+/* R-013: el bitirilebilir durumdaysa deste vurgulanır (ekran.js masaCiz); dil anahtarlı ipucu
+   metni #yerDestesiIpucu'nde durur. */
+#yerDestesi.bitirilebilir {
+  outline: 2px solid #e8c547;
+  border-radius: 6px;
+}
+
+#merkez {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--masa-bosluk);
+}
+
+/* Kenarlar: üst/sol/sağ bot (ıstakanın ince ahşap sırtı — taş hiç çizilmez, gerçek okeydeki gibi
+   rakip ıstakası arkadan görünür), alt Sahip'in kendi ıstakası (#rafAlani). Madde 1 (tasokey#33):
+   gri kutu kaldırıldı; çubuk artık kenar boyunca gerçekten uzanıyor, ad çubuğun ÜSTÜNE yazılıyor
+   (sol/sağda dikey yazı) — kutunun kendi boyu yalnız çubuğun boyu (ad mutlak konumlu, akışa girmez). */
+.kenar {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
+  justify-content: center;
 }
 
-.rakip.aktif { outline: 2px solid #e8c547; }
+/* Sol/sağ kenar hücresi ızgara satırının tam yüksekliğini kaplar ki çubuk (aşağıda %60 + taban
+   değer) o yükseklik içinde ortalanıp "masa yüksekliğinin yaklaşık yarısı" uzunluğa erişebilsin. */
+.kenar-sol, .kenar-sag { align-self: stretch; height: 100%; }
+
+.kenar.aktif .kenar-raf-yatay,
+.kenar.aktif .kenar-raf-dikey { outline: 2px solid #e8c547; }
+
+.kenar-ad {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--metin);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7), 0 0 4px rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.kenar-sol .kenar-ad,
+.kenar-sag .kenar-ad {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+/* Rakip ıstakası (ince ahşap sırt): boş kutu, hiç taş/çocuk öğe basılmaz (ekran.js masaCiz).
+   Üst: genişlik Sahip'in kendi ıstakasıyla (#raf) aynı formülden (--rakip-ust-genislik, tek
+   kaynak). Sol/sağ: dikey durur, uzunluk satırın %60'ı (taban değer --rakip-raf-uzunluk; çok
+   kısa satırlarda bu taban devreye girer). */
+.kenar-raf-yatay {
+  width: var(--rakip-ust-genislik);
+  height: var(--rakip-raf-kalinlik);
+  background-image: url('../gorsel/istaka-yatay.svg');
+  background-size: 100% 100%;
+}
+
+.kenar-raf-dikey {
+  width: var(--rakip-raf-kalinlik);
+  height: 86%;
+  min-height: var(--rakip-raf-uzunluk);
+  background-image: url('../gorsel/istaka-dikey.svg');
+  background-size: 100% 100%;
+}
+
+/* Köşeler: her oyuncunun attığı taş kendi köşe yığınında durur (R-011); en üstteki taş tam
+   görünür, alttakiler `arayuz/ekran.js`de satır/sütun kaydırmasıyla (translate) kısmi görünür.
+   Erişilebilir adet etiketi görünen sayaçtan ayrı, köşenin aria-label'ında tutulur (ekran.js). */
+.kose {
+  position: relative;
+  min-width: calc(var(--tas-genislik) + 2 * var(--kose-kaydirma));
+  min-height: calc(var(--tas-yukseklik) + 2 * var(--kose-kaydirma));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.kose-yigin {
+  position: relative;
+  width: var(--tas-genislik);
+  height: var(--tas-yukseklik);
+}
+
+.kose-yigin .tas { position: absolute; left: 0; top: 0; cursor: default; }
+
+.kose.cekilebilir .kose-yigin .tas:last-child {
+  cursor: pointer;
+  outline: 2px solid #e8c547;
+}
+
+.kose-sayac { font-size: 0.75rem; opacity: 0.8; }
+
+/* Madde 4 (tasokey#33): köşe boşken "0" yerine boş yuva/silik taş çerçevesi (raftaki boş yuvayla
+   aynı görsel: yuva-bos.svg) görünür — ekran.js koseYiginiCiz. */
+.kose-yuva-bos {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0.6;
+}
+
+/* Klavye yolu: odaklanabilir hedefler (köşe, yer destesi, raftaki taş — tasokey#30 R-012/R-013). */
+.kose:focus-visible,
+#yerDestesi:focus-visible,
+.tas:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
 
 .tas {
   position: relative;
@@ -134,6 +318,25 @@ html, body {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+/* Rakam DOM katmanı (ADR-011): gövde SVG'nin üstüne bindirilir; kendi rengini tanımlamaz —
+   `.tas`/`.tas.<renk>` sınıfının `color`ı miras alınır (tek kaynak, altındaki daireyle aynı). */
+.tas-rakam {
+  position: absolute;
+  left: var(--tas-rakam-sol);
+  top: var(--tas-rakam-ust);
+  width: var(--tas-rakam-genislik);
+  height: var(--tas-rakam-yukseklik);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-weight: 700;
+  font-size: var(--tas-rakam-font-boyutu);
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
 }
 
 .tas-cerceve {
@@ -164,21 +367,19 @@ html, body {
   height: 100%;
 }
 
-.rakip-raf {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--rakip-raf-bosluk);
-  max-width: var(--rakip-raf-genislik);
-  justify-content: center;
-}
-
+/* Sahip'in kendi ıstakası. min-height: max-content (denetçi bulgusu, tasokey#33): #rafAlani hem
+   `.kenar` (justify-content: center) hem de #masa ızgarasının "alt" satırındadır; ızgara satırı
+   sıkışırsa kutu içerikten kısa kalır ve ortalanmış içerik iki uca birden taşar — alt sıra taşlar
+   ahşabın dışında kalır. max-content tabanı bunu yapısal olarak imkânsız kılar: kutu hiçbir
+   kademede içeriğinden (dolgu + başlık + 2 sıra taş) kısa olamaz, taşlar rafa oturur
+   (MASA-DUZENI.md). Kutu = içerik yüksekliği olduğunda `.kenar`ın ortalaması zaten etkisizdir. */
 #rafAlani {
-  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
   padding: var(--panel-dolgu);
+  min-height: max-content;
   background-image: url('../gorsel/istaka.svg');
   background-size: 100% 100%;
 }
@@ -208,24 +409,6 @@ html, body {
   height: 100%;
   opacity: 0.85;
 }
-
-#rafAltCubuk {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-#atButonu {
-  padding: 8px 20px;
-  font-size: 1rem;
-  border-radius: 6px;
-  border: none;
-  background: #e8c547;
-  color: #1a1a1a;
-  cursor: pointer;
-}
-
-#atButonu:disabled { opacity: 0.4; cursor: default; }
 
 .tas.surukleniyor {
   opacity: 0.7;
@@ -264,9 +447,10 @@ html, body {
   cursor: pointer;
 }
 
-/* Duyarlı kademeler (tasokey#13, R-009) — sabit 4 ölçüm boyutu: 1920x1080, 1280x800,
-   820x1180 (tablet dikey), 390x844 (mobil dikey). Istaka her kademede 2 sıra kalır; yalnız taş/boşluk
-   ölçüsü küçülür ki sayılar (6/9, 1/7) kesilmeden okunsun. */
+/* Duyarlı kademeler (tasokey#13, R-009) — ölçüm boyutları: 1920x1080, 1280x800,
+   820x1180 (tablet dikey). Istaka her kademede 2 sıra kalır; yalnız taş/boşluk ölçüsü küçülür ki
+   sayılar (6/9, 1/7) kesilmeden okunsun. Telefon dikey (R-014) oyun alanını hiç göstermez (aşağıda,
+   `orientation: portrait` sorgusu) — bu kademeler ona uygulanmaz. */
 @media (max-width: 1300px) {
   :root {
     --tas-genislik: 50px;
@@ -274,8 +458,19 @@ html, body {
     --tas-arka-genislik: 30px;
     --tas-arka-yukseklik: 44px;
     --masa-bosluk: 18px;
-    --rakip-raf-genislik: 220px;
+    --masa-cerceve-kalinlik: 11px;
+    --rakip-raf-uzunluk: 190px;
+    --rakip-raf-kalinlik: 22px;
   }
+
+  /* Yan çubuk oranı (denetçi bulgusu, tasokey#33): çubuk ızgaranın ORTA satırının yüzdesidir, orta
+     satır da masanın ne kadarını kapladığına göre kademeden kademeye değişir. Geniş masaüstünde
+     orta satır masanın ~%60'ı (çubuk %86 → masanın %51'i = "yaklaşık yarısı"), dar kademelerde ise
+     ıstaka paneli ve köşe satırları aynı kalıp masa kısaldığı için orta satır masanın ancak
+     ~%50'si; aynı %86 orada masanın yalnız %43'ünü veriyordu (4 ekran görüntüsünde ölçüldü).
+     Bu kademelerde çubuk satırı neredeyse tamamen doldurur; satırın dışına taşmaz, köşe
+     yığınları ayrı ızgara satırlarında durduğu için çakışma olmaz. */
+  .kenar-raf-dikey { height: 96%; }
 }
 
 @media (max-width: 900px) {
@@ -284,11 +479,12 @@ html, body {
     --tas-yukseklik: 60px;
     --tas-arka-genislik: 24px;
     --tas-arka-yukseklik: 36px;
-    --raf-yuva-bosluk: 5px;
     --masa-bosluk: 14px;
     --masa-dolgu: 10px;
+    --masa-cerceve-kalinlik: 8px;
     --panel-dolgu: 12px;
-    --rakip-raf-genislik: 170px;
+    --rakip-raf-uzunluk: 150px;
+    --rakip-raf-kalinlik: 18px;
   }
 }
 
@@ -298,17 +494,93 @@ html, body {
     --tas-yukseklik: 50px;
     --tas-arka-genislik: 18px;
     --tas-arka-yukseklik: 28px;
-    --raf-yuva-bosluk: 4px;
-    --rakip-raf-bosluk: 3px;
     --masa-bosluk: 8px;
     --masa-dolgu: 6px;
+    --masa-cerceve-kalinlik: 6px;
     --panel-dolgu: 8px;
-    --rakip-raf-genislik: 140px;
+    --rakip-raf-uzunluk: 110px;
+    --rakip-raf-kalinlik: 14px;
     --baslik-font-boyutu: 1rem;
     --durum-font-boyutu: 0.85rem;
     --durum-dolgu-dikey: 4px;
     --durum-dolgu-yatay: 10px;
   }
+}
+
+/* Telefon yatay (R-014, tasokey#31): genişlikten bağımsız olarak yükseklik kısıtlıysa (örn.
+   844x390) dört kenar düzeni yine sığmalı — genişlik kademeleri (yukarıda) tek başına yetmez,
+   çünkü telefon yatayda genişlik 900px kademesine düşse de yükseklik çok daha dar kalır. */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root {
+    --tas-genislik: 25px;
+    --tas-yukseklik: 36px;
+    --tas-arka-genislik: 13px;
+    --tas-arka-yukseklik: 20px;
+    --masa-bosluk: 6px;
+    --masa-dolgu: 4px;
+    --masa-cerceve-kalinlik: 4px;
+    --panel-dolgu: 4px;
+    --rakip-raf-uzunluk: 90px;
+    --rakip-raf-kalinlik: 10px;
+    --baslik-font-boyutu: 0.9rem;
+    --durum-font-boyutu: 0.8rem;
+    --durum-dolgu-dikey: 3px;
+    --durum-dolgu-yatay: 8px;
+  }
+
+  /* Rafım/Yer destesi/Gösterge panelindeki dikey boşluk da bu kademede daralır (844x390'da
+     iki satırlık ıstaka + panel dolgusu + başlık toplamı viewport'a taşıyordu — tasokey#32).
+     Sol/sağ rakip çubuğu bu en dar kademede taban uzunluğunu (min-height) bırakır: yüzde yükseklik
+     satırın dışına taşamaz, ama min-height satırı büyütüp Sahip'in kendi ıstakasını sıkıştırabilir
+     (R-014/#32 düzeltmesini bozmamak için — Sahip'in kendi ıstakası öncelikli, tasokey#33). */
+  #rafAlani, .yigin { gap: 4px; }
+  .kenar-raf-dikey { min-height: 0; }
+}
+
+/* Telefon dikey uyarısı (R-014, ADR-012, tasokey#31): yön tespiti tamamen CSS ortam sorgusuyla
+   yapılır (JS sabit karar vermez, bkz. ekran.js telefonUyarisiCiz — yalnız dil anahtarlı metni
+   basar). Oyun alanı (#durumSatiri, #masa) gizlenir, yerine #telefonUyarisi görünür. */
+#telefonUyarisi { display: none; }
+
+.telefon-uyarisi {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 32px 24px;
+  text-align: center;
+  font-size: 1.05rem;
+}
+
+.telefon-uyarisi-ikon {
+  width: 36px;
+  height: 58px;
+  border: 3px solid var(--metin);
+  border-radius: 8px;
+  position: relative;
+  animation: telefonUyarisiDondur 1.8s ease-in-out infinite;
+}
+
+.telefon-uyarisi-ikon::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 2px solid var(--metin);
+  transform: translateX(-50%);
+}
+
+@keyframes telefonUyarisiDondur {
+  0%, 15% { transform: rotate(0deg); }
+  45%, 100% { transform: rotate(90deg); }
+}
+
+@media (orientation: portrait) and (max-width: 600px) {
+  #durumSatiri, #masa { display: none; }
+  #telefonUyarisi { display: flex; flex: 1 1 auto; }
 }
 
 #sonucKalanTaslar {

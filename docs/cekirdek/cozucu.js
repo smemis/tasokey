@@ -101,6 +101,26 @@ function perAdayiOlustur(kalan, ankor, pencere, jokerHavuzu, okeyTasi) {
   return grup;
 }
 
+// "Hangi taşı atarsa el biter?" sorgusu (tasokey#26; GDD.md §1 "Kazanma/bitiş koşulu", R-013).
+// Elindeki her taşı sırayla "atılmış" sayıp kalanın `elBitirilebilirMi` ile bitip bitmediğine
+// bakar; okey ve sahte okey hiçbir zaman aday olmaz (ADR-008/2, `kural.okeyVeSahteOkeyAtmaYasak`
+// açıksa) — arayüz bu listeyi deste vurgusu ve bırakma denetimi için kullanır, kuralı
+// kendisi tekrar yazmaz.
+export function elBitirenTaslar(taslar, okeyTasi, kural = KURAL_VARSAYILAN, gosterge = null) {
+  if (!Array.isArray(taslar) || taslar.length === 0) return [];
+
+  const adaylar = kural.okeyVeSahteOkeyAtmaYasak
+    ? taslar.filter((tas) => !tasOkeyMi(tas, okeyTasi))
+    : taslar;
+
+  const sonuc = [];
+  for (const tas of adaylar) {
+    const kalan = taslar.filter((t) => t.id !== tas.id);
+    if (elBitirilebilirMi(kalan, okeyTasi, kural, gosterge)) sonuc.push(tas.id);
+  }
+  return sonuc;
+}
+
 function tasImzasi(taslar) {
   return taslar.map((tas) => tas.id).sort().join(',');
 }

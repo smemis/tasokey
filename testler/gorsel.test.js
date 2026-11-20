@@ -1,20 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 // tasokey#15 (sınıf V) — şartname is/tasokey-15/sartname.md §1-5, kabul 1-8.
-// Ücretli üretim yok; 19 el yazımı SVG dosyası docs/gorsel/ altında ölçülür.
+// Ücretli üretim yok; el yazımı SVG dosyaları docs/gorsel/ altında ölçülür.
+// tasokey#28 (ADR-011): sayı başına 13 ayrı yüz dosyası kaldırıldı, tek paylaşılan gövde
+// (tas-govde.svg) ile değiştirildi; rakam artık SVG değil DOM katmanı (gorsel-baglanti.test.js).
 
 const GORSEL_DIZINI = join(import.meta.dirname, '..', 'docs', 'gorsel');
 const DOSYA_BUTCESI = 4096; // bayt, dosya başına (şartname §1)
-const TOPLAM_BUTCE = 61440; // bayt, 19 dosya toplamı (şartname §1)
+const TOPLAM_BUTCE = 28672; // bayt, 7 dosya toplamı (dosya başına bütçenin 7 katı; ADR-011 ile dosya sayısı 19'dan 7'ye indi)
 
-const TAS_YUZLERI = Array.from({ length: 13 }, (_, i) => `tas-${String(i + 1).padStart(2, '0')}.svg`);
-const HEX_YOK_GRUBU = [...TAS_YUZLERI, 'tas-sahte-okey.svg', 'tas-okey-cerceve.svg'];
+const HEX_YOK_GRUBU = ['tas-govde.svg', 'tas-sahte-okey.svg', 'tas-okey-cerceve.svg'];
 const TUM_DOSYALAR = [
-  ...TAS_YUZLERI,
+  'tas-govde.svg',
   'tas-sahte-okey.svg',
   'tas-okey-cerceve.svg',
   'tas-arka.svg',
@@ -23,7 +23,7 @@ const TUM_DOSYALAR = [
   'yuva-bos.svg',
 ];
 
-const VIEWBOX_100x140 = [...TAS_YUZLERI, 'tas-sahte-okey.svg', 'tas-okey-cerceve.svg', 'tas-arka.svg', 'yuva-bos.svg'];
+const VIEWBOX_100x140 = ['tas-govde.svg', 'tas-sahte-okey.svg', 'tas-okey-cerceve.svg', 'tas-arka.svg', 'yuva-bos.svg'];
 
 const ICERIK_KUTUSU = { xMin: 8, xMax: 92, yMin: 11.2, yMax: 128.8 };
 
@@ -43,37 +43,15 @@ function boyut(ad) {
   return statSync(join(GORSEL_DIZINI, ad)).size;
 }
 
-// path 'd' içindeki M/L/H/V komutlarını izleyip ziyaret edilen tüm (x,y) noktalarını döndürür.
-function pathNoktalari(d) {
-  const noktalar = [];
-  let x = 0, y = 0;
-  const komutlar = d.match(/[MLHVZ][^MLHVZ]*/gi) ?? [];
-  for (const parca of komutlar) {
-    const tip = parca[0].toUpperCase();
-    const sayilar = (parca.slice(1).match(/-?\d+\.?\d*/g) ?? []).map(Number);
-    if (tip === 'M' || tip === 'L') {
-      for (let i = 0; i < sayilar.length; i += 2) {
-        x = sayilar[i]; y = sayilar[i + 1];
-        noktalar.push([x, y]);
-      }
-    } else if (tip === 'H') {
-      for (const nx of sayilar) { x = nx; noktalar.push([x, y]); }
-    } else if (tip === 'V') {
-      for (const ny of sayilar) { y = ny; noktalar.push([x, y]); }
-    }
-  }
-  return noktalar;
-}
-
-test('kabul-1: 19 dosyanın hepsi docs/gorsel altında var', () => {
+test('kabul-1: dosyaların hepsi docs/gorsel altında var', () => {
   const mevcut = new Set(readdirSync(GORSEL_DIZINI));
   for (const ad of TUM_DOSYALAR) {
     assert.ok(mevcut.has(ad), `${ad} bulunamadı`);
   }
-  assert.equal(TUM_DOSYALAR.length, 19, 'varlık listesi 19 olmalı');
+  assert.equal(TUM_DOSYALAR.length, 7, 'varlık listesi 7 olmalı (ADR-011: sayı başına 13 yüz dosyası yerine 1 paylaşılan gövde)');
 });
 
-test('kabul-2: dosya başına <=4096 bayt, toplam <=61440 bayt (ölçülen sayı)', () => {
+test('kabul-2: dosya başına <=4096 bayt, toplam <=28672 bayt (ölçülen sayı)', () => {
   let toplam = 0;
   const olculenler = [];
   for (const ad of TUM_DOSYALAR) {
@@ -96,25 +74,40 @@ test('kabul-3: viewBox değerleri doğru', () => {
   assert.match(oku('masa-zemin.svg'), /viewBox="0 0 240 240"/, 'masa-zemin.svg viewBox 0 0 240 240 değil');
 });
 
-test('kabul-4: taş yüzlerinde rx=10 gövde var; rakam koordinatları içerik kutusunu aşmıyor', () => {
-  for (const ad of TAS_YUZLERI) {
-    const icerik = oku(ad);
-    assert.match(icerik, /<rect[^>]*\brx="10"[^>]*\bry="10"[^>]*\/>/, `${ad} rx=10/ry=10 gövde dikdörtgeni yok`);
-    const pathEslesme = icerik.match(/<path d="([^"]+)"/);
-    assert.ok(pathEslesme, `${ad} rakam path'i yok`);
-    const noktalar = pathNoktalari(pathEslesme[1]);
-    assert.ok(noktalar.length > 0, `${ad} path koordinatı ayrıştırılamadı`);
-    for (const [x, y] of noktalar) {
-      assert.ok(
-        x >= ICERIK_KUTUSU.xMin - 1e-6 && x <= ICERIK_KUTUSU.xMax + 1e-6,
-        `${ad} x=${x} içerik kutusunu (${ICERIK_KUTUSU.xMin}..${ICERIK_KUTUSU.xMax}) aşıyor`,
-      );
-      assert.ok(
-        y >= ICERIK_KUTUSU.yMin - 1e-6 && y <= ICERIK_KUTUSU.yMax + 1e-6,
-        `${ad} y=${y} içerik kutusunu (${ICERIK_KUTUSU.yMin}..${ICERIK_KUTUSU.yMax}) aşıyor`,
-      );
-    }
-  }
+test('kabul-4: taş gövdesinde rx=10 gövde var; rakam alanı ve altındaki renk dairesi içerik kutusunu aşmıyor', () => {
+  const icerik = oku('tas-govde.svg');
+  assert.match(icerik, /<rect[^>]*\brx="10"[^>]*\bry="10"[^>]*\/>/, 'tas-govde.svg rx=10/ry=10 gövde dikdörtgeni yok');
+
+  const alanEslesme = icerik.match(/<rect[^>]*\bdata-alan="rakam"[^>]*\/>/);
+  assert.ok(alanEslesme, 'tas-govde.svg rakam alanını işaretleyen data-alan="rakam" rect\'i yok (DOM rakam katmanı bu alana hizalanır)');
+  const alanSayi = (ozellik) => Number(alanEslesme[0].match(new RegExp(`\\b${ozellik}="([\\d.]+)"`))[1]);
+  const alanX = alanSayi('x');
+  const alanY = alanSayi('y');
+  const alanGenislik = alanSayi('width');
+  const alanYukseklik = alanSayi('height');
+  assert.ok(
+    alanX >= ICERIK_KUTUSU.xMin && alanX + alanGenislik <= ICERIK_KUTUSU.xMax,
+    `rakam alanı x ekseninde içerik kutusunu (${ICERIK_KUTUSU.xMin}..${ICERIK_KUTUSU.xMax}) aşıyor`,
+  );
+  assert.ok(
+    alanY >= ICERIK_KUTUSU.yMin && alanY + alanYukseklik <= ICERIK_KUTUSU.yMax,
+    `rakam alanı y ekseninde içerik kutusunu (${ICERIK_KUTUSU.yMin}..${ICERIK_KUTUSU.yMax}) aşıyor`,
+  );
+
+  const daireEslesme = icerik.match(/<circle[^>]*\/>/);
+  assert.ok(daireEslesme, 'tas-govde.svg altındaki renk dairesi yok');
+  const daireSayi = (ozellik) => Number(daireEslesme[0].match(new RegExp(`\\b${ozellik}="([\\d.]+)"`))[1]);
+  const cx = daireSayi('cx');
+  const cy = daireSayi('cy');
+  const r = daireSayi('r');
+  assert.ok(
+    cx - r >= ICERIK_KUTUSU.xMin && cx + r <= ICERIK_KUTUSU.xMax,
+    `renk dairesi x ekseninde içerik kutusunu (${ICERIK_KUTUSU.xMin}..${ICERIK_KUTUSU.xMax}) aşıyor`,
+  );
+  assert.ok(
+    cy - r >= ICERIK_KUTUSU.yMin && cy + r <= ICERIK_KUTUSU.yMax,
+    `renk dairesi y ekseninde içerik kutusunu (${ICERIK_KUTUSU.yMin}..${ICERIK_KUTUSU.yMax}) aşıyor`,
+  );
 });
 
 test('kabul-5: yasak düğüm/öznitelik taraması 0 eşleşme', () => {
@@ -144,12 +137,3 @@ test('kabul-7: her dosya aria-hidden="true" taşıyor', () => {
   }
 });
 
-test('kabul-8: tas-01 … tas-13 birbirinden farklı', () => {
-  const ozetler = new Set();
-  for (const ad of TAS_YUZLERI) {
-    const ozet = createHash('sha256').update(oku(ad)).digest('hex');
-    assert.ok(!ozetler.has(ozet), `${ad} bir başka tas-XX.svg ile birebir aynı`);
-    ozetler.add(ozet);
-  }
-  assert.equal(ozetler.size, 13, '13 farklı içerik özeti bekleniyor');
-});
