@@ -11,6 +11,11 @@ import { HEDEF_TURU, CEKME_KAYNAGI } from './etkilesim.js';
 // hareket dokunma sayılır ve ekran.js'in tıklama yoluna bırakılır (tasokey#40).
 const SURUKLEME_ESIGI_PX = 6;
 
+// Taşınmış bir sürüklemenin ardından tarayıcı aynı işaretçi dizisi için bir `click` daha üretir;
+// bu, onun beklendiği pencere (ms). Dokunmatikte uyum tıklaması hiç gelmeyebilir — bayrak süre
+// dolunca kendiliğinden düşsün ki sonraki tıklama bayat bir bayrağa takılmasın (tasokey#40).
+const UYUM_TIKLAMASI_PENCERESI_MS = 700;
+
 export function surukleBagla(rafElemani, hedefeBirakCallback) {
   let suruklenenTasId = null;
   let suruklenenEleman = null;
@@ -85,7 +90,7 @@ export function cekmeSurukleBagla(masaElemani, rafElemani, kaynaktanCekCallback)
   let baslangicX = 0;
   let baslangicY = 0;
   let tasindiMi = false;
-  let tiklamayiYut = false;
+  let yutulacakTiklamaZamani = -Infinity;
 
   function sifirla() {
     if (ustTas) {
@@ -101,12 +106,17 @@ export function cekmeSurukleBagla(masaElemani, rafElemani, kaynaktanCekCallback)
   // Taşınmış bir sürüklemenin ardından tarayıcı aynı işaretçi dizisi için `click` de üretir; deste
   // ve köşe dokunma yolunda da çekme denediğinden (ekran.js `olaylariBagla`) bu tıklama yutulmazsa
   // aynı hamle ikinci kez denenir ve ikincisi "zaten çekildi" reddiyle görünür. Yakalama evresinde
-  // `document` üstünde dinlenir ki hedefin kendi dinleyicilerinden önce çalışsın; bayrak her yeni
-  // işaretçi basışında sıfırlanır, böylece beklenen tıklama hiç gelmezse bayat kalmaz.
-  document.addEventListener('pointerdown', () => { tiklamayiYut = false; }, true);
+  // `document` üstünde dinlenir ki hedefin kendi dinleyicilerinden önce çalışsın. Yutma yalnız
+  // gerçekten hamle yapıldığında (ıstakaya bırakma) kurulur ve üç yoldan düşer: yeni işaretçi
+  // basışı, beklenen tıklamanın gelmesi, pencerenin dolması.
+  document.addEventListener('pointerdown', () => { yutulacakTiklamaZamani = -Infinity; }, true);
   document.addEventListener('click', (e) => {
-    if (!tiklamayiYut) return;
-    tiklamayiYut = false;
+    if (performance.now() - yutulacakTiklamaZamani > UYUM_TIKLAMASI_PENCERESI_MS) return;
+    yutulacakTiklamaZamani = -Infinity;
+    // `detail === 0`: tıklama işaretçiden değil klavyeden geliyor (native düğmede Enter/Space).
+    // Sürüklemenin uyum tıklaması değildir, yutulmaz — yoksa dokunmatikte uyum tıklaması
+    // üretilmediğinde kullanıcının sıradaki klavye etkinleştirmesi sessizce düşer.
+    if (e.detail === 0) return;
     e.stopPropagation();
     e.preventDefault();
   }, true);
@@ -154,9 +164,13 @@ export function cekmeSurukleBagla(masaElemani, rafElemani, kaynaktanCekCallback)
     sifirla();
     // Yerinde bırakma (eşiğin altında) sürükleme sayılmaz: dokunma/tıklama yolu kendi işini yapar.
     if (!suruklendiMi) return;
-    tiklamayiYut = true;
     const noktadakiEleman = document.elementFromPoint(e.clientX, e.clientY);
-    if (noktadakiEleman && rafElemani.contains(noktadakiEleman)) kaynaktanCekCallback(tur, bilgi);
+    // Istakaya düşmeyen bırakma hamle değildir; kaynağın üstünde biten titrek bir hareket de
+    // (eşiği aşsa bile) dokunma sayılıp tıklama yoluna bırakılır. Bu yüzden uyum tıklaması yalnız
+    // çekme gerçekten denendiğinde yutulur — yoksa ne sürükleme ne dokunma işler.
+    if (!noktadakiEleman || !rafElemani.contains(noktadakiEleman)) return;
+    yutulacakTiklamaZamani = performance.now();
+    kaynaktanCekCallback(tur, bilgi);
   });
 
   // İptal edilen hareket (ör. işletim sisteminin el koyduğu dokunma) hamle sayılmaz.
