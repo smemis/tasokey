@@ -50,7 +50,9 @@ test('kabul-c: ekran.js kutuyu yalnız saf karara (rakipEliAcikMi) göre dolduru
   );
   assert.match(
     EKRAN_JS,
-    /rakipTaslariCiz\(eleman\[taslar\], durum\.eller\[oyuncu\], durum\.okeyTasi, rakipEliAcik, oyuncu\)/,
+    // tasokey#39 ek bilgisi: çizim artık dizilim için gösterge taşını da alıyor (çift kuralı
+    // gösterge taşını dışlar — dizilim.js ciftGecerliMi).
+    /rakipTaslariCiz\(eleman\[taslar\], durum\.eller\[oyuncu\], durum\.okeyTasi, rakipEliAcik, oyuncu, durum\.gosterge\)/,
     'masaCiz rakibin gerçek elini (durum.eller[oyuncu]) açmıyor',
   );
   assert.ok(

@@ -62,6 +62,13 @@
   --masa-doku-olcu: 240px;
   --kose-kaydirma: 5px;
   --masa-bosluk: 24px;
+  /* Bırakma/tıklama hedef payı — TEK KAYNAK (ADR-014, tasokey#39). Köşe yığınının ve yer destesinin
+     hedef alanı, taşın görünen ölçüsünden BAĞIMSIZ olarak her yanından bu kadar genişler (aşağıda
+     .kose::after / #yerDestesi::after; taşın kendi width/height'ı değişmez). Değer masa ızgarasının
+     hücre boşluğunun YARISIDIR: komşu hücre (yandaki ıstaka paneli, kenar çubuğu, öbür köşe) o
+     boşluğun ötesinde durduğu için halka hiçbir kademede komşunun kutusuna girmez, kademe
+     değişince (--masa-bosluk küçülünce) kendiliğinden küçülür — kuralların içine sayı yazılmaz. */
+  --hedef-pay: calc(var(--masa-bosluk) / 2);
   --masa-dolgu: 16px;
   --masa-cerceve-kalinlik: 14px;
   --panel-dolgu: 16px;
@@ -385,6 +392,20 @@ html, body {
   opacity: 0.6;
 }
 
+/* Hedef halkası (ADR-014, tasokey#39; R-012/R-013): köşe yığını ve yer destesi, taş boyundan
+   bağımsız olarak --hedef-pay kadar daha geniş bir bırakma/tıklama hedefi taşır. Görünmezdir
+   (arka planı/çerçevesi yok) ve mutlak konumlu olduğundan düzeni kaydırmaz, taşın görünen ölçüsünü
+   değiştirmez. Sözde öğeye yapılan isabet SAHİBİNİ hedef verir: tıklama olayı yine .kose /
+   #yerDestesi'nde doğar, `document.elementFromPoint` (surukle.js) yine onları döndürür — bu yüzden
+   ne ekran.js'in olay bağlaması ne de sürükleme yolu değişir. Kademe yoktur → masa kademesinde
+   kalır (ADR-015), sonuç penceresinin altında. */
+.kose::after,
+#yerDestesi::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--hedef-pay));
+}
+
 /* Klavye yolu: odaklanabilir hedefler (köşe, yer destesi, raftaki taş — tasokey#30 R-012/R-013). */
 .kose:focus-visible,
 #yerDestesi:focus-visible,
@@ -688,4 +709,13 @@ html, body {
   font-size: 0.9rem;
   opacity: 0.9;
   text-align: left;
+}
+
+/* El sonu dökümü (Sahip ek bilgisi, 2026-11-20): oyuncunun kalan taş satırının altında per /
+   çift / per olmayan / okey sayıları. Metnin tamamı dil anahtarlarından gelir (ekran.js
+   dokumMetni); burada yalnız ikincil satır görünümü tanımlanır. */
+.sonuc-dokum {
+  font-size: 0.8rem;
+  opacity: 0.75;
+  margin: 0 0 6px 12px;
 }

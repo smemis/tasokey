@@ -4,7 +4,7 @@
 
 import { elBaslat, cek, at, KAYNAK, EL_SONUCU, sonrakiOyuncu, oncekiOyuncu } from '../cekirdek/el.js';
 import { tasOkeyMi } from '../cekirdek/dagitim.js';
-import { elBitirenTaslar } from '../cekirdek/cozucu.js';
+import { elBitirenTaslar, elDokumu, dokumSirasi } from '../cekirdek/cozucu.js';
 import { KURAL_VARSAYILAN } from '../cekirdek/kural.js';
 import { elSonucunuHesapla } from '../cekirdek/puan.js';
 import { kolayBotTurOyna } from '../bot/kolay.js';
@@ -252,13 +252,16 @@ function yerDestesiYiginiCiz(alan, adet) {
 // El bitince rakibin ıstakası açılır (Sahip ek bilgisi, 2026-11-20): kutu rakibin bütün taşlarını
 // yüzü açık gösterir. "Açık mı" kararı saf modülde (etkilesim.js rakipEliAcikMi); burada yalnız
 // çizim var. El sürerken kutu boşaltılır — rakip taşı bir an bile görünmez.
-function rakipTaslariCiz(kutu, el, okeyTasi, acikMi, oyuncu) {
+// Taşlar DİZİLİ serilir (Sahip ek bilgisi, 2026-11-20): sıra `cekirdek/cozucu.js` dökümünden gelir
+// (perler → çiftler → per dışı kalanlar); arayüz kendi sıralama kuralı yazmaz.
+function rakipTaslariCiz(kutu, el, okeyTasi, acikMi, oyuncu, gosterge) {
   kutu.innerHTML = '';
   if (!acikMi) {
     kutu.removeAttribute('aria-label');
     return;
   }
-  for (const tas of el) {
+  const sirali = dokumSirasi(elDokumu(el, okeyTasi, KURAL_VARSAYILAN, gosterge));
+  for (const tas of sirali) {
     const tasElemani = tasElemaniOlustur(tas, okeyTasi);
     tasElemani.setAttribute('aria-label', tasAriaEtiketi(tas, okeyTasi));
     kutu.appendChild(tasElemani);
@@ -295,7 +298,7 @@ function masaCiz() {
     const { kutu, ad, taslar } = KENAR_ELEMAN_ADLARI[KENAR_HARITASI[oyuncu]];
     eleman[ad].textContent = oyuncuAdi(oyuncu);
     eleman[kutu].classList.toggle('aktif', durum.sira === oyuncu && durum.sonuc === EL_SONUCU.SUREN);
-    rakipTaslariCiz(eleman[taslar], durum.eller[oyuncu], durum.okeyTasi, rakipEliAcik, oyuncu);
+    rakipTaslariCiz(eleman[taslar], durum.eller[oyuncu], durum.okeyTasi, rakipEliAcik, oyuncu, durum.gosterge);
   }
 
   // R-012: yalnız önceki oyuncunun köşesi geçerli çekme kaynağıdır; o köşe `cekilebilir` sınıfıyla
@@ -343,11 +346,28 @@ function rafCiz() {
   }
 }
 
+// Sahip ek bilgisi (2026-11-20): el bitince her oyuncu için perler, per olmayanlar, (varsa) çiftler
+// ve okey sayısı AYRI AYRI yazılır. Parçalar ayrı dil anahtarlarından gelir ve ayraçla birleşir;
+// sayıların kaynağı `cekirdek/puan.js`in dökümüdür (kural burada tekrar edilmez).
+const DOKUM_AYRACI = ' · ';
+
+function dokumMetni(dokum) {
+  const parcalar = [metinAl('sonuc.dokumPer', [dokum.perSayisi, dokum.perTasSayisi])];
+  if (dokum.ciftSayisi > 0) parcalar.push(metinAl('sonuc.dokumCift', [dokum.ciftSayisi, dokum.ciftTasSayisi]));
+  parcalar.push(metinAl('sonuc.dokumPerDisi', [dokum.perDisiSayisi]));
+  parcalar.push(metinAl('sonuc.dokumOkey', [dokum.okeySayisi]));
+  return parcalar.join(DOKUM_AYRACI);
+}
+
 function sonucKalanTaslariCiz(sonuc) {
   eleman.sonucKalanTaslar.innerHTML = '';
   for (const { oyuncu, sayi } of sonuc.kalanTaslar) {
     const li = document.createElement('li');
     li.textContent = metinAl('sonuc.kalanTas', [oyuncuAdi(oyuncu), sayi]);
+    const dokum = document.createElement('div');
+    dokum.className = 'sonuc-dokum';
+    dokum.textContent = dokumMetni(sonuc.dokumler[oyuncu]);
+    li.appendChild(dokum);
     eleman.sonucKalanTaslar.appendChild(li);
   }
 }

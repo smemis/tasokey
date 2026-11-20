@@ -15,8 +15,9 @@
 >
 > **Sürüm 4** (`tasokey#37`, Geliştirici, 2026-11-20): ADR-017 (bitiş iki ayrı denetimin VEYA'sı; per = seri + sayı peri,
 > çift = birebir aynı taş) eklendi; karar Sahip'in (`tasokey#35`), bu iş kodu yazdı. Kaynak: `GDD.md` v3 §1 kural 6, 7, 13.
-> ADR-013, ADR-014, ADR-016 numaraları kullanılmadı — 017 numarası GDD/PRD v3'te bu karara verilmişti.
-> ADR-015 boş kalan numaralardan biriydi, `tasokey#38`'de (Mimar hakemliği) yazıldı — aşağıda §5.
+> ADR-013 ve ADR-016 numaraları kullanılmadı — 017 numarası GDD/PRD v3'te bu karara verilmişti.
+> ADR-014 ve ADR-015 boş kalan numaralardandı: ADR-015 `tasokey#38`'de (Mimar hakemliği),
+> ADR-014 `tasokey#39`'da (Sahip'in isteği bu numarayı adlandırarak geldi) yazıldı — aşağıda §5.
 >
 > **Sürüm 5** (`tasokey#37`, Mimar kararı + Geliştirici uygulaması, 2026-11-20): ADR-018 (bot kuralı kopyalamaz,
 > `cekirdek`'e sorar; el sonlanması sezgisele bağlı değildir) eklendi; durumu **kabul** (karar veren Mimar-K2).
@@ -28,11 +29,18 @@
 > `tasokey#38` isteği ("sonuç penceresi her zaman en üstte") ve belirti görüntüsü `is/tasokey-35/ekler/image-2.png`.
 > Karar `tasokey#38`'de uygulanmıştı ama belgeye yazılmamıştı (Denetçi "güncel mimari karara uyuyor mu" maddesini
 > bu yüzden ölçemedi); bu sürüm yalnız belge + yeni ADR atıf taraması testidir, `docs/` kodu değişmedi.
+>
+> **Sürüm 7** (`tasokey#39`, Sahip'in isteği + Geliştirici uygulaması, 2026-11-20): ADR-014 (bırakma/tıklama
+> hedef alanı taş ölçüsünden bağımsız, tek değişkenden) eklendi; durumu **kabul**. Kaynak: Sahip'in `tasokey#39`
+> isteği ("Taş atma ve çekme hedef alanları büyütülsün (ADR-014)") — numara istekte verildi.
+> Aynı işin ek bilgileri (el bitince rakip ıstakasının **dizili** açılması, sonuç penceresinde per / çift /
+> per olmayan / okey sayılarının **ayrı** yazılması) arayüz-sunum ayrıntısıdır, ADR gerektirmedi; karşılığı
+> `cekirdek/cozucu.js` `elDokumu` saf işlevidir (§3).
 
 | Alan | Değer |
 |---|---|
 | Proje | `tasokey` |
-| Mimari karar sürümü | `6` (ADR-015 eklendi, Mimar kararı + Geliştirici uygulaması, 2026-11-20, tasokey#38; önceki: ADR-018 sürüm 5, aynı gün, tasokey#37) |
+| Mimari karar sürümü | `7` (ADR-014 eklendi, Sahip isteği + Geliştirici uygulaması, 2026-11-20, tasokey#39; önceki: ADR-015 sürüm 6, aynı gün, tasokey#38) |
 | Bağlı PRD sürümü | `3` (`tasokey#36`, R-004/R-005 kural düzeltmesi) |
 | Profil | `kit\profiller\` içinde yok → `profil-oyun-web-taslak.md` (bu klasör; kit'e girmesi Sahip onayı ister, D-26) |
 | Hazırlayan | Mimar, 2026-11-19 |
@@ -78,9 +86,9 @@ Değerlendirilen ama önerilmeyen yollar ADR-001'in "Seçenekler" satırında.
 | `cekirdek/kural.js` | K1 kural varsayılanları (ADR-008) tek nesnede; motorun okuduğu tek kural kaynağı | — | evet |
 | `cekirdek/dagitim.js` | 15/14/14/14 dağıtım, gösterge açma, o elin okey taşını belirleme | tas, karma, kural | evet |
 | `cekirdek/dizilim.js` (ADR-017) | Per (seri + sayı peri) ve çift (birebir aynı taş) geçerliliği; okey/sahte okey yerine geçme | tas, kural | evet |
-| `cekirdek/cozucu.js` (ADR-017) | "Bu el bitirilebilir mi?" — iki ayrı arama: elin tamamen per gruplarına bölünmesi **ya da** tam 7 birebir çift olması | dizilim | evet |
+| `cekirdek/cozucu.js` (ADR-017) | "Bu el bitirilebilir mi?" — iki ayrı arama: elin tamamen per gruplarına bölünmesi **ya da** tam 7 birebir çift olması. Ayrıca **el dökümü** (`elDokumu` + `dokumSirasi`, `tasokey#39`): elin en çok taşı kapsayan per bölümü + kalanın birebir çiftleri + per dışı taşlar; el sonu gösteriminin (dizilim ve sayılar) tek kaynağı. Bitiş kararından ayrıdır — döküm bitmemiş eli de böler | dizilim | evet |
 | `cekirdek/el.js` | El durumu, sıra, hamle doğrulama (çek/at), el sonu koşulları | dagitim, cozucu, kural | evet |
-| `cekirdek/puan.js` | El sonucu ve puan | el | evet |
+| `cekirdek/puan.js` | El sonucu ve puan: kalan taş sayıları + oyuncu başına döküm (`dokumler`: per / çift / per olmayan / okey sayıları — `tasokey#39` ek bilgisi) | el, cozucu, kural | evet |
 | `bot/kolay.js` (ADR-018) | Hangi taşı çeker / atar (sezgisel): bitiş yolunu seçer, en izole taşı atar, atılandan yalnız gerçek tamamlamada çeker. Kural sorularını `dizilim.js`/`cozucu.js`'in saf işlevlerine sorar, kendi per/çift tanımını yazmaz; hamleyi `el.js`'e onaylatır | cekirdek (dizilim, cozucu, el, kural, tas, dagitim) | evet |
 | `arayuz/ekran.js` | Masa, raf, atılan taş yığını; olay bağlama | cekirdek, dil, yerlesim | hayır (DOM) |
 | `arayuz/surukle.js` | Taş seçme ve rafta sürükleyerek dizme | ekran, etkilesim | hayır (DOM) |
@@ -239,6 +247,18 @@ Sınır kuralı: `cekirdek/` ve `bot/` altında `document`, `window`, `localStor
 | Sonuçlar | §7 risk 4 **kapanır** (R-014 ile: sığdırma denenmez, uyarı gösterilir). Yeni saf modüller (`yerlesim.js`, `etkilesim.js`) DOM'suz test edilebilir hâle gelir. Kolaylaştırır: düzen mantığı tek yerde, öz-testle doğrulanır. Zorlaştırır: `ekran.js` artık bu iki modüle bağımlı olur; gerçek CSS Grid ve modül dosyaları bu işte **yazılmadı** (belge güncellemesi, kod değişmedi) — ayrı Geliştirici işi |
 | Etkilenen gereksinimler | R-011, R-012, R-013, R-014 |
 
+### ADR-014: Bırakma/tıklama hedef alanı taş ölçüsünden bağımsız, tek değişkenden
+
+| Alan | Değer |
+|---|---|
+| Tarih | 2026-11-20 · Durum: **kabul** (karar Sahip, `tasokey#39`; numara istekte verildi) |
+| Karar veren | Sahip (ürün: "hedef alanları büyütülsün") · teknik karşılık + uygulama Geliştirici |
+| Bağlam | Köşe yığınının ve yer destesinin bırakma/tıklama hedefi, o öğenin **görünen** kutusuydu: köşede taş ölçüsü + `--kose-kaydirma`, destede `.yigin-tas-alani`ın `min-width/min-height`ı (ikisi de `--tas-genislik`/`--tas-yukseklik`ten). Hedef taş boyuna bağlı olduğu için dar kademelerde (telefon yatay: taş 25×36 px) isabet alanı da küçülüyordu; taşı köşenin birkaç piksel dışına bırakmak hamleyi düşürüyor (`surukle.js` `elementFromPoint` ile hedefi bulamıyor), R-012/R-013'ün dokunma yolu zorlaşıyordu. Hedefi taşı büyüterek açmak **yasak**: görünüm `STIL.md`/R-015'e bağlı (K4, Sahip kapısı) |
+| Karar | (1) Hedef alanının payı `stil.css` `:root` içindeki **tek** değişkendir: `--hedef-pay`. (2) Köşe (`.kose`) ve yer destesi (`#yerDestesi`) bu payı görünmez bir sözde öğeyle (`::after`, `position: absolute`, `inset: calc(-1 * var(--hedef-pay))`) kazanır — taşın ve kutunun `width/height`ı **değişmez**, düzen kaymaz. (3) Değer `calc(var(--masa-bosluk) / 2)`: masa ızgarasının hücre boşluğunun yarısı. Komşu hücre (ıstaka paneli, kenar çubuğu, öbür köşe) o boşluğun ötesinde durduğundan halka hiçbir kademede komşunun kutusuna **girmez**, kademe değişince (`--masa-bosluk` küçülünce) kendiliğinden küçülür; kuralların içine sayı yazılmaz (ADR-015'in "tek kaynak" dili). (4) `arayuz/` JS'i değişmez: sözde öğeye yapılan isabet **sahibini** hedef verir, yani tıklama yine `.kose`/`#yerDestesi`'nde doğar ve `document.elementFromPoint(...).closest(...)` (`surukle.js`) yine onları döndürür. (5) Halkanın kendi yığılma kademesi yoktur → masa kademesinde kalır (ADR-015), kalıcı pencerenin altında |
+| Seçenekler | B) Köşe/destenin kendi `min-width/min-height`ını ya da dolgusunu büyütmek — reddedildi: ızgara hücresini büyütür, dört kenar düzenini (ADR-012) ve `844×390`da zar zor sığan yerleşimi (R-014, `tasokey#32`) bozar. C) Taşı büyütmek — reddedildi: görünüm kararı Sahip'te (K4), istek açıkça "taşın görünen ölçüsü değişmez" diyor. D) `surukle.js`'te bırakma noktasına en yakın hedefi mesafeyle seçmek (JS tarafı tolerans) — reddedildi: aynı kuralı ikinci bir yerde (JS'te) tanımlar, dokunma/klavye yolunda karşılığı olmaz ve "ne kadar yakın" sayısı yine kodun içine yazılır. E) Payı her kademede elle px olarak yazmak — reddedildi: beş yerde tutulan bir sayı, `--masa-bosluk` değişince sessizce komşuya girer |
+| Sonuçlar | Kolaylaştırır: isabet alanı masaüstünde ~%66 büyür (köşe 68×92 → 92×116 px) ve hedef ölçüsü tek satırdan okunur; `testler/hedef-alani.test.js` (a) ölçünün o değişkenden geldiğini, (b) her duyarlı kademede çözümlenebilir pozitif bir uzunluk olduğunu, (c) boşluğun yarısını geçmediğini (komşuyu örtmediğini), (d) taş ölçüsünün değişmediğini gerçek `calc()` hesabıyla ölçer. **Zorlaştırır / bilinen sınır:** pay boşluğa bağlı olduğundan en dar kademede (`844×390`, `--masa-bosluk: 6px`) yalnız **3 px** olur — parmakla oynanan en küçük ekranda kazanç en az; orada boşluğu büyütmek ayrı bir düzen işidir (§7 risk 10). Hedef halkası destenin başlık/sayaç/ipucu metinlerinin bir kısmını da kapsar (hepsi etkileşimsiz, görünüm değişmez): o metinlere tıklamak artık desteye tıklamak sayılır |
+| Etkilenen gereksinimler | R-012, R-013 (dokunma/sürükleme yolu kolaylaştı) · R-009/R-015 (görünüm değişmedi: taş ölçüsü aynı) |
+
 ### ADR-015: Yığılma kademeleri tek kaynak; kalıcı pencere her zaman en üstte
 
 | Alan | Değer |
@@ -252,8 +272,8 @@ Sınır kuralı: `cekirdek/` ve `bot/` altında `document`, `window`, `localStor
 | Etkilenen gereksinimler | — (arayüz hatası + Sahip'in ek bilgisi: el bitince rakip ıstakaları açılır). İlgili: R-011, R-015 (okunurluk) |
 
 ### ADR-017: Bitiş iki ayrı denetimin VEYA'sı; per = seri + sayı peri, çift = birebir aynı taş
-> Numara `GDD.md` v3 ve `PRD.md` v3'te (tasokey#36) bu kararı gösteriyordu; ADR-013, ADR-014 ve ADR-016 boş kaldı
-> (ADR-015 `tasokey#38`'de yazıldı, yukarıda).
+> Numara `GDD.md` v3 ve `PRD.md` v3'te (tasokey#36) bu kararı gösteriyordu; ADR-013 ve ADR-016 boş kaldı
+> (ADR-015 `tasokey#38`'de, ADR-014 `tasokey#39`'da yazıldı — yukarıda).
 
 | Alan | Değer |
 |---|---|
@@ -305,4 +325,5 @@ uyarısı görünür, R-014).
 | 6 | Arayüz işlerinin manifesti: 8777 portu ve tarayıcı sürücüsü yazılı değilse iş `izin_gerek` döner | **bilinen eksik** | Çekirdek iş 8'i açarken manifeste port + sürücü yazar |
 | 7 | `kraftdcm/tasokey` uzak deposu ve Pages ayarı ofisten görülemez; `git remote` boş (**ölçüldü**) | **Masa'da** | Sahip depoyu açar/Pages'i açar; ofis yalnız `docs/` üretir |
 | 8 | Kit'te "web oyunu" profili yok (D-26) | **eksik** | `profil-oyun-web-taslak.md` yazıldı; kit'e girmesi Sahip onayı ister (kit değişikliği) |
+| 10 | ADR-014'ün hedef payı ızgara boşluğunun yarısı olduğundan en dar kademede (`844×390`) yalnız 3 px: parmakla oynanan en küçük ekranda kazanç en az | **bilinen sınır** (ölçüldü: `--masa-bosluk: 6px`) | Masa boşluğunu/kenar paylarını telefon yatayda büyütmek ayrı düzen işidir; ölçüt gerçek dokunmayla denemedir (Sahip) |
 | 9 | 844×390'da (telefon yatay) sonuç penceresi, el bitince açılan üst rakibin ıstakasını örtüyor; o el pencere kapanmadan okunamaz. İki istek (pencere her zaman en üstte + el bitince rakip ıstakaları açılsın) bu ölçüde çakışıyor | **Masa'da / Sahip kararı** (pencere konumu ya da kapatılabilirlik ürün kararı; ADR-015 kademe sırası değişmez) | 844×390 ekran görüntüsü: pencere açıkken üst kenar ıstakası görünür mü (bugün görünmüyor — `is/tasokey-38/ekran/el-bitti-pencere-telefon-yatay.png`) |
