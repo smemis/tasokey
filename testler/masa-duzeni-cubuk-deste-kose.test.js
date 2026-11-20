@@ -20,6 +20,131 @@ const ISTAKA_DIKEY_SVG = readFileSync(join(DOCS_KOK, 'gorsel', 'istaka-dikey.svg
 const ISTAKA_YATAY_SVG = readFileSync(join(DOCS_KOK, 'gorsel', 'istaka-yatay.svg'), 'utf8');
 const ISTAKA_SVG = readFileSync(join(DOCS_KOK, 'gorsel', 'istaka.svg'), 'utf8');
 
+// ---------------------------------------------------------------------------
+// Birim farkındalı calc() çözümleyicisi (denetçi bulgusu, tur 2).
+// CSS'te calc() içinde uzunlukla birimsiz sayı TOPLANAMAZ: `12 * 58px + 11 * 0`
+// geçersizdir ("invalid at computed-value time") ve değişkeni kullanan bildirim
+// tamamen düşer — formül metinde doğru dursa bile özellik hiç çizilmez. Metin
+// eşleştiren testler bunu göremez, bu yüzden ifade burada gerçekten hesaplanır.
+// ---------------------------------------------------------------------------
+
+class BirimHatasi extends Error {}
+
+const YORUMSUZ_STIL = STIL_CSS.replace(/\/\*[\s\S]*?\*\//g, '');
+
+/** Dosyadaki bütün özel değişken bildirimleri: ad → [değer, …] (kademeler dahil). */
+function degiskenSozlugu() {
+  const sozluk = new Map();
+  for (const [, ad, deger] of YORUMSUZ_STIL.matchAll(/(--[\w-]+)\s*:\s*([^;{}]+);/g)) {
+    if (!sozluk.has(ad)) sozluk.set(ad, []);
+    sozluk.get(ad).push(deger.trim().replace(/\s+/g, ' '));
+  }
+  // --raf-sutun-sayisi CSS'te değil, ekran.js'te tanımlanır (tek kaynak, baslat()).
+  const sutun = EKRAN_JS.match(/const RAF_SUTUN_SAYISI = (\d+);/);
+  if (sutun) sozluk.set('--raf-sutun-sayisi', [sutun[1]]);
+  return sozluk;
+}
+
+function varCoz(ifade, sozluk, derinlik = 0) {
+  if (derinlik > 12) throw new Error('var() döngüsü');
+  return ifade.replace(/var\((--[\w-]+)(?:\s*,[^)]*)?\)/g, (_, ad) => {
+    const degerler = sozluk.get(ad);
+    if (!degerler) throw new Error(`${ad} hiçbir yerde tanımlı değil`);
+    return `(${varCoz(degerler[0], sozluk, derinlik + 1)})`;
+  });
+}
+
+/** `{sayi, birim}` döndürür; birim '' (saf sayı), 'px', '%', 'rem'… */
+function ifadeHesapla(ham) {
+  const metin = ham.replace(/\bcalc\(/g, '(');
+  let i = 0;
+  const bosluk = () => { while (i < metin.length && /\s/.test(metin[i])) i += 1; };
+
+  function etiket(birim) { return birim === '' ? 'birimsiz sayı' : birim; }
+
+  function birimselDeger() {
+    bosluk();
+    if (metin[i] === '(') {
+      i += 1;
+      const ic = toplam();
+      bosluk();
+      if (metin[i] !== ')') throw new Error('kapanmayan parantez');
+      i += 1;
+      return ic;
+    }
+    const eslesme = /^[-+]?(?:\d+\.?\d*|\.\d+)([a-z%]*)/i.exec(metin.slice(i));
+    if (!eslesme) throw new Error(`sayısal olmayan belirteç: ${metin.slice(i, i + 16)}`);
+    i += eslesme[0].length;
+    return { sayi: Number.parseFloat(eslesme[0]), birim: eslesme[1] || '' };
+  }
+
+  function carpim() {
+    let sol = birimselDeger();
+    for (;;) {
+      bosluk();
+      const op = metin[i];
+      if (op !== '*' && op !== '/') return sol;
+      i += 1;
+      const sag = birimselDeger();
+      if (op === '*') {
+        if (sol.birim !== '' && sag.birim !== '') {
+          throw new BirimHatasi(`calc() içinde ${sol.birim} ile ${sag.birim} çarpılıyor`);
+        }
+        sol = { sayi: sol.sayi * sag.sayi, birim: sol.birim || sag.birim };
+      } else {
+        if (sag.birim !== '') throw new BirimHatasi(`calc() içinde ${sag.birim} ile bölünüyor`);
+        sol = { sayi: sol.sayi / sag.sayi, birim: sol.birim };
+      }
+    }
+  }
+
+  function toplam() {
+    let sol = carpim();
+    for (;;) {
+      bosluk();
+      const op = metin[i];
+      if (op !== '+' && op !== '-') return sol;
+      i += 1;
+      const sag = carpim();
+      if (sol.birim !== sag.birim) {
+        throw new BirimHatasi(
+          `calc() içinde ${etiket(sol.birim)} ile ${etiket(sag.birim)} toplanıyor — tarayıcı bildirimi düşürür`,
+        );
+      }
+      sol = { sayi: op === '+' ? sol.sayi + sag.sayi : sol.sayi - sag.sayi, birim: sol.birim };
+    }
+  }
+
+  const sonuc = toplam();
+  bosluk();
+  if (i < metin.length) throw new Error(`çözümlenemeyen artık: ${metin.slice(i, i + 16)}`);
+  return sonuc;
+}
+
+/** Dosyadaki her `calc(...)` ifadesini parantez dengesiyle çıkarır. */
+function calcIfadeleri(css) {
+  const liste = [];
+  for (let bas = css.indexOf('calc('); bas !== -1; bas = css.indexOf('calc(', bas + 1)) {
+    let derinlik = 0;
+    let son = bas + 4;
+    for (; son < css.length; son += 1) {
+      if (css[son] === '(') derinlik += 1;
+      else if (css[son] === ')') {
+        derinlik -= 1;
+        if (derinlik === 0) break;
+      }
+    }
+    liste.push(css.slice(bas, son + 1));
+  }
+  return liste;
+}
+
+function onalticiRenk(metin) {
+  const e = /#([0-9a-f]{6})/i.exec(metin);
+  if (!e) return null;
+  return [0, 2, 4].map((k) => Number.parseInt(e[1].slice(k, k + 2), 16));
+}
+
 test('madde-1-a: .kenar artık gri kutu (beyaz saydam arka plan) taşımıyor', () => {
   assert.ok(
     !/\.kenar\s*\{[^}]*background:\s*rgba\(255,\s*255,\s*255/.test(STIL_CSS),
@@ -208,11 +333,18 @@ test('madde-ek-a: ıstakanın bir sırası 12 taş alıyor', () => {
   assert.match(EKRAN_JS, /const RAF_SUTUN_SAYISI = 12;/, 'ekran.js RAF_SUTUN_SAYISI 12 değil');
 });
 
-test('madde-ek-b: ıstaka yuvaları arasında boşluk yok (hiçbir kademede)', () => {
+// Boşluk sıfır olmalı (bitişik taş), AMA uzunluk birimiyle: aynı değişken
+// --rakip-ust-genislik'in calc()'ında uzunluklarla toplanıyor; birimsiz `0` orada
+// <number>dır ve bütün formülü geçersiz kılar (denetçi bulgusu, tur 2).
+test('madde-ek-b: ıstaka yuvaları arasında boşluk yok (hiçbir kademede) ve değer uzunluk birimi taşır', () => {
   const tanimlar = [...STIL_CSS.matchAll(/--raf-yuva-bosluk:\s*([^;]+);/g)].map((e) => e[1].trim());
   assert.ok(tanimlar.length > 0, 'stil.css --raf-yuva-bosluk tanımlamıyor');
   for (const deger of tanimlar) {
-    assert.match(deger, /^0(px)?$/, `--raf-yuva-bosluk sıfır değil: ${deger}`);
+    assert.match(
+      deger,
+      /^0(px|rem|em)$/,
+      `--raf-yuva-bosluk ya sıfır değil ya da birimsiz: ${deger} (birimsiz 0, calc() toplamını geçersiz kılar)`,
+    );
   }
 });
 
@@ -243,4 +375,84 @@ test('denetci-2: sol/sağ rakip çubuğu dar kademelerde taban orandan daha uzun
   const dar = Number(darEslesme[1]);
   assert.ok(dar > taban, `dar kademe oranı (${dar}%) tabandan (${taban}%) büyük değil`);
   assert.ok(dar <= 100, `dar kademe oranı (${dar}%) satırın dışına taşıyor`);
+});
+
+// Denetçi bulguları (tur 2). Üst rakibin yatay çubuğu dört ekran görüntüsünde de hiç
+// çizilmiyordu: --rakip-ust-genislik formülündeki `(sütun-1) * var(--raf-yuva-bosluk)`
+// terimi, boşluk birimsiz `0`a çekilince <number> oluyor ve uzunlukla toplanamıyor →
+// değişken geçersiz → width düşüyor → boş div 0 genişlik. Metin eşleştiren madde-1-b
+// bunu göremedi; aşağıdaki iki test ifadeyi gerçekten hesaplar.
+test('denetci-3: üst çubuk genişliği gerçekten bir UZUNLUK veriyor (birimsiz sayıyla toplanmıyor)', () => {
+  const sozluk = degiskenSozlugu();
+  const ham = sozluk.get('--rakip-ust-genislik');
+  assert.ok(ham, '--rakip-ust-genislik tanımlı değil');
+  let sonuc;
+  try {
+    sonuc = ifadeHesapla(varCoz(ham[0], sozluk));
+  } catch (hata) {
+    assert.fail(`--rakip-ust-genislik çözümlenemiyor: ${hata.message}`);
+  }
+  assert.equal(
+    sonuc.birim,
+    'px',
+    `--rakip-ust-genislik "${sonuc.birim || 'birimsiz'}" veriyor; uzunluk olmayan değer width: için geçersizdir`,
+  );
+  assert.ok(sonuc.sayi > 0, `--rakip-ust-genislik ${sonuc.sayi}px — çubuk görünmez`);
+});
+
+test('denetci-4: stil.css\'teki bütün calc() ifadeleri birim bakımından geçerli', () => {
+  const sozluk = degiskenSozlugu();
+  for (const ifade of calcIfadeleri(YORUMSUZ_STIL)) {
+    let cozulmus;
+    try {
+      cozulmus = varCoz(ifade, sozluk);
+    } catch {
+      continue; // sayısal olmayan/çözülemeyen değişken: bu testin konusu değil
+    }
+    try {
+      ifadeHesapla(cozulmus);
+    } catch (hata) {
+      if (hata instanceof BirimHatasi) {
+        assert.fail(`${ifade.replace(/\s+/g, ' ')} → ${hata.message}`);
+      }
+    }
+  }
+});
+
+test('denetci-5: her özel değişken bütün kademelerde aynı birim türünde kalır', () => {
+  const sozluk = degiskenSozlugu();
+  for (const [ad, degerler] of sozluk) {
+    const birimler = new Set();
+    for (const deger of degerler) {
+      try {
+        birimler.add(ifadeHesapla(varCoz(deger, sozluk)).birim);
+      } catch {
+        birimler.clear(); // sayısal olmayan değer (renk, url, anahtar sözcük) → atla
+        break;
+      }
+    }
+    assert.ok(
+      birimler.size <= 1,
+      `${ad} kademeden kademeye birim değiştiriyor (${[...birimler].map((b) => b || 'birimsiz').join(', ')}) — calc() içinde kullanılırsa formül geçersiz olur`,
+    );
+  }
+});
+
+// Denetçi ölçümü (tur 2): doku masanın tamamına döşenmiş ama tonlar arasında en çok
+// 2-3/255 fark var → gözle hâlâ "düz koyu yeşil". madde-3-a yalnız opaklık sayısını
+// okuyor; burada gerçek görünürlük (desen rengi × opaklık, keçenin üstüne karıştırılmış)
+// ölçülür.
+test('madde-3-e: keçe dokusu zeminden gözle ayrılacak kadar kontrastlı', () => {
+  const kece = onalticiRenk(YORUMSUZ_STIL.match(/--masa-zemin:\s*([^;]+);/)[1]);
+  assert.ok(kece, '--masa-zemin onaltılık renk değil');
+  const desenEslesme = MASA_ZEMIN_SVG.match(/stroke="[^"]*?(#[0-9a-f]{6})[^"]*"/i);
+  assert.ok(desenEslesme, 'masa-zemin.svg desen çizgisinin yedek rengi okunamadı');
+  const desen = onalticiRenk(desenEslesme[1]);
+  const opaklik = Number(MASA_ZEMIN_SVG.match(/opacity="([\d.]+)"/)[1]);
+  // Dış SVG arka plan olarak kullanıldığında sayfanın değişkenlerini göremez → yedek renk geçerlidir.
+  const fark = Math.max(...desen.map((k, i) => Math.abs(kece[i] + opaklik * (k - kece[i]) - kece[i])));
+  assert.ok(
+    fark >= 8,
+    `doku ile keçe arasında en çok ${fark.toFixed(1)}/255 fark var; çizgi ${desenEslesme[1]} × opaklık ${opaklik} gözle görünmüyor (madde 3)`,
+  );
 });

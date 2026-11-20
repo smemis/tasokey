@@ -26,8 +26,11 @@
   --tas-rakam-font-boyutu: calc(var(--tas-yukseklik) * 0.42);
   /* Taşlar ıstakada bitişik durur (Sahip ek bilgisi, 2026-11-20): yuva arası boşluk her kademede
      sıfır, sütun sayısı 12 (ekran.js RAF_SUTUN_SAYISI). Kademe geçişlerinde yalnız --tas-genislik
-     küçülür; boşluk değişkeni tek yerde kalır ki "bitişik" kuralı bir kademede kaçmasın. */
-  --raf-yuva-bosluk: 0;
+     küçülür; boşluk değişkeni tek yerde kalır ki "bitişik" kuralı bir kademede kaçmasın.
+     Sıfır BİRİMLE yazılır (0px, denetçi bulgusu tur 2): bu değişken aşağıda --rakip-ust-genislik'in
+     calc() toplamında uzunluklarla toplanıyor; birimsiz `0` orada <number> sayılır, uzunlukla
+     toplanamaz ve bütün formülü geçersiz kılar → üst rakibin çubuğu hiç çizilmez. */
+  --raf-yuva-bosluk: 0px;
   /* Rakip ıstakası artık yalnız ince ahşap sırt (taş çizilmez — Sahip ek bilgisi, 2026-11-20):
      --rakip-raf-kalinlik çubuğun gerçek inceliğidir (sol/sağda genişlik, üstte yükseklik).
      --rakip-raf-uzunluk sol/sağ çubuğun taban (min-height) uzunluğu; gerçek uzunluk ızgaranın orta
