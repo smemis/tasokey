@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="Segoe UI, Arial, sans-serif" font-size="14">
+  <title>Taş Okey masa düzeni: kaba yerleşim şeması (KraftDcm)</title>
+  <rect x="0" y="0" width="960" height="560" rx="18" fill="#7a5230"/>
+  <rect x="18" y="18" width="924" height="524" rx="12" fill="#2f7d4a"/>
+  <!-- üst oyuncu -->
+  <rect x="300" y="34" width="360" height="44" rx="8" fill="#8b5a33" stroke="#5e3b1f" stroke-width="3"/>
+  <text x="480" y="62" text-anchor="middle" fill="#fff">Üst oyuncu (bot) — kapalı ıstaka</text>
+  <!-- sol oyuncu -->
+  <rect x="34" y="150" width="44" height="260" rx="8" fill="#8b5a33" stroke="#5e3b1f" stroke-width="3"/>
+  <text x="56" y="280" text-anchor="middle" fill="#fff" transform="rotate(-90 56 280)">Sol oyuncu (bot)</text>
+  <!-- sağ oyuncu -->
+  <rect x="882" y="150" width="44" height="260" rx="8" fill="#8b5a33" stroke="#5e3b1f" stroke-width="3"/>
+  <text x="904" y="280" text-anchor="middle" fill="#fff" transform="rotate(90 904 280)">Sağ oyuncu (bot)</text>
+  <!-- köşe yığınları -->
+  <g fill="#f4ecd8" stroke="#9a8f78">
+    <rect x="110" y="100" width="44" height="60" rx="6"/><rect x="806" y="100" width="44" height="60" rx="6"/>
+    <rect x="110" y="320" width="44" height="60" rx="6"/><rect x="106" y="316" width="44" height="60" rx="6"/>
+    <rect x="806" y="320" width="44" height="60" rx="6"/><rect x="810" y="316" width="44" height="60" rx="6"/>
+  </g>
+  <g fill="#fff" font-size="12" text-anchor="middle">
+    <text x="132" y="182">üst oyuncunun attığı</text><text x="132" y="196">(sol buradan alır)</text>
+    <text x="828" y="182">sağ oyuncunun attığı</text><text x="828" y="196">(üst buradan alır)</text>
+    <text x="132" y="402">sol oyuncunun attığı</text><text x="132" y="416">(Sahip buradan alır)</text>
+    <text x="828" y="402">Sahip'in attığı</text><text x="828" y="416">(sağ buradan alır)</text>
+  </g>
+  <!-- deste ve gösterge -->
+  <g fill="#c9b892" stroke="#7d6f52">
+    <rect x="410" y="200" width="44" height="60" rx="6"/><rect x="414" y="194" width="44" height="60" rx="6"/><rect x="418" y="188" width="44" height="60" rx="6"/>
+  </g>
+  <rect x="490" y="190" width="44" height="60" rx="6" fill="#f4ecd8" stroke="#9a8f78"/>
+  <text x="512" y="226" text-anchor="middle" font-size="22" font-weight="700" fill="#c0392b">7</text>
+  <circle cx="512" cy="240" r="4" fill="#c0392b"/>
+  <text x="436" y="276" text-anchor="middle" fill="#fff" font-size="12">deste (ters, üst üste)</text>
+  <text x="512" y="266" text-anchor="middle" fill="#fff" font-size="12">gösterge</text>
+  <rect x="380" y="176" width="180" height="120" rx="10" fill="none" stroke="#ffe066" stroke-width="2" stroke-dasharray="6 5"/>
+  <text x="470" y="316" text-anchor="middle" fill="#ffe066" font-size="12">bitirmek için son taşı desteye bırak</text>
+  <!-- Sahip'in ıstakası: iki kademe -->
+  <rect x="190" y="420" width="580" height="54" rx="6" fill="#a46a3a" stroke="#5e3b1f" stroke-width="3"/>
+  <rect x="190" y="474" width="580" height="54" rx="6" fill="#8b5a33" stroke="#5e3b1f" stroke-width="3"/>
+  <rect x="176" y="414" width="18" height="118" rx="5" fill="#6b4425"/><rect x="766" y="414" width="18" height="118" rx="5" fill="#6b4425"/>
+  <g fill="#f4ecd8" stroke="#9a8f78">
+    <rect x="210" y="424" width="34" height="46" rx="5"/><rect x="248" y="424" width="34" height="46" rx="5"/><rect x="286" y="424" width="34" height="46" rx="5"/>
+    <rect x="400" y="424" width="34" height="46" rx="5"/><rect x="438" y="424" width="34" height="46" rx="5"/>
+    <rect x="210" y="478" width="34" height="46" rx="5"/><rect x="248" y="478" width="34" height="46" rx="5"/><rect x="520" y="478" width="34" height="46" rx="5"/>
+  </g>
+  <text x="480" y="552" text-anchor="middle" fill="#fff" font-size="12">Sahip'in ıstakası: iki kademe, taşlar arasında boşluk bırakılabilir</text>
+  <!-- akış oku: Sahip atar → sağ alt köşe -->
+  <path d="M786 440 C 830 440, 860 420, 862 386" stroke="#ffe066" stroke-width="3" fill="none" marker-end="url(#ok)"/>
+  <path d="M100 380 C 110 420, 150 440, 172 446" stroke="#9fe3ff" stroke-width="3" fill="none" marker-end="url(#ok2)"/>
+  <defs>
+    <marker id="ok" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#ffe066"/></marker>
+    <marker id="ok2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#9fe3ff"/></marker>
+  </defs>
+  <text x="840" y="452" fill="#ffe066" font-size="12">at</text>
+  <text x="116" y="420" fill="#9fe3ff" font-size="12">al</text>
+</svg>
