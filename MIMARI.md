@@ -16,11 +16,16 @@
 > **Sürüm 4** (`tasokey#37`, Geliştirici, 2026-11-20): ADR-017 (bitiş iki ayrı denetimin VEYA'sı; per = seri + sayı peri,
 > çift = birebir aynı taş) eklendi; karar Sahip'in (`tasokey#35`), bu iş kodu yazdı. Kaynak: `GDD.md` v3 §1 kural 6, 7, 13.
 > ADR-013…016 numaraları kullanılmadı — 017 numarası GDD/PRD v3'te bu karara verilmişti.
+>
+> **Sürüm 5** (`tasokey#37`, Mimar kararı + Geliştirici uygulaması, 2026-11-20): ADR-018 (bot kuralı kopyalamaz,
+> `cekirdek`'e sorar; el sonlanması sezgisele bağlı değildir) eklendi; durumu **kabul** (karar veren Mimar-K2).
+> Kaynak: ADR-017'nin ölçülen yan etkisi (200 elin 20'si sonlanmıyordu) ve `GDD.md` §4 "Karar yöntemi"nin
+> Mimar/Geliştirici'ye bıraktığı algoritma ayrıntısı. `GDD.md`, `PRD.md` gereksinim metinleri ve `kural.js` değişmedi.
 
 | Alan | Değer |
 |---|---|
 | Proje | `tasokey` |
-| Mimari karar sürümü | `4` (ADR-017 eklendi, Sahip kararı + Geliştirici uygulaması, 2026-11-20, tasokey#37; önceki: ADR-010/011/012 sürüm 3, 2026-11-20, tasokey#24) |
+| Mimari karar sürümü | `5` (ADR-018 eklendi, Mimar kararı + Geliştirici uygulaması, 2026-11-20, tasokey#37; önceki: ADR-017 sürüm 4, aynı gün/iş) |
 | Bağlı PRD sürümü | `3` (`tasokey#36`, R-004/R-005 kural düzeltmesi) |
 | Profil | `kit\profiller\` içinde yok → `profil-oyun-web-taslak.md` (bu klasör; kit'e girmesi Sahip onayı ister, D-26) |
 | Hazırlayan | Mimar, 2026-11-19 |
@@ -69,7 +74,7 @@ Değerlendirilen ama önerilmeyen yollar ADR-001'in "Seçenekler" satırında.
 | `cekirdek/cozucu.js` (ADR-017) | "Bu el bitirilebilir mi?" — iki ayrı arama: elin tamamen per gruplarına bölünmesi **ya da** tam 7 birebir çift olması | dizilim | evet |
 | `cekirdek/el.js` | El durumu, sıra, hamle doğrulama (çek/at), el sonu koşulları | dagitim, cozucu, kural | evet |
 | `cekirdek/puan.js` | El sonucu ve puan | el | evet |
-| `bot/kolay.js` | Hangi taşı çeker / atar (sezgisel); hamleyi `el.js`'e onaylatır | cekirdek | evet |
+| `bot/kolay.js` (ADR-018) | Hangi taşı çeker / atar (sezgisel): bitiş yolunu seçer, en izole taşı atar, atılandan yalnız gerçek tamamlamada çeker. Kural sorularını `dizilim.js`/`cozucu.js`'in saf işlevlerine sorar, kendi per/çift tanımını yazmaz; hamleyi `el.js`'e onaylatır | cekirdek (dizilim, cozucu, el, kural, tas, dagitim) | evet |
 | `arayuz/ekran.js` | Masa, raf, atılan taş yığını; olay bağlama | cekirdek, dil, yerlesim | hayır (DOM) |
 | `arayuz/surukle.js` | Taş seçme ve rafta sürükleyerek dizme | ekran, etkilesim | hayır (DOM) |
 | `arayuz/yerlesim.js` (ADR-012) | Dört kenar/köşe ızgarası: sıra yönüne göre hangi oyuncunun hangi kenarda, hangi köşe yığınının hangi oyuncuya ait olduğunu hesaplar; sonucu grid-area adı olarak döner | cekirdek (kural — sıra yönü) | evet |
@@ -237,8 +242,20 @@ Sınır kuralı: `cekirdek/` ve `bot/` altında `document`, `window`, `localStor
 | Bağlam | Motor `tasokey#6/#7`'den beri eski (yanlış) tanımla çalışıyordu: "çift = aynı sayı, 2 farklı renk" ve "bitiş = elin per/çift gruplarına herhangi bir bölünüşü". Sahip'in ekran görüntüsünde (`is/tasokey-35/ekler/image.png`) bu yüzden bitmeyen bir el "Elini bitirebilirsin" diye vurgulandı. `GDD.md` v3 kural 6, 7, 13 gerçek Klasik Okey tanımını yazdı; kod karşılığı yoktu |
 | Karar | (1) `cekirdek/dizilim.js` `perGecerliMi` iki biçimi birden kabul eder: **seri** (aynı renk, ardışık ≥3) **veya sayı peri** (aynı sayının 3-4 farklı renkteki taşı; aynı renk bir perde iki kez bulunamaz). (2) `ciftGecerliMi` yalnız **birebir aynı** iki taşı kabul eder (aynı sayı **ve** aynı renk); okey/sahte okey çiftte de yerine geçer, gösterge taşının kendisi çift sayılmaz (kural 9). (3) `cekirdek/cozucu.js` `elBitirilebilirMi` **iki ayrı aramanın VEYA'sıdır**: (a) el tamamen per gruplarına bölünüyor mu, (b) el tam 7 birebir çift mi (14 taş). İki arama ayrı yürür; tek bir "grup" aramasında birleştirilmez, böylece karışık dizilim yapı gereği reddedilir. (4) Bu üçü `kural.js`'e ayar olarak **girmez** — ADR-008'in dört ayarı kaynak çelişkisiydi, bunlar kuralın kendisi |
 | Seçenekler | B) Tek geri izlemeli aramaya "grup = per ya da çift" diye devam edip sonunda karışımı elemek — reddedildi: karışık çözümü önce bulup sonra atmak hem daha pahalı hem de "neden bitmedi" sorusunu kodda okunmaz kılar. C) Çifti `kural.js`'e ayar yapmak (eski/yeni tanım arasında anahtar) — reddedildi: iş metninde açıkça yasaklandı ve iki tanım aynı anda doğru olamaz; eski tanım yanlıştı, ayar değil |
-| Sonuçlar | Kolaylaştırır: bitiş kuralı GDD kural 13'le birebir okunur; ekran görüntüsündeki el regresyon testi oldu (`el-bitiren-taslar.test.js` (e)). Ölçüm: tek el kontrolü ort. **0,0295 ms**, `elBitirenTaslar` ort. **1,2777 ms** (20 ms bütçesinin altında). **Zorlaştırır:** bitirmek gerçekten zorlaştı — `bot/kolay.js`'in sezgiseli hâlâ eski tanıma göre puanlıyor (aynı sayı/farklı renk = "çift adayı") ve 200 ellik dayanıklılık koşusunda 20 el tur sınırına çarpıyor (ölçüldü; 10 000 turda da bitmiyor, deste hiç boşalmıyor çünkü botlar sürekli atılandan çekiyor). Bot sezgiselinin ADR-017'ye göre yenilenmesi **ayrı iş**tir (R-006, `GDD.md` §4 "Karar yöntemi") |
-| Etkilenen gereksinimler | R-004, R-005 (karşılandı) · R-006 (bot işi açık kalır) |
+| Sonuçlar | Kolaylaştırır: bitiş kuralı GDD kural 13'le birebir okunur; ekran görüntüsündeki el regresyon testi oldu (`el-bitiren-taslar.test.js` (e)). Ölçüm: tek el kontrolü ort. **0,0295 ms**, `elBitirenTaslar` ort. **1,2777 ms** (20 ms bütçesinin altında). **Zorlaştırır:** bitirmek gerçekten zorlaştı — `bot/kolay.js`'in sezgiseli hâlâ eski tanıma göre puanlıyor (aynı sayı/farklı renk = "çift adayı") ve 200 ellik dayanıklılık koşusunda 20 el tur sınırına çarpıyor (ölçüldü; 10 000 turda da bitmiyor, deste hiç boşalmıyor çünkü botlar sürekli atılandan çekiyor). Bot sezgiselinin ADR-017'ye göre yenilenmesi **ayrı iş**tir (R-006, `GDD.md` §4 "Karar yöntemi") → **ADR-018 ile kapandı** (aynı iş, Mimar hakemliğinden sonra) |
+| Etkilenen gereksinimler | R-004, R-005 (karşılandı) · R-006 (ADR-018 ile karşılandı) |
+
+### ADR-018: Bot kuralı kopyalamaz, `cekirdek`'e sorar; el sonlanması sezgisele bağlı değildir
+
+| Alan | Değer |
+|---|---|
+| Tarih | 2026-11-20 · Durum: **kabul** (K2 — Mimar) |
+| Karar veren | Mimar (K2; `GDD.md` §4 "Karar yöntemi" algoritma ayrıntısını Mimar/Geliştirici'ye bırakır) · uygulama Geliştirici (`tasokey#37`) |
+| Bağlam | ADR-017 kuralı daralttı. `bot/kolay.js` kuralın **eski** tanımını sezgiseline kopyalamıştı ("aynı sayı, farklı renk = çift adayı, +4 puan"), bu yüzden kural değişince sessizce hizasız kaldı — ADR-002'nin kaynak taraması bu kopyayı göremiyordu. Aynı puan skalası çekim kaynağını da seçtiğinden (`puan >= 3` ise atılandan çek) 14 taşlı elde eşik pratikte hep aşılıyor, dört bot da sürekli atılandan çekiyor, **yer destesi hiç azalmıyordu**; `el.js`'in berabere çıkışı (GDD kural 12) yalnız deste boşalınca tetiklendiği için elin sonlanması için hiçbir mekanizma kalmıyordu. Ölçüldü: 200 elin **20'si** `TUR_SINIRI`'ne çarpıyor (tıkanan ellerde deste 19-42 taşta donuyor), 10 000 turda da bitmiyor |
+| Karar | (1) `bot/` kural sorularını (`bu taşlar geçerli per mi / birebir çift mi / hangi taşı atarsam el biter`) `cekirdek/dizilim.js` ve `cekirdek/cozucu.js`'in **saf işlevlerine sorar**, kendi geçerlilik mantığını yazmaz. "İki taş aynı perde buluşabilir mi?" sorusu araya bir joker konup `perGecerliMi`'ye sorulur — cevabı kural verir, bot renk/sayı karşılaştırması yapmaz. (2) Bot el başına **tek bitiş yoluna** yönelir (`bitisYolunuSec`: elde en az 5 birebir çift varsa çift yolu, yoksa per yolu), karışık el toplamaz — ADR-017 karışık bitişi yasakladığı için karışık toplama yapısal olarak bitmeyen el üretir. (3) **Atılandan çekme yalnız kuralla doğrulanmış gerçek tamamlamada** yapılır (üst taş elin gerçek taşlarıyla tamamlanmış bir per ya da birebir çift kuruyorsa); jokerle kurulan tamamlama saymaz (joker saklanır), başka her durumda **yerden** çekilir. Böylece yer destesi monoton azalır ve el ya biter ya kural 12 ile berabere olur — sonlanma sezgisel kalibrasyonuna değil kurala bağlanır. (4) Geçerliliğe son kararı hâlâ `cekirdek/el.js` verir; bot yalnız öneri üretir (ADR-002 korunur). (5) Bu üçü `kural.js`'e **ayar olarak girmez**; bot sezgiselinin eşikleri (`CIFT_YOLU_EN_AZ_CIFT`) kural değil öneri ayrıntısıdır |
+| Seçenekler | B) Puanlamayı yeniden kalibre edip eşiği elde tutmak — reddedildi: ölçüldü, tıkalı el 20 → **29** kötüleşti; sonlanma yine tek bir sihirli eşiğe bağlı kalır. C) `VARSAYILAN_MAKSIMUM_TUR`'u yükseltmek — reddedildi: ölçüldü, 500/2000/10 000'de **aynı 20 el** bitmiyor, süre 4,5 s → 88 s. D) R-006'nın "0 sonlanmayan el" ölçütünü gevşetmek — reddedildi: ürün ölçütünü düşürür (Sahip kapısı) ve kusuru gizler |
+| Sonuçlar | Kolaylaştırır: kural bir daha değiştiğinde bot kendiliğinden hizalanır (tek kaynak); el sonlanması ölçülebilir hâle gelir; `bot-kolay.test.js`'in kaynak kontrolü artık **doğru şeyi** ölçer (kuralı yeniden yazmak yasak, `cekirdek`'in saf işlevini çağırmak serbest). Ölçüldü (200 el, sabit tohum 90000+): `turSiniri` **20 → 0**, ihlal 0, bitti **194**, berabere **6**, ortalama tur **103,1 → 32,7**, yer destesi tükenen el %3,5, çekim kaynağı ATILAN %33,4 / YER %66,6, çift yolu seçilen tur oranı %2,6. **Zorlaştırır:** tur başına `cekirdek` çağrısı arttı → dayanıklılık koşusu **4,5 s → 17,6 s** (bütçe 60 s; ağır çözücü çağrısı tur başına en çok bir kez, taş puanlaması ucuz `dizilim.js` çağrılarıyla). Teorik sonlanma garantisi yoktur (tamamlanan grubu bozan bir atış döngü kurabilir — **tahmin**, ölçümde görülmedi); görülürse yedek yol botun kendi içinde el başına atılandan çekme sınırıdır, kurala dokunmaz |
+| Etkilenen gereksinimler | R-003, R-004, R-006 (karşılandı) |
 
 ## 6. Test yaklaşımı
 
@@ -260,7 +277,7 @@ uyarısı görünür, R-014).
 
 | # | Konu | Durum | Nasıl ölçülecek |
 |---|---|---|---|
-| 1 | **Bitirilebilirlik çözücüsü** (eli per/çift gruplarına tam bölme, 2 okey + 2 sahte okey joker olarak) işin en zor parçası; geri izlemeli arama yanlış ya da yavaş olabilir. Bot her turda çağırdığı için maliyet çarpılır | **tahmin**: tek el kontrolü ≤ 20 ms, 200 el koşusu ≤ 60 s | İş 5 ve iş 7 kabul ölçütü: ölçülen süre rapora yazılır; tahmin tutmazsa önbellek/budama ayrı iş olur |
+| 1 | **Bitirilebilirlik çözücüsü** (eli per/çift gruplarına tam bölme, 2 okey + 2 sahte okey joker olarak) işin en zor parçası; geri izlemeli arama yanlış ya da yavaş olabilir. Bot her turda çağırdığı için maliyet çarpılır | **ölçüldü** (tasokey#37): tek el kontrolü ort. 0,0295 ms, `elBitirenTaslar` ort. 1,2777 ms (bütçe 20 ms); 200 ellik bot koşusu 17,6 s (bütçe 60 s, ADR-018 sonrası) | İş 5 ve iş 7 kabul ölçütü: ölçülen süre rapora yazılır; tahmin tutmazsa önbellek/budama ayrı iş olur |
 | 2 | Deste tükenmesi (kural boşluğu) | **kapandı** (ADR-008/4: el berabere) | İş 6'nın öz-testi bu durumu kapsar; bot koşusunda "0 sonlanmayan el" ölçülür |
 | 3 | `12-13-1` geçişi, gösterge sahte okey çıkması, okey atma | **kapandı** (ADR-008/1-3) | İş 3, 4, 6 tablo testleri |
 | 4 | Mobil dikeyde 15 taşlık raf + masa + atılan yığın sığmayabilir | **kapandı** (R-014 ile: dikeyde sığdırma denenmez, oyun alanı yerine dil anahtarlı uyarı gösterilir; bkz. ADR-012) | 390×844 ekran görüntüsü: oyun alanı değil, uyarı görünür; 844×390 (yatay): dört kenar düzeni sığdırılmış görünür |
