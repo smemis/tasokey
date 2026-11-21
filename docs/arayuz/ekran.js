@@ -26,7 +26,12 @@ import { RAF_SUTUN_SAYISI, rafYerlesimiGuncelle, tasiYuvayaTasi, yerlesimKur } f
 const GORSEL_DOSYALARI = ['tas-govde.svg', 'tas-sahte-okey.svg', 'tas-okey-cerceve.svg', 'tas-arka.svg', 'yuva-bos.svg'];
 
 const INSAN_OYUNCUSU = 0;
-const BOT_GECIKME_MS = 450;
+
+// Her bırakmadan (atmadan) sonra sıra 1 saniye sonra geçer (Sahip isteği, tasokey#49): oyuncu
+// hamlesinin masaya yansımasını görsün, botlar da birbirinin hamlesini anlaşılır bir ritimle
+// oynasın. TEK KAYNAK: hem insan→bot hem bot→bot geçişi `botAdiminiSiraya` kapısından geçtiği
+// için bu sabit iki yolda da aynı beklemeyi verir (eski ad `BOT_GECIKME_MS` = 450 ms).
+const SIRA_GECIS_GECIKME_MS = 1000;
 
 // Istakanın yuva sayıları ve bütün yerleşim kuralları `arayuz/raf.js`te (ADR-019, tasokey#48);
 // bu dosya yalnız dönen yerleşimi çizer. CSS `--raf-sutun-sayisi` de aynı sabitten okunur (baslat()).
@@ -539,8 +544,10 @@ function botSirasiniDurdur() {
 }
 
 // Bot turunu sıraya alan tek kapı: hangi elin (neslin) turu olduğunu zamanlayıcıya birlikte verir.
+// Gecikmenin tek kaynağı `SIRA_GECIS_GECIKME_MS`; insanın attığı taştan sonraki ilk bot turu
+// (`botSirasiniBaslat`) ve bottan bota geçiş (`botAdimiOyna` sonu) aynı buradan geçer (tasokey#49).
 function botAdiminiSiraya(nesil) {
-  durumKutu.botZamanlayici = setTimeout(() => botAdimiOyna(nesil), BOT_GECIKME_MS);
+  durumKutu.botZamanlayici = setTimeout(() => botAdimiOyna(nesil), SIRA_GECIS_GECIKME_MS);
 }
 
 function botAdimiOyna(nesil) {
