@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Taş Okey Android kabuğu (tasokey#54, üst iş tasokey#52).
+
+  Kabuk = web oyununu (docs/) tek bir WebView içinde çevrimdışı çalıştıran ince Android katmanı.
+  Oyun kuralı, arayüzü, dili burada DEĞİLDİR; kabuk yalnız pencereyi açar, varlıkları yerelden
+  sunar ve çıkışı sorar. Android kabuğunun mimari kararı PRD farkı onayıyla MIMARI.md §5'e
+  yazılacak; numarası o zaman bu dosyaya da işlenir (atıf numarası, karar belgede olmadan
+  yazılamaz: testler/adr-atif-tarama.test.js).
+
+  İzin yok (0 satır `uses-permission`): bütün varlıklar APK'nın içinden, appassets.androidplatform.net
+  adresi VarlikSunucusu tarafından karşılanır. INTERNET izni olmadığı için dışarıya istek fiziksel
+  olarak başarısız olur — ADR-007'nin ("dışarıya istek yok") cihazdaki karşılığı.
+
+  `android:screenOrientation` YAZILMAZ: yön kararı web katmanındadır (ADR-012 — dikeyde ızgara
+  gizlenir, dil anahtarlı uyarı gösterilir). Kabuk yönü kilitlerse o karar ölçülemez hâle gelir.
+
+  `uses-sdk` (en düşük / hedef Android sürümü) bu dosyada YOKTUR: donmuş alan (R sınıfı, karar
+  Masa'da). Derleme betiği aapt2 link adımında `--min-sdk-version` / `--target-sdk-version`
+  olarak verir; depo bir sürüm numarası sabitlemez.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.kraftdcm.tasokey">
+
+    <application
+        android:label="@string/uygulama_adi"
+        android:theme="@style/TemaOyun"
+        android:allowBackup="false"
+        android:hardwareAccelerated="true"
+        android:supportsRtl="false">
+
+        <activity
+            android:name=".OyunEtkinligi"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode|density">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>

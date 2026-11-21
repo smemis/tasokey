@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Varsayılan (yedek) dil: İngilizce. Türkçe cihazda res/values-tr kullanılır; başka bütün
+  dillerde bu dosya geçerlidir. Oyun içi metinler burada DEĞİLDİR: onlar docs/diller/*.json
+  dosyalarından gelir (ADR-007). Burada yalnız kabuğun kendi metinleri durur.
+
+  Kural: iki dosyanın anahtar kümesi birebir aynıdır (testler/android-kabuk.test.js ölçer).
+-->
+<resources>
+    <string name="uygulama_adi">Stone Rummikub</string>
+    <string name="cikis_basligi">Exit game</string>
+    <string name="cikis_sorusu">Are you sure you want to exit? The hand in progress will be closed.</string>
+    <string name="cikis_evet">Yes, exit</string>
+    <string name="cikis_hayir">Cancel</string>
+</resources>

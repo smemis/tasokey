@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Türkçe kabuk metinleri. Anahtar kümesi res/values/strings.xml ile birebir aynı olmak
+  zorundadır (testler/android-kabuk.test.js ölçer); metinler docs/diller/tr.json'daki
+  karşılıklarıyla aynı dili konuşur (onay/vazgeç kalıbı).
+-->
+<resources>
+    <string name="uygulama_adi">Taş Okey</string>
+    <string name="cikis_basligi">Oyundan çık</string>
+    <string name="cikis_sorusu">Oyundan çıkmak istediğine emin misin? Süren el kapanır.</string>
+    <string name="cikis_evet">Evet, çık</string>
+    <string name="cikis_hayir">Vazgeç</string>
+</resources>
