@@ -585,19 +585,40 @@ html, body {
   opacity: 0.85;
 }
 
+/* Sürüklemesi SÜREN asıl taş (tasokey#59). Yerinde, saydamlıksız bekler ve hareket etmez: parmağı
+   onun kopyası izler (aşağıdaki `.surukleme-kopyasi`). Burada yalnız isabet testinden çekilir ki
+   `document.elementFromPoint` (surukle.js) altındaki yuvayı/köşeyi/desteyi görsün; kademesi
+   ADR-015'in tek kaynağından gelir (sürüklenen taşın kademesi hem asılda hem kopyada aynıdır).
+   Boyama: karede değişen hiçbir özelliği kalmadığı için ıstakanın boyanmış bölgesi karede
+   yeniden boyanmaz — telefon Chrome'unda görülen satır satır bozulmanın sebebi buydu. */
 .tas.surukleniyor {
-  opacity: 0.7;
   position: relative;
   z-index: var(--kademe-tas-surukleniyor);
   pointer-events: none;
 }
 
+/* Parmağı izleyen kopya (tasokey#59; ADR-015 kademesi, yeni kademe eklenmez — bu öğe sürüklenen
+   taşın ta kendisidir, kalıcı pencerenin yine altındadır). Gövdeye eklenir, yani ıstakanın
+   boyanmış bölgesinin DIŞINDADIR; sabit konumla kaynağın kutusuna oturur ve yalnız `translate3d`
+   ile taşınır. `will-change: transform` + 3B dönüşüm onu kendi derleyici katmanına alır: kaydırma
+   karede katmanı taşır, hiçbir şeyi yeniden boyamaz. Ölçü kaynaktan (JS, satır içi left/top/
+   width/height) geldiği için kural içine taş ölçüsü yazılmaz. Seçici `.tas`/`.tas-arka` ile
+   nitelenir: `.tas.secili`nin kalkık duruşunu ve kutu gölgesini özgüllükte geçsin. */
+.tas.surukleme-kopyasi,
+.tas-arka.surukleme-kopyasi {
+  position: fixed;
+  margin: 0;
+  z-index: var(--kademe-tas-surukleniyor);
+  pointer-events: none;
+  will-change: transform;
+}
+
 /* Sürükleyerek çekme (tasokey#40, R-012): destenin en üst taşı kapalıdır (.tas-arka), köşeninki
-   açık taştır (.tas, yukarıdaki kural). İkisi de aynı sürükleme dilini kullanır — soluklaşır,
-   sürüklenen taş kademesine çıkar (ADR-015) ve isabet testinden çekilir ki altındaki ıstaka
-   görünsün. Konumu burada değiştirilmez: deste taşı `#yerDestesi .tas-arka` ile ortalanmış durur. */
+   açık taştır (.tas, yukarıdaki kural). İkisi de aynı sürükleme dilini kullanır — asıl taş yerinde
+   saydamlıksız bekler (tasokey#59), sürüklenen taş kademesine çıkar (ADR-015) ve isabet testinden
+   çekilir ki altındaki ıstaka görünsün. Konumu burada değiştirilmez: deste taşı
+   `#yerDestesi .tas-arka` ile ortalanmış durur. */
 .tas-arka.surukleniyor {
-  opacity: 0.7;
   z-index: var(--kademe-tas-surukleniyor);
   pointer-events: none;
 }

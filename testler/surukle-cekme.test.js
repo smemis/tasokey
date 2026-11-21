@@ -43,6 +43,15 @@ function ogeYap(secicileri = [], dataset = {}) {
   // Yığının taşları: gerçek DOM'daki `querySelectorAll('.tas, .tas-arka')` karşılığı.
   oge.querySelectorAll = () => oge.taslar;
   oge.setPointerCapture = () => {};
+  // Sürükleme kopyası (tasokey#59) bu uçları kullanır: kaynağın kutusu, kopyalanması ve
+  // kaldırılması. Kopyanın kendisi bu dosyanın konusu değil (onu `surukleme-kopyasi.test.js`
+  // ölçer) — burada yalnız bırakma kararlarının kopyadan etkilenmediği görülür.
+  oge.getBoundingClientRect = () => ({ left: 0, top: 0, width: 40, height: 60 });
+  oge.appendChild = (cocuk) => { cocuk.ebeveyn = oge; return cocuk; };
+  oge.setAttribute = () => {};
+  oge.removeAttribute = () => {};
+  oge.remove = () => {};
+  oge.cloneNode = () => ogeYap([...secicileri], { ...dataset });
   return oge;
 }
 
@@ -70,6 +79,8 @@ function sahneKur(t) {
   const oncekiBelge = globalThis.document;
   const oncekiPerformance = globalThis.performance;
   globalThis.document = {
+    // Sürükleme kopyası gövdeye eklenir (tasokey#59).
+    body: ogeYap(['body']),
     addEventListener: (tip, islev) => {
       if (!belgeDinleyicileri.has(tip)) belgeDinleyicileri.set(tip, []);
       belgeDinleyicileri.get(tip).push(islev);

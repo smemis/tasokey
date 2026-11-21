@@ -1,0 +1,279 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+import { surukleBagla, cekmeSurukleBagla } from '../docs/arayuz/surukle.js';
+import { kuralGovdesi as kuralGovdesiCoz } from './yardimci/css-olcu.js';
+
+// tasokey#59 — telefonda (Android Chrome) sürükleme sırasında ıstaka bölgesinin bozulması.
+// Belirti (Sahip'in iki ekran görüntüsü, is/tasokey-59/ekler/): taş parmağı izlerken ıstakanın
+// taş sıraları satır satır gürültüye dönüyor, taşlar kayık çiziliyor, bir sıra tamamen kararıyor.
+// Sebep: sürüklenen taş ıstakanın İÇİNDE, akışta duran bir öğeyken her `pointermove`da
+// `transform` ve `opacity` alıyordu — kendi derleyici katmanı olmadığı için tarayıcı her karede
+// ıstakanın boyanmış bölgesini (iki sıra yuva + `istaka.svg` arka planı) yeniden boyamak zorunda
+// kalıyor, mobil Chrome'un kısmi boyama yolu da bu bölgede bozuluyordu. APK aynı WebView motorunu
+// kullanacağı için düzeltme oyun kodundadır (Sahip'in isteği).
+//
+// Düzeltme: sürükleme boyunca parmağı taşın KOPYASI izler; kopya `position: fixed` ile gövdeye
+// eklenir, `translate3d` + `will-change: transform` ile kendi katmanında taşınır, bırakmada
+// kaldırılır. Asıl taş yerinde, saydamlıksız bekler → ıstakanın boyanmış bölgesi karede değişmez.
+//
+// Bu dosya DOM katmanını ölçer; proje jsdom taşımaz (MIMARI.md §6), bu yüzden testin ihtiyacı
+// kadar küçük bir sahte DOM kurulur (`surukle-cekme.test.js` ile aynı dil; orada gövde/kopya
+// gerekmediği için harness burada ayrı durur). Bırakma kararları orada ölçülür — burada ölçülen
+// tek şey sürükleme sırasında NEYİN hareket ettiğidir.
+
+const ARAYUZ_KOK = join(import.meta.dirname, '..', 'docs', 'arayuz');
+const STIL_CSS = readFileSync(join(ARAYUZ_KOK, 'stil.css'), 'utf8');
+const SURUKLE_JS = readFileSync(join(ARAYUZ_KOK, 'surukle.js'), 'utf8');
+
+const TAS_OLCUSU = { left: 100, top: 200, width: 40, height: 60 };
+
+function ogeYap(secicileri = [], dataset = {}, olcu = TAS_OLCUSU) {
+  const oge = {
+    secicileri,
+    dataset: { ...dataset },
+    olcu,
+    ebeveyn: null,
+    cocuklar: [],
+    style: {},
+    nitelikler: new Map(),
+    taslar: [],
+    siniflar: new Set(),
+    dinleyiciler: new Map(),
+  };
+  oge.classList = {
+    add: (ad) => oge.siniflar.add(ad),
+    remove: (ad) => oge.siniflar.delete(ad),
+    contains: (ad) => oge.siniflar.has(ad),
+  };
+  oge.addEventListener = (tip, islev) => {
+    if (!oge.dinleyiciler.has(tip)) oge.dinleyiciler.set(tip, []);
+    oge.dinleyiciler.get(tip).push(islev);
+  };
+  oge.closest = (secici) => {
+    for (let dugum = oge; dugum; dugum = dugum.ebeveyn) {
+      if (dugum.secicileri.includes(secici)) return dugum;
+    }
+    return null;
+  };
+  oge.contains = (baskasi) => {
+    for (let dugum = baskasi; dugum; dugum = dugum.ebeveyn) if (dugum === oge) return true;
+    return false;
+  };
+  oge.querySelectorAll = () => oge.taslar;
+  oge.setPointerCapture = () => {};
+  oge.getBoundingClientRect = () => ({ ...oge.olcu });
+  oge.setAttribute = (ad, deger) => oge.nitelikler.set(ad, String(deger));
+  oge.removeAttribute = (ad) => oge.nitelikler.delete(ad);
+  oge.getAttribute = (ad) => oge.nitelikler.get(ad) ?? null;
+  oge.appendChild = (cocuk) => {
+    cocuk.ebeveyn = oge;
+    oge.cocuklar.push(cocuk);
+    return cocuk;
+  };
+  oge.removeChild = (cocuk) => {
+    oge.cocuklar = oge.cocuklar.filter((c) => c !== cocuk);
+    cocuk.ebeveyn = null;
+    return cocuk;
+  };
+  oge.remove = () => { if (oge.ebeveyn) oge.ebeveyn.removeChild(oge); };
+  oge.cloneNode = () => {
+    const kopya = ogeYap([...oge.secicileri], { ...oge.dataset }, { ...oge.olcu });
+    for (const sinif of oge.siniflar) kopya.siniflar.add(sinif);
+    for (const [ad, deger] of oge.nitelikler) kopya.nitelikler.set(ad, deger);
+    for (const cocuk of oge.cocuklar) kopya.appendChild(cocuk.cloneNode(true));
+    return kopya;
+  };
+  return oge;
+}
+
+function cocukYap(ebeveyn, secicileri = [], dataset = {}, olcu = TAS_OLCUSU) {
+  const oge = ogeYap(secicileri, dataset, olcu);
+  ebeveyn.appendChild(oge);
+  return oge;
+}
+
+function sahneKur(t) {
+  const belgeDinleyicileri = new Map();
+  let noktadaki = null;
+
+  const govde = ogeYap(['body']);
+  const masa = cocukYap(govde, ['#masa']);
+  const raf = cocukYap(masa, ['#raf']);
+  const rafYuva = cocukYap(raf, ['.raf-yuva'], { slotIndex: '7' });
+  const rafTasi = cocukYap(rafYuva, ['.tas'], { tasId: 'kirmizi-7-a' });
+  rafTasi.siniflar.add('tas');
+  rafTasi.setAttribute('tabindex', '0');
+  const deste = cocukYap(masa, ['[data-hedef="yerDestesi"]'], { hedef: 'yerDestesi' });
+  const desteTasi = cocukYap(deste, [], {}, { left: 300, top: 150, width: 40, height: 60 });
+  desteTasi.siniflar.add('tas-arka');
+  deste.taslar = [desteTasi];
+
+  const oncekiBelge = globalThis.document;
+  const oncekiPerformance = globalThis.performance;
+  globalThis.document = {
+    body: govde,
+    addEventListener: (tip, islev) => {
+      if (!belgeDinleyicileri.has(tip)) belgeDinleyicileri.set(tip, []);
+      belgeDinleyicileri.get(tip).push(islev);
+    },
+    elementFromPoint: () => noktadaki,
+  };
+  Object.defineProperty(globalThis, 'performance', {
+    value: { now: () => 1000 },
+    configurable: true,
+    writable: true,
+  });
+  t.after(() => {
+    globalThis.document = oncekiBelge;
+    Object.defineProperty(globalThis, 'performance', {
+      value: oncekiPerformance,
+      configurable: true,
+      writable: true,
+    });
+  });
+
+  const birakmalar = [];
+  const cekmeler = [];
+  surukleBagla(raf, (tasId, hedefTuru, bilgi) => birakmalar.push({ tasId, hedefTuru, bilgi }));
+  cekmeSurukleBagla(masa, raf, (tur, bilgi, birakma) => cekmeler.push({ tur, bilgi, birakma }));
+
+  function gonder(oge, tip, olay) {
+    for (const islev of belgeDinleyicileri.get(tip) ?? []) islev(olay);
+    for (const islev of oge.dinleyiciler.get(tip) ?? []) islev(olay);
+  }
+
+  function isaretci(oge, tip, hedef, x, y, isaretciId = 1) {
+    gonder(oge, tip, { type: tip, target: hedef, clientX: x, clientY: y, pointerId: isaretciId });
+  }
+
+  // Gövdeye eklenen kopyalar: sürükleme katmanında duran öğeler.
+  function kopyalar() {
+    return govde.cocuklar.filter((cocuk) => cocuk.classList.contains('surukleme-kopyasi'));
+  }
+
+  return { govde, masa, raf, rafYuva, rafTasi, deste, desteTasi, birakmalar, cekmeler, isaretci, kopyalar,
+    noktaya: (oge) => { noktadaki = oge; } };
+}
+
+test('ASIL KABUL: ıstakada sürüklenen asıl taş yerinde kalır — kendisine transform yazılmaz', (t) => {
+  const s = sahneKur(t);
+  s.isaretci(s.raf, 'pointerdown', s.rafTasi, 120, 230);
+  s.isaretci(s.raf, 'pointermove', s.rafTasi, 260, 300);
+  assert.equal(
+    s.rafTasi.style.transform,
+    undefined,
+    'ASIL KABUL: asıl taş her karede transform alıyor → ıstakanın boyanmış bölgesi yeniden boyanıyor (telefonda bozulma)',
+  );
+});
+
+test('ASIL KABUL: sürükleme sırasında gövdeye tek bir kopya eklenir ve translate3d ile taşınır', (t) => {
+  const s = sahneKur(t);
+  s.isaretci(s.raf, 'pointerdown', s.rafTasi, 120, 230);
+  s.isaretci(s.raf, 'pointermove', s.rafTasi, 160, 250);
+  s.isaretci(s.raf, 'pointermove', s.rafTasi, 260, 300);
+
+  const kopyalar = s.kopyalar();
+  assert.equal(kopyalar.length, 1, 'sürükleme boyunca gövdede tam bir kopya olmalı');
+  const kopya = kopyalar[0];
+  // Kopya asıl taşın yerinde doğar (fixed konum, kaynağın kutusu) ve parmağın kaymasını
+  // translate3d ile izler: 3B dönüşüm kopyayı kendi derleyici katmanına taşır.
+  assert.equal(kopya.style.left, '100px');
+  assert.equal(kopya.style.top, '200px');
+  assert.equal(kopya.style.width, '40px');
+  assert.equal(kopya.style.height, '60px');
+  // Taşın merkezi başlangıçta (120, 230); parmak (260, 300)'e gitti.
+  assert.equal(kopya.style.transform, 'translate3d(140px, 70px, 0)');
+  assert.equal(kopya.getAttribute('aria-hidden'), 'true', 'kopya erişilebilirlik ağacında ikinci bir taş olmamalı');
+  assert.equal(kopya.getAttribute('tabindex'), null, 'kopya odak sırasına girmemeli');
+});
+
+test('ASIL KABUL: bırakmada kopya gövdeden kaldırılır', (t) => {
+  const s = sahneKur(t);
+  s.isaretci(s.raf, 'pointerdown', s.rafTasi, 120, 230);
+  s.isaretci(s.raf, 'pointermove', s.rafTasi, 260, 300);
+  s.noktaya(s.rafYuva);
+  s.isaretci(s.raf, 'pointerup', s.rafTasi, 260, 300);
+  assert.deepEqual(s.kopyalar(), [], 'sürükleme bitince kopya sayfada kalmamalı');
+  assert.equal(s.rafTasi.classList.contains('surukleniyor'), false);
+  assert.equal(s.birakmalar.length, 1, 'davranış değişmedi: bırakma yine bildirilir');
+});
+
+test('iptal edilen ıstaka sürüklemesinde de kopya kaldırılır', (t) => {
+  const s = sahneKur(t);
+  s.isaretci(s.raf, 'pointerdown', s.rafTasi, 120, 230);
+  s.isaretci(s.raf, 'pointermove', s.rafTasi, 260, 300);
+  s.noktaya(null);
+  s.isaretci(s.raf, 'pointercancel', s.rafTasi, 260, 300);
+  assert.deepEqual(s.kopyalar(), [], 'iptal sonrası kopya sayfada kalmamalı');
+});
+
+test('hareketsiz dokunuşta (seçme yolu) kopya hiç yaratılmaz', (t) => {
+  const s = sahneKur(t);
+  s.isaretci(s.raf, 'pointerdown', s.rafTasi, 120, 230);
+  s.noktaya(s.rafYuva);
+  s.isaretci(s.raf, 'pointerup', s.rafTasi, 120, 230);
+  assert.deepEqual(s.kopyalar(), [], 'dokunma yolunda gereksiz DOM düğümü yaratılmamalı');
+});
+
+test('ASIL KABUL: desteden sürüklemede üst taşın kopyası taşınır, asıl taş yerinde kalır', (t) => {
+  const s = sahneKur(t);
+  s.isaretci(s.masa, 'pointerdown', s.deste, 320, 180);
+  s.isaretci(s.masa, 'pointermove', s.deste, 380, 240);
+
+  const kopyalar = s.kopyalar();
+  assert.equal(kopyalar.length, 1, 'destenin üst taşı için bir kopya olmalı');
+  assert.equal(kopyalar[0].style.transform, 'translate3d(60px, 60px, 0)');
+  assert.equal(
+    s.desteTasi.style.transform,
+    undefined,
+    'ASIL KABUL: destenin asıl taşı hâlâ her karede transform alıyor',
+  );
+
+  s.noktaya(s.rafYuva);
+  s.isaretci(s.masa, 'pointerup', s.deste, 380, 240);
+  assert.deepEqual(s.kopyalar(), [], 'çekme bitince kopya kaldırılmalı');
+  assert.equal(s.cekmeler.length, 1, 'davranış değişmedi: çekme yine bildirilir');
+});
+
+test('eşiğin altında kalan deste dokunuşunda kopya yaratılmaz', (t) => {
+  const s = sahneKur(t);
+  s.isaretci(s.masa, 'pointerdown', s.deste, 320, 180);
+  s.isaretci(s.masa, 'pointermove', s.deste, 322, 181);
+  assert.deepEqual(s.kopyalar(), [], 'sürükleme eşiği aşılmadan kopya yaratılmamalı');
+});
+
+test('ASIL KABUL: stil.css sürükleme kopyasını kendi katmanına alıyor (fixed + will-change + kademe)', () => {
+  const govde = kuralGovdesiCoz(STIL_CSS, '.tas.surukleme-kopyasi');
+  assert.ok(govde, 'stil.css içinde .tas.surukleme-kopyasi kuralı yok');
+  assert.match(govde, /position:\s*fixed/, 'kopya sabit konumlu değil → ıstakanın akışında kalır');
+  assert.match(
+    govde,
+    /will-change:\s*transform/,
+    'ASIL KABUL: kopyada will-change yok → tarayıcı onu kendi katmanına almayabilir, boyama yine ıstakaya düşer',
+  );
+  assert.match(govde, /pointer-events:\s*none/, 'kopya isabet testine girerse bırakma hedefi bulunamaz');
+  assert.match(govde, /z-index:\s*var\(--kademe-tas-surukleniyor\)/, 'kopya kademesini tek kaynaktan almıyor (ADR-015)');
+});
+
+test('ASIL KABUL: yerinde bekleyen asıl taş saydamlaşmıyor', () => {
+  for (const secici of ['.tas.surukleniyor', '.tas-arka.surukleniyor']) {
+    const govde = kuralGovdesiCoz(STIL_CSS, secici);
+    assert.ok(govde, `stil.css içinde ${secici} kuralı yok`);
+    assert.doesNotMatch(
+      govde,
+      /opacity:/,
+      `ASIL KABUL: ${secici} hâlâ opaklık değiştiriyor → asıl taş her karede yeniden boyanır (Sahip: "asıl taş yerinde saydamlıksız beklesin")`,
+    );
+  }
+});
+
+test('surukle.js transform yazarken yalnız 3B dönüşüm kullanıyor', () => {
+  const atamalar = [...SURUKLE_JS.matchAll(/style\.transform\s*=\s*([^;]+);/g)].map((e) => e[1].trim());
+  assert.ok(atamalar.length > 0, 'surukle.js hiç transform yazmıyor — sürükleme taşı hareket ettirmiyor olmalı');
+  for (const atama of atamalar) {
+    assert.match(atama, /translate3d/, `2B dönüşüm kendi katmanını yaratmaz: ${atama}`);
+  }
+});
