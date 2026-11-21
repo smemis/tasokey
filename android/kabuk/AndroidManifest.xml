@@ -4,20 +4,22 @@
 
   Kabuk = web oyununu (docs/) tek bir WebView içinde çevrimdışı çalıştıran ince Android katmanı.
   Oyun kuralı, arayüzü, dili burada DEĞİLDİR; kabuk yalnız pencereyi açar, varlıkları yerelden
-  sunar ve çıkışı sorar. Android kabuğunun mimari kararı PRD farkı onayıyla MIMARI.md §5'e
-  yazılacak; numarası o zaman bu dosyaya da işlenir (atıf numarası, karar belgede olmadan
-  yazılamaz: testler/adr-atif-tarama.test.js).
+  sunar ve çıkışı sorar — ADR-020 madde 1 (MIMARI.md §5; durumu "koşullu kabul": teknik şekil
+  bağlayıcı, ürün kapsamı PRD farkıyla Sahip'te).
 
-  İzin yok (0 satır `uses-permission`): bütün varlıklar APK'nın içinden, appassets.androidplatform.net
-  adresi VarlikSunucusu tarafından karşılanır. INTERNET izni olmadığı için dışarıya istek fiziksel
-  olarak başarısız olur — ADR-007'nin ("dışarıya istek yok") cihazdaki karşılığı.
+  İzin yok (0 satır `uses-permission`) — ADR-020 madde 2: bütün varlıklar APK'nın içinden,
+  appassets.androidplatform.net adresi VarlikSunucusu tarafından karşılanır. INTERNET izni
+  olmadığı için dışarıya istek fiziksel olarak başarısız olur — ADR-007'nin ("dışarıya istek
+  yok") cihazdaki karşılığı.
 
-  `android:screenOrientation` YAZILMAZ: yön kararı web katmanındadır (ADR-012 — dikeyde ızgara
-  gizlenir, dil anahtarlı uyarı gösterilir). Kabuk yönü kilitlerse o karar ölçülemez hâle gelir.
+  `android:screenOrientation` YAZILMAZ — ADR-020 madde 3: yön kararı web katmanındadır (ADR-012 —
+  dikeyde ızgara gizlenir, dil anahtarlı uyarı gösterilir). Kabuk yönü kilitlerse o karar
+  ölçülemez hâle gelir. Aynı madde `configChanges` kümesini de bağlar (aşağıdaki yedi değer:
+  eksiği yön değişiminde WebView'i yeniden kurar, sürmekte olan el gider).
 
-  `uses-sdk` (en düşük / hedef Android sürümü) bu dosyada YOKTUR: donmuş alan (R sınıfı, karar
-  Masa'da). Derleme betiği aapt2 link adımında `--min-sdk-version` / `--target-sdk-version`
-  olarak verir; depo bir sürüm numarası sabitlemez.
+  `uses-sdk` (en düşük / hedef Android sürümü) bu dosyada YOKTUR — ADR-020 madde 4: donmuş alan
+  (R sınıfı, karar Masa'da). Derleme betiği aapt2 link adımında `--min-sdk-version` /
+  `--target-sdk-version` olarak verir; depo bir sürüm numarası sabitlemez.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.kraftdcm.tasokey">

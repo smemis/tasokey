@@ -15,8 +15,16 @@ const KOK = join(import.meta.dirname, '..');
 const MIMARI_MD = readFileSync(join(KOK, 'MIMARI.md'), 'utf8');
 // tasokey#53: yeni üst düzey `android/` klasörü (belge + PowerShell betiği) koruma kapsamına alındı;
 // kaynak türü eklenince tarama sessizce kapsam kaybetmesin diye uzantılar da burada tek yerde durur.
+// tasokey#54 (Mimar hakemliği): `.java` ve `.xml` eklendi — Android kabuğu (`android/kabuk/`) ADR
+// atfı taşıyan Java ve XML kaynakları getirdi, uzantılar eklenmeden tarama onları hiç okumuyordu
+// (ölçüldü: `OyunEtkinligi.java`ya yazılan uydurma bir ADR numarası — 099 — yeşil geçiyordu,
+// pass 3/fail 0; günlük `is/tasokey-54/adr-tarama-olcum.txt`). Beklenen hatanın sessizce kaybolduğu
+// bu durum tasokey#38'in belirtisinin aynısıdır (bkz. dosya başlığı).
+//
+// Not: bu dosya kendisi de taranıyor (`testler/` kapsamda). Bu yüzden yorumlarda var olmayan bir
+// karar numarası `ADR-xxx` biçiminde yazılamaz — ölçüm günlüğünde geçen numaralar düz yazıyla anılır.
 const TARANAN_DIZINLER = ['docs', 'testler', 'android'];
-const TARANAN_UZANTILAR = ['.js', '.css', '.html', '.md', '.ps1'];
+const TARANAN_UZANTILAR = ['.js', '.css', '.html', '.md', '.ps1', '.java', '.xml'];
 
 const ATIF_DESENI = /ADR-(\d{3})/g;
 

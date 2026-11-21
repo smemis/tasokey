@@ -14,8 +14,12 @@ import { join, relative } from 'node:path';
 // açıldığı ve dokunmayla oynandığı ayrı bir işte (derleme + kurulum) doğrulanır; bu test onu
 // iddia etmez.
 //
-// Android kabuğunun mimari kararı PRD farkı onayıyla `MIMARI.md` §5'e yazılacak; numarası o zaman
-// bu dosyaya da işlenir (atıf numarası, karar belgede olmadan yazılamaz: `adr-atif-tarama.test.js`).
+// Kabuğun mimari kararı **ADR-020**'dir (`MIMARI.md` §5, mimari karar sürümü 14, Mimar hakemliği
+// tasokey#54). Durumu "koşullu kabul": teknik şekil bağlayıcıdır, ürün kapsamı `PRD.md` §6'da hâlâ
+// kapsam dışıdır (PRD farkı + R numarası Sahip'te, üst iş tasokey#52). Aşağıdaki "ASIL KABUL"
+// testlerinin her biri ADR-020'nin numaralı maddelerinden birini ölçer; madde numarası test adında
+// yazılıdır, böylece "güncel mimari karara uyuyor mu" maddesi kaynak taramasıyla ölçülebilir
+// (bu atıfların belgede karşılığı olduğunu `adr-atif-tarama.test.js` ayrıca ölçer).
 
 const KOK = join(import.meta.dirname, '..');
 const KABUK = join(KOK, 'android', 'kabuk');
@@ -190,7 +194,7 @@ function temaTablosu(dosya) {
 
 // --- dosyalar ---------------------------------------------------------------------------------
 
-test('kabuk kaynakları beklenen yerlerde', () => {
+test('ADR-020/1: kabuk kaynakları beklenen yerlerde (yalnız iki sınıf + dizeler + tema)', () => {
   const eksikler = BEKLENEN_DOSYALAR.filter((dosya) => !existsSync(dosya))
     .map((dosya) => relative(KOK, dosya).replace(/\\/g, '/'));
   assert.deepEqual(eksikler, []);
@@ -198,7 +202,7 @@ test('kabuk kaynakları beklenen yerlerde', () => {
 
 // --- manifest ---------------------------------------------------------------------------------
 
-test('ASIL KABUL: manifestte 0 satır uses-permission var (çevrimdışı kabuk izin istemez)', () => {
+test('ASIL KABUL (ADR-020/2): manifestte 0 satır uses-permission var (çevrimdışı kabuk izin istemez)', () => {
   const manifest = xmlYorumsuz(oku(MANIFEST));
   const izinler = [...manifest.matchAll(/<uses-permission[^>]*android:name="([^"]+)"/g)].map(([, ad]) => ad);
   assert.deepEqual(izinler, [], 'kabukta izin satırı olmamalı (INTERNET dâhil)');
@@ -207,7 +211,7 @@ test('ASIL KABUL: manifestte 0 satır uses-permission var (çevrimdışı kabuk 
   assert.equal((manifest.match(/<permission[\s>]/g) ?? []).length, 0, 'kabuk kendi izni de tanımlamaz');
 });
 
-test('ASIL KABUL: hiçbir kaynakta screenOrientation yazılmamış (yön kararı web katmanında, ADR-012)', () => {
+test('ASIL KABUL (ADR-020/3): hiçbir kaynakta screenOrientation yazılmamış (yön kararı web katmanında, ADR-012)', () => {
   const yazanlar = [];
   for (const [goreli, tam] of kabukDosyalari()) {
     const icerik = goreli.endsWith('.java') ? javaYorumsuz(oku(tam)) : xmlYorumsuz(oku(tam));
@@ -216,7 +220,7 @@ test('ASIL KABUL: hiçbir kaynakta screenOrientation yazılmamış (yön kararı
   assert.deepEqual(yazanlar, [], 'yön kilitlenirse ADR-012 (dikeyde uyarı) ölçülemez hâle gelir');
 });
 
-test('ASIL KABUL: configChanges kümesi tam (yön/boyut değişiminde etkinlik yeniden kurulmaz)', () => {
+test('ASIL KABUL (ADR-020/3): configChanges kümesi tam (yön/boyut değişiminde etkinlik yeniden kurulmaz)', () => {
   const manifest = xmlYorumsuz(oku(MANIFEST));
   const esleme = manifest.match(/android:configChanges="([^"]+)"/);
   assert.ok(esleme, 'activity üzerinde configChanges yok');
@@ -227,7 +231,7 @@ test('ASIL KABUL: configChanges kümesi tam (yön/boyut değişiminde etkinlik y
   assert.equal(new Set(yazilanlar).size, yazilanlar.length, `configChanges yinelenen değer taşıyor: ${esleme[1]}`);
 });
 
-test('manifest paket adı + etkinlik adı Java kaynağıyla aynı, başlatıcı niyeti tanımlı', () => {
+test('ADR-020/1: manifest paket adı + etkinlik adı Java kaynağıyla aynı, başlatıcı niyeti tanımlı', () => {
   const manifest = xmlYorumsuz(oku(MANIFEST));
   const paket = manifest.match(/package="([^"]+)"/)?.[1];
   assert.equal(paket, 'com.kraftdcm.tasokey', 'firma standardı paket adı (donmuş alan)');
@@ -244,7 +248,7 @@ test('manifest paket adı + etkinlik adı Java kaynağıyla aynı, başlatıcı 
   assert.match(manifest, /android:exported="true"/, 'başlatıcı etkinliği exported olmak zorunda');
 });
 
-test('manifest en düşük/hedef Android sürümünü sabitlemiyor (donmuş alan, derleme anında verilir)', () => {
+test('ADR-020/4: manifest en düşük/hedef Android sürümünü sabitlemiyor (donmuş alan, derleme anında verilir)', () => {
   const manifest = xmlYorumsuz(oku(MANIFEST));
   assert.equal((manifest.match(/<uses-sdk/g) ?? []).length, 0);
   assert.doesNotMatch(manifest, /minSdkVersion|targetSdkVersion/);
@@ -252,7 +256,7 @@ test('manifest en düşük/hedef Android sürümünü sabitlemiyor (donmuş alan
 
 // --- WebView ve pencere ------------------------------------------------------------------------
 
-test('ASIL KABUL: WebView ayar listesi tam ve tek yerde (ayarla metodu)', () => {
+test('ASIL KABUL (ADR-020/7): WebView ayar listesi tam ve tek yerde (ayarla metodu)', () => {
   const etkinlik = javaYorumsuz(oku(ETKINLIK));
   const govde = metotGovdesi(etkinlik, 'ayarla');
 
@@ -269,7 +273,7 @@ test('ASIL KABUL: WebView ayar listesi tam ve tek yerde (ayarla metodu)', () => 
   assert.deepEqual(kacaklar, [], 'WebView ayarı ayarla() dışında da yazılmış (iki kaynak)');
 });
 
-test('ASIL KABUL: pencereye FLAG_KEEP_SCREEN_ON eklenir (bot oynarken ekran kararmaz)', () => {
+test('ASIL KABUL (ADR-020/8): pencereye FLAG_KEEP_SCREEN_ON eklenir (bot oynarken ekran kararmaz)', () => {
   const etkinlik = javaYorumsuz(oku(ETKINLIK));
   assert.match(
     etkinlik,
@@ -278,7 +282,7 @@ test('ASIL KABUL: pencereye FLAG_KEEP_SCREEN_ON eklenir (bot oynarken ekran kara
   );
 });
 
-test('ASIL KABUL: başlangıç adresi https://appassets.androidplatform.net/index.html', () => {
+test('ASIL KABUL (ADR-020/5): başlangıç adresi https://appassets.androidplatform.net/index.html', () => {
   const sunucu = javaYorumsuz(oku(SUNUCU));
   assert.equal(dizeSabiti(sunucu, 'BASLANGIC_ADRESI'), BEKLENEN_BASLANGIC_ADRESI);
 
@@ -294,7 +298,7 @@ test('ASIL KABUL: başlangıç adresi https://appassets.androidplatform.net/inde
 
 // --- varlık sunucusu ---------------------------------------------------------------------------
 
-test('ASIL KABUL: varlık sunucusu ".." ve kök dışını reddediyor; varlığı yalnız çözülen yoldan açıyor', () => {
+test('ASIL KABUL (ADR-020/6): varlık sunucusu ".." ve kök dışını reddediyor; varlığı yalnız çözülen yoldan açıyor', () => {
   const sunucu = javaYorumsuz(oku(SUNUCU));
   const govde = metotGovdesi(sunucu, 'varlikYolu');
 
@@ -328,7 +332,7 @@ test('ASIL KABUL: varlık sunucusu ".." ve kök dışını reddediyor; varlığ�
   assert.match(yanit, /SUNUCU\.equals\s*\(\s*adres\.getHost\s*\(\s*\)\s*\)/);
 });
 
-test('ASIL KABUL: MIME tablosunda html/css/js/json/svg var; bilinmeyen uzantıda varsayılan tür', () => {
+test('ASIL KABUL (ADR-020/6): MIME tablosunda html/css/js/json/svg var; bilinmeyen uzantıda varsayılan tür', () => {
   const sunucu = javaYorumsuz(oku(SUNUCU));
   const tanim = sabitIfadesi(sunucu, 'MIME_TABLOSU');
   assert.ok(tanim, 'MIME_TABLOSU yok');
@@ -348,7 +352,7 @@ test('ASIL KABUL: MIME tablosunda html/css/js/json/svg var; bilinmeyen uzantıda
   assert.match(mimeGovdesi, /return\s+MIME_VARSAYILAN/);
 });
 
-test('varlık kökü tek sabitten gelir (assets/oyun) ve çözülen yol onunla başlar', () => {
+test('ADR-020/6: varlık kökü tek sabitten gelir (assets/oyun) ve çözülen yol onunla başlar', () => {
   const sunucu = javaYorumsuz(oku(SUNUCU));
   assert.equal(dizeSabiti(sunucu, 'KOK'), 'oyun');
   assert.equal(dizeSabiti(sunucu, 'VARSAYILAN_SAYFA'), 'index.html');
@@ -358,7 +362,7 @@ test('varlık kökü tek sabitten gelir (assets/oyun) ve çözülen yol onunla b
 
 // --- dizeler (TR/EN) ---------------------------------------------------------------------------
 
-test('ASIL KABUL: TR ve EN dize anahtar kümeleri birebir aynı ve çıkış sorusu ikisinde de dolu', () => {
+test('ASIL KABUL (ADR-020/9): TR ve EN dize anahtar kümeleri birebir aynı ve çıkış sorusu ikisinde de dolu', () => {
   const en = dizeTablosu(DIZELER_EN);
   const tr = dizeTablosu(DIZELER_TR);
 
@@ -380,7 +384,7 @@ test('ASIL KABUL: TR ve EN dize anahtar kümeleri birebir aynı ve çıkış sor
   );
 });
 
-test('ASIL KABUL: kabukta sabit metin yok — kullanılan her dize anahtarı iki dilde de tanımlı', () => {
+test('ASIL KABUL (ADR-020/9): kabukta sabit metin yok — kullanılan her dize anahtarı iki dilde de tanımlı', () => {
   const en = dizeTablosu(DIZELER_EN);
   const tr = dizeTablosu(DIZELER_TR);
 
@@ -407,7 +411,7 @@ test('ASIL KABUL: kabukta sabit metin yok — kullanılan her dize anahtarı iki
 
 // --- tema ---------------------------------------------------------------------------------------
 
-test('tema platform temasından türer; çentik maddesi yalnız values-v28, ortak maddeler tek kaynakta', () => {
+test('ASIL KABUL (ADR-020/10): tema platform temasından türer; çentik maddesi yalnız values-v28, ortak maddeler tek kaynakta', () => {
   const manifest = xmlYorumsuz(oku(MANIFEST));
   const temaAdi = manifest.match(/android:theme="@style\/(\w+)"/)?.[1];
   assert.ok(temaAdi, 'application üzerinde tema yok');
@@ -433,7 +437,7 @@ test('tema platform temasından türer; çentik maddesi yalnız values-v28, orta
 
 // --- bağımlılık yokluğu -------------------------------------------------------------------------
 
-test('ASIL KABUL: kabuk kaynaklarında androidx / android.support hiç geçmiyor (ADR-001)', () => {
+test('ASIL KABUL (ADR-020/1): kabuk kaynaklarında androidx / android.support hiç geçmiyor (ADR-001)', () => {
   const bulgular = [];
   for (const [goreli, tam] of kabukDosyalari()) {
     const icerik = oku(tam);
@@ -444,7 +448,7 @@ test('ASIL KABUL: kabuk kaynaklarında androidx / android.support hiç geçmiyor
   assert.deepEqual(bulgular, [], 'kabuk yalnız platform sınıflarını kullanır (dış kütüphane yok)');
 });
 
-test('kabuk sınıfları yalnız android.* ve java.* paketlerini içe alır', () => {
+test('ADR-020/1: kabuk sınıfları yalnız android.* ve java.* paketlerini içe alır', () => {
   const yabancilar = [];
   for (const dosya of [ETKINLIK, SUNUCU]) {
     for (const [, paket] of javaYorumsuz(oku(dosya)).matchAll(/^import\s+([\w.]+);/gm)) {
