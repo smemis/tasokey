@@ -114,6 +114,8 @@ Kanıt: `is\tasokey-53\ortam-olcumu.txt`, `is\tasokey-53\ornek-rapor.txt`, `is\t
 | yalnız `System.IO.Compression.**FileSystem**` yüklenince | **hâlâ çözülmüyor** |
 | `System.IO.Compression` **+** `…FileSystem` yüklenince | `ZipArchiveMode` + `ZipFile` **var** |
 | Öz-test | `npm test` → **491/491 geçti** (12'si bu işin yeni testi) |
+| Çözücünün gerçek makinede koşması (`-UnityKok` geçersiz yol) | **çıkış kodu 2** + `EKSİK: Unity kökü yok: … (kaynak: -UnityKok)`; Türkçe harfler bozulmadı, ortam satırı doğru (`pwsh: yok · ZipArchive: var`). Kanıt: `is\tasokey-53\gercek-kosu-kod2.txt` |
+| Kurulu bir Android araç zinciri manifest kapsamında var mı | **yok** — okuma listesindeki `D:\KraftDcm` yalnız `.md` belgeleri içeriyor; `JAVA_HOME`, `ANDROID_HOME`, `ANDROID_SDK_ROOT`, `UNITY_HOME`, `TASOKEY_UNITY_KOK` **tanımlı değil** |
 
 **Dersler (koda yazıldı):**
 
@@ -126,17 +128,28 @@ Kanıt: `is\tasokey-53\ortam-olcumu.txt`, `is\tasokey-53\ornek-rapor.txt`, `is\t
 
 ---
 
-## 4. ÖLÇÜLMEYENLER — Unity kurulum klasörü izni gerekiyor
+## 4. ÖLÇÜLMEYENLER — gerçek kurulum (izin verilmedi, 2026-11-21)
 
 tasokey#53'ün manifestinde yazma: iş klasörü + ofis klonu; okuma (ek): `D:\KraftOfis\merkez\kit`,
-`D:\KraftDcm`. **Unity kurulum klasörü yok** (`unity_editor: null`, `araclar: []`) ve koruma kancası
-o klasörü okumayı reddetti. Bu yüzden aşağıdaki tablo **boş bırakıldı** — tahmin yazılmadı (A9).
+`D:\KraftDcm`. **Unity kurulum klasörü manifestte yok** (`unity_editor: null`, `araclar: []`);
+koruma kancası okumayı reddetti ve izin istemi **sorulmadı/verilmedi** (toplu onay kipi).
+Kapsam içinde başka bir araç zinciri de **yok** (ölçüldü, §3: `D:\KraftDcm` yalnız belge,
+ilgili ortam değişkenlerinin hiçbiri tanımlı değil). Bu yüzden aşağıdaki tablo **boş bırakıldı** —
+tahmin yazılmadı (A9). Çözücünün kendi mantığı bundan bağımsız olarak sınandı (§5) ve gerçek
+makinede de koştu (§3, kod 2).
 
-İzin gelince tek komut tabloyu dolduruyor:
+İzin gelince tek komut tabloyu dolduruyor (Unity kurulum klasörü: **okuma + çalıştırma**):
 
 ```
 powershell -File android/yol-coz.ps1 -Rapor      # pwsh kurulursa: pwsh -File …
 ```
+
+Erişimi olan taraf (Masa) başka bir makinede ya da izinli bir turda şunu yapar: komutu çalıştırır,
+çıktıyı aşağıdaki tabloya **olduğu gibi** geçirir ve satırları "ölçüldü (tarih)" diye işaretler.
+Unity kökü Hub'ın varsayılan yerinde değilse `-UnityKok <yol>` ya da bir kez
+`setx TASOKEY_UNITY_KOK <yol>`. Firma belgesine göre oyunların motoru **Unity 6000.3.9f1**
+(`D:\KraftDcm\oyunlar.md`) → beklenen Hub klasörü `…\Hub\Editor\6000.3.9f1`; bu **belgede yazan**
+değer, bu makinede **doğrulanmadı**.
 
 | Ne | Ölçülen değer |
 |---|---|
