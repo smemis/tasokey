@@ -12,6 +12,17 @@
   --panel: #123a2c;
   --metin: #f2efe6;
   --tas-govde: #ece6d6;
+  /* Taşın çevresindeki çok ince, çok az görünen kenar çizgisi (tasokey#46, R-015) — TEK KAYNAK:
+     üç gövde varyantı (gorsel/tas-govde.svg, tas-sahte-okey.svg, tas-arka.svg) bu üç değeri
+     var() ile okur, SVG dosyalarının içine sayı yazılmaz (SVG'ler inline basılır → arayuz/gorseller.js).
+     Kalınlık BİRİMSİZ, yani taşın viewBox birimindedir (100x140): kontur taşla birlikte ölçeklenir,
+     böylece konturun yarısı hiçbir kademede viewBox dışına taşıp kesilmez (dikdörtgen kenardan tam
+     kalınlığın yarısı kadar içe kaçıktır — testler/tas-kenar-cizgisi.test.js kabul-b bunu ölçer).
+     58px genişlikteki taşta görünen kalınlık = 1.6 * 0.58 ≈ 0.93 px. Opaklık/renk "çok az görünen"
+     bandını verir: gövde rengiyle ölçülen kontrast 1.42:1 (aynı testin kabul-d maddesi). */
+  --tas-kenar-kalinlik: 1.6;
+  --tas-kenar-renk: #3a3226;
+  --tas-kenar-opaklik: 0.2;
 
   --tas-genislik: 58px;
   --tas-yukseklik: 82px;

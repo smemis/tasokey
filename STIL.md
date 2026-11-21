@@ -4,11 +4,13 @@
 > 3B varlık yok (web 2B masa oyunu) — §3 bu projede uygulanmaz.
 > **v0.1** (`tasokey#22`, Sahip kararı 2026-11-20): masa, ıstaka ve taş görünümü `tasarim/referans/MASA-DUZENI.md` ile
 > eşitlendi (§1, §4). Yalnız belge; arayüz kodu bu işte değişmedi.
+> **v0.2** (`tasokey#46`, Sahip isteği 2026-11-21): taşın çevresine çok ince, çok az görünen kenar çizgisi eklendi (§4);
+> değerin tek kaynağı `arayuz/stil.css` `:root`. Görsel beğeni hâlâ Sahip'te (K4).
 
 | Alan | Değer |
 |---|---|
 | Proje | `tasokey` |
-| Sürüm | `0.1` (taslak; masa/ıstaka/taş görünümü Sahip kararıyla netleşti, diğer kısımlar hâlâ taslak) |
+| Sürüm | `0.2` (taslak; masa/ıstaka/taş görünümü Sahip kararıyla netleşti, diğer kısımlar hâlâ taslak) |
 | Onay | Bekliyor (masa/ıstaka/taş görünümü hariç — bkz. v0.1 notu) |
 
 ## 1. Genel görünüş
@@ -39,6 +41,10 @@ Uygulanmaz (proje 2B web arayüzü; 3B varlık planı yok).
   altında **aynı renkte küçük daire**. Renkler: kırmızı, mavi, siyah, sarı/turuncu. Sahte okey rakamsız, ayrı işaretli taş
   (yıldız ya da rozet) — kumar çağrışımı yasağına uygun, zar/rulet imgesi değil. Kapalı taş: ters dönmüş, gövde rengi, yüzü
   görünmez.
+- **Taşın kenar çizgisi (Sahip isteği, 2026-11-21 — `tasokey#46`):** taşın çevresinde çok ince, çok az görünen tek kontur,
+  gövdenin yuvarlak köşesini izler ve taşın görünen ölçüsünü büyütmez; kalınlık/renk/opaklık değerinin **tek kaynağı**
+  `arayuz/stil.css` `:root` (`--tas-kenar-kalinlik` / `--tas-kenar-renk` / `--tas-kenar-opaklik`) — üç gövde varyantı
+  (taş yüzü, sahte okey, kapalı taş) aynı değeri okur, SVG dosyalarına sayı yazılmaz.
 - **Istaka görseli (Sahip kararı, 2026-11-20):** kalın ahşap, **iki kademeli** (alt ve üst raf), iki ucunda ayak/kulak; taşlar
   rafa oturur, taşlar arasında boşluk bırakılabilir.
 - Gösterge taşı, köşe (atılan taş) yığınları, oyuncu rafı (14-15 taş) için ayrı görsel durumlar gerekir — ayrıntı Mimar/Varlık
