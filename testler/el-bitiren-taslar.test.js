@@ -41,31 +41,33 @@ test('(b) bitirilemez elde boş liste döner', () => {
   assert.deepEqual(elBitirenTaslar(el, OKEY_TASI), []);
 });
 
-// (c) okey/sahte okey listeye girmez: joker atıldığında kalan el tam bölünecek olsa bile
-// (aşağıdaki ellerde joker atılırsa seri(3) + sayı peri(3) kalır) kural.okeyVeSahteOkeyAtmaYasak
-// açıkken joker hiçbir zaman aday listesine girmez.
-test('(c) okey/sahte okey taşı listeye girmez', () => {
+// (c) joker ADAYLIĞI kurala bağlıdır, sabit kodlanmamıştır — iki yönlü ölçülür (tasokey#50,
+// ADR-008 sürüm 2): varsayılan kural artık okey atmaya izin verdiğinden joker atıldığında kalan el
+// bölünüyorsa joker de aday listesine GİRER; yasak ayarı (`okeyVeSahteOkeyAtmaYasak: true`)
+// açıldığında eski davranış (joker hiç aday olmaz) olduğu gibi geri gelir. Aşağıdaki ellerde joker
+// atılırsa seri(3) + sayı peri(3) kalır, yani joker gerçekten "bitiren taş"tır.
+const KURAL_YASAK = { ...KURAL_VARSAYILAN, okeyVeSahteOkeyAtmaYasak: true };
+
+test('(c) sahte okey: varsayılanda aday listesine girer, yasak ayarı açıkken girmez', () => {
   const joker = sOkey(1);
   const el = [
     t('kirmizi', 1), t('kirmizi', 2), t('kirmizi', 3),
     t('siyah', 8), t('mavi', 8), t('sari', 8), joker,
   ];
 
-  const sonuc = elBitirenTaslar(el, OKEY_TASI, KURAL_VARSAYILAN);
-
-  assert.equal(sonuc.includes(joker.id), false);
+  assert.equal(elBitirenTaslar(el, OKEY_TASI, KURAL_VARSAYILAN).includes(joker.id), true);
+  assert.equal(elBitirenTaslar(el, OKEY_TASI, KURAL_YASAK).includes(joker.id), false);
 });
 
-test('(c) gerçek okey taşı (joker sayılan) da listeye girmez', () => {
+test('(c) gerçek okey taşı (joker sayılan): varsayılanda aday, yasak ayarı açıkken değil', () => {
   const gercekOkey = t('mavi', 7); // OKEY_TASI ile aynı renk/sayı → tasOkeyMi true
   const el = [
     t('kirmizi', 1), t('kirmizi', 2), t('kirmizi', 3),
     t('siyah', 8), t('mavi', 8), t('sari', 8), gercekOkey,
   ];
 
-  const sonuc = elBitirenTaslar(el, OKEY_TASI, KURAL_VARSAYILAN);
-
-  assert.equal(sonuc.includes(gercekOkey.id), false);
+  assert.equal(elBitirenTaslar(el, OKEY_TASI, KURAL_VARSAYILAN).includes(gercekOkey.id), true);
+  assert.equal(elBitirenTaslar(el, OKEY_TASI, KURAL_YASAK).includes(gercekOkey.id), false);
 });
 
 // (d) el sürmüyorsa (boş ya da geçersiz girdi) boş liste döner.
@@ -104,14 +106,22 @@ test('(e) ASIL KABUL: ekran görüntüsündeki 15 taşlık el hiçbir atışla b
   assert.deepEqual(elBitirenTaslar(el, okeyTasi, KURAL_VARSAYILAN, gosterge), []);
 });
 
-// Kural kapalıyken (varsayılan dışı, sınama amaçlı) joker de aday olabilir — (c)'nin davranışı
-// `kural.okeyVeSahteOkeyAtmaYasak`'a bağlı olduğunu, sabit kodlanmadığını doğrular.
-test('kural.okeyVeSahteOkeyAtmaYasak kapalıyken joker aday listesine girebilir', () => {
+// Kapatma anahtarının motor tarafındaki etkisi: aynı elde yalnız jokerin aday olup olmadığı
+// değişir, jokersiz adaylar (burada serinin uçları) iki yönde de aynı kalır.
+test('yasak ayarı yalnız jokeri havuzdan düşürür, öbür adayları değiştirmez', () => {
   const joker = sOkey(1);
-  const el = [t('kirmizi', 1), t('kirmizi', 2), t('kirmizi', 3), joker];
-  const kuralAcik = { ...KURAL_VARSAYILAN, okeyVeSahteOkeyAtmaYasak: false };
+  const kirmizi1 = t('kirmizi', 1);
+  const el = [kirmizi1, t('kirmizi', 2), t('kirmizi', 3), joker];
 
-  const sonuc = elBitirenTaslar(el, OKEY_TASI, kuralAcik);
+  const varsayilan = elBitirenTaslar(el, OKEY_TASI, KURAL_VARSAYILAN);
+  const yasakli = elBitirenTaslar(el, OKEY_TASI, KURAL_YASAK);
 
-  assert.equal(sonuc.includes(joker.id), true);
+  assert.equal(varsayilan.includes(joker.id), true, 'varsayılanda joker aday değil');
+  assert.equal(yasakli.includes(joker.id), false, 'yasak ayarı açıkken joker hâlâ aday');
+  assert.equal(varsayilan.includes(kirmizi1.id), true, 'serinin ucu aday olmalı');
+  assert.deepEqual(
+    varsayilan.filter((id) => id !== joker.id),
+    yasakli,
+    'yasak ayarı jokerden başka bir adayı da düşürmüş',
+  );
 });

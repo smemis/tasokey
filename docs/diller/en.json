@@ -32,6 +32,7 @@
   "sonuc.bitti": "Hand over! Winner: {0}",
   "sonuc.berabere": "Draw — the pile ran out.",
   "sonuc.turSiniri": "Turn limit reached.",
+  "sonuc.oyuncuTaslari": "Players' remaining tiles",
   "sonuc.kalanTas": "{0}: {1} tiles left",
   "sonuc.dokumPer": "{0} groups ({1} tiles)",
   "sonuc.dokumCift": "{0} pairs ({1} tiles)",
@@ -49,6 +50,8 @@
   "onay.oyunuBitir": "Are you sure you want to end the game? The hand in progress will be closed.",
   "onay.evet": "Yes, end it",
   "onay.hayir": "Cancel",
+  "bilgi.okeyAtildi": "You discarded the joker (or fake joker). The move is allowed and there is no penalty, but that tile stands in for any missing one, so it is the most useful tile for finishing your hand.",
+  "bilgi.tamam": "Got it",
   "oyuncu.sen": "You",
   "oyuncu.bot": "Bot {0}",
   "telefonuCevir": "Rotate your phone to landscape to play."

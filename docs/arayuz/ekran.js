@@ -11,9 +11,9 @@ import { cevir } from '../dil/cevir.js';
 import { surukleBagla, cekmeSurukleBagla } from './surukle.js';
 import { HEDEF_TURU, EYLEM, eylemKararVer, cekmeKararVer, rakipEliAcikMi } from './etkilesim.js';
 import {
-  EKRAN, OLAY, ZORLUKLAR, kabukBaslat, gecis, kayitAlanlari, botTurunuOynat,
-  oyunuBitirilebilirMi, onayBekliyorMu, botSirasiMi, bekleyenBotTuruGecerliMi,
-  ustCubukBaslikTarifi,
+  EKRAN, OLAY, BILGI, ZORLUKLAR, kabukBaslat, gecis, kayitAlanlari, botTurunuOynat,
+  oyunuBitirilebilirMi, onayBekliyorMu, bilgiBekliyorMu, dokumAcikMi,
+  botSirasiMi, bekleyenBotTuruGecerliMi, ustCubukBaslikTarifi,
 } from './kabuk.js';
 import { kayitOku, kayitYaz } from '../kayit/depo.js';
 import { gorselOlustur, gorselleriOnYukle } from './gorseller.js';
@@ -389,6 +389,12 @@ function sonucKalanTaslariCiz(sonuc) {
 
 // Panelin görünürlüğü artık yalnız kabuğun ekranından gelir (ADR-016): "el bitti mi" sorusu
 // `elSonucunuHesapla` ile iki kez sorulmaz, geçiş `durumuIlerlet`te bir kez yapılır.
+//
+// Oyuncuların kalan taşları AÇILIR bir bölümdür (Sahip ek bilgisi, tasokey#50) ve pencere her
+// açıldığında KAPALI başlar: bayrağı kabuk tutar (`dokumAcikMi`, ekran değiştiren geçiş kapatır),
+// bu dosya kendi "açık mı" bayrağını açmaz (ADR-016/1). Liste kapalıyken kutu da içeriğiyle
+// birlikte küçülür — pencerenin sabit bir en/boyu yoktur (Sahip ek bilgisi 2, stil.css
+// `#sonucKutusu`).
 function sonucPaneliCiz() {
   const { durum, kabuk } = durumKutu;
   const sonucEkraninda = kabuk.ekran === EKRAN.SONUC;
@@ -397,6 +403,10 @@ function sonucPaneliCiz() {
   const sonuc = elSonucunuHesapla(durum);
   eleman.sonucMetni.textContent = sonucMetni();
   if (sonuc !== null) sonucKalanTaslariCiz(sonuc);
+  const dokumAcik = dokumAcikMi(kabuk);
+  eleman.dokumAcKapaButonu.textContent = metinAl('sonuc.oyuncuTaslari');
+  eleman.dokumAcKapaButonu.setAttribute('aria-expanded', String(dokumAcik));
+  eleman.sonucKalanTaslar.hidden = !dokumAcik;
   eleman.yeniElButonu.textContent = metinAl('yeniEl');
   eleman.baslangicaDonButonu.textContent = metinAl('baslangicaDon');
 }
@@ -429,6 +439,17 @@ function onayPaneliCiz() {
   eleman.onayHayirButonu.textContent = metinAl('onay.hayir');
 }
 
+// Bilgilendirme penceresi (tasokey#50, ADR-016/8): görünürlüğü ve hangi bilginin gösterildiği
+// kabuktan gelir (`kabuk.bilgi`); metnin anahtarı o alandan türer, bu dosya metin yazmaz (R-008).
+// Pencere soru sormaz: tek düğmesi yalnız kapatır, hamle çoktan işlenmiştir.
+function bilgiPaneliCiz() {
+  const acikMi = bilgiBekliyorMu(durumKutu.kabuk);
+  eleman.bilgiPaneli.classList.toggle('gorunur', acikMi);
+  if (!acikMi) return;
+  eleman.bilgiMetni.textContent = metinAl(`bilgi.${durumKutu.kabuk.bilgi}`);
+  eleman.bilgiTamamButonu.textContent = metinAl('bilgi.tamam');
+}
+
 // R-014: dikey/yatay geçişi CSS ortam sorgusu yönetir (stil.css `orientation: portrait`); burada
 // yalnız dil anahtarlı uyarı metni basılır — JS yön tespiti yapmaz, sabit metin yazmaz.
 function telefonUyarisiCiz() {
@@ -444,6 +465,7 @@ function ciz() {
   baslangicPaneliCiz();
   sonucPaneliCiz();
   onayPaneliCiz();
+  bilgiPaneliCiz();
 }
 
 // El durumunu ilerletmenin TEK kapısı (ADR-016): motor eli bitirdiyse kabuk `masa` → `sonuc`
@@ -474,6 +496,11 @@ function cekSonucunuIsle(sonuc, yeniTasYuvasi) {
 // `elBitirenTaslar`a bakmıştı (etkilesim.js) — burada motor sonucunu uygulamaktan başka bir
 // kural tekrarı yok (ADR-002).
 function atVeyaBitirUygula(tasId) {
+  // Atılan taşın okey/sahte okey olup olmadığı hamleden ÖNCE okunur (taş sonra elde değil);
+  // "okey mi" sorusunun tek kaynağı `cekirdek/dagitim.js` tasOkeyMi'dir, burada renk/sayı
+  // karşılaştırılmaz. Kural artık bu hamleyi engellemiyor (ADR-008 sürüm 2, tasokey#50).
+  const atilanTas = durumKutu.durum.eller[INSAN_OYUNCUSU].find((tas) => tas.id === tasId);
+  const jokerAtiliyor = atilanTas !== undefined && tasOkeyMi(atilanTas, durumKutu.durum.okeyTasi);
   const sonuc = at(durumKutu.durum, INSAN_OYUNCUSU, tasId);
   if (!sonuc.basarili) {
     mesajGoster(sonuc.sebep);
@@ -481,10 +508,18 @@ function atVeyaBitirUygula(tasId) {
     return;
   }
   durumuIlerlet(sonuc.durum);
+  // Bilgilendirme penceresi yalnız insan oyuncunun KENDİ joker atışında açılır (ADR-016/8) ve
+  // hamleyi geri almaz. Hamle eli bitirdiyse ekran `sonuc`a geçmiş olur; o durumda tek kapı
+  // (`gecis`) bilgiyi zaten yok sayar — sonuç penceresiyle üst üste binmez.
+  if (jokerAtiliyor) {
+    durumKutu.kabuk = gecis(durumKutu.kabuk, OLAY.BILGI_GOSTER, { bilgi: BILGI.OKEY_ATILDI });
+  }
   durumKutu.secilenTasId = null;
   rafYerlesiminiTazele(sonuc.durum.eller[INSAN_OYUNCUSU]);
   mesajGoster(null);
   ciz();
+  // Bilgilendirme açıkken bot sırası başlamaz (koşul `kabuk.js` botSirasiMi'de): pencere
+  // kapanınca `bilgiyiKapat` sırayı buradan devam ettirir.
   botSirasiniBaslat();
 }
 
@@ -659,6 +694,21 @@ function oyunuBitirVazgec() {
   ciz();
 }
 
+// Bilgilendirme penceresinin tek düğmesi (tasokey#50): yalnız pencereyi kapatır ve duran bot
+// sırasını devam ettirir. El durumuna dokunulmaz — atılan taş masada kalır, ceza yoktur.
+function bilgiyiKapat() {
+  durumKutu.kabuk = gecis(durumKutu.kabuk, OLAY.BILGI_KAPAT);
+  ciz();
+  botSirasiniBaslat();
+}
+
+// Sonuç penceresindeki döküm bölümünü aç/kapat (Sahip ek bilgisi, tasokey#50): kabuk bayrağını
+// çevirir, pencere yeniden çizilir. Kapalıyken kutu içeriğiyle birlikte küçülür.
+function dokumAcKapa() {
+  durumKutu.kabuk = gecis(durumKutu.kabuk, OLAY.DOKUM_AC_KAPA);
+  ciz();
+}
+
 // Zorluk seçimi: karar kabukta (yalnız başlangıç ekranında geçerli), kalıcılığı kayıtta
 // (ADR-006 şema sürüm 2 — seçim bir sonraki açılışta geri okunur).
 function zorlukSec(zorluk) {
@@ -683,9 +733,11 @@ function elemanlariTopla() {
     'koseSolAlt', 'koseSolAltYigin', 'koseSolAltSayac',
     'koseSagAlt', 'koseSagAltYigin', 'koseSagAltSayac',
     'rafBaslik', 'raf',
-    'sonucPaneli', 'sonucMetni', 'sonucKalanTaslar', 'yeniElButonu', 'baslangicaDonButonu',
+    'sonucPaneli', 'sonucMetni', 'dokumAcKapaButonu', 'sonucKalanTaslar',
+    'yeniElButonu', 'baslangicaDonButonu',
     'baslangicPaneli', 'baslangicBaslik', 'zorlukBaslik', 'yeniOyunButonu',
     'onayPaneli', 'onayMetni', 'onayEvetButonu', 'onayHayirButonu',
+    'bilgiPaneli', 'bilgiMetni', 'bilgiTamamButonu',
     ...Object.values(ZORLUK_DUGME_ADLARI),
   ];
   for (const id of idler) eleman[id] = document.getElementById(id);
@@ -703,6 +755,8 @@ function olaylariBagla() {
   eleman.oyunuBitirButonu.addEventListener('click', oyunuBitirIste);
   eleman.onayEvetButonu.addEventListener('click', oyunuBitirOnayla);
   eleman.onayHayirButonu.addEventListener('click', oyunuBitirVazgec);
+  eleman.bilgiTamamButonu.addEventListener('click', bilgiyiKapat);
+  eleman.dokumAcKapaButonu.addEventListener('click', dokumAcKapa);
   eleman.yeniElButonu.addEventListener('click', yeniElBaslat);
   eleman.baslangicaDonButonu.addEventListener('click', baslangicaDon);
   eleman.yeniOyunButonu.addEventListener('click', yeniOyunBaslat);

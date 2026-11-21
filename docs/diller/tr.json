@@ -32,6 +32,7 @@
   "sonuc.bitti": "El bitti! Kazanan: {0}",
   "sonuc.berabere": "Berabere — yer destesi tükendi.",
   "sonuc.turSiniri": "Tur sınırına ulaşıldı.",
+  "sonuc.oyuncuTaslari": "Oyuncuların kalan taşları",
   "sonuc.kalanTas": "{0}: {1} taş kaldı",
   "sonuc.dokumPer": "{0} per ({1} taş)",
   "sonuc.dokumCift": "{0} çift ({1} taş)",
@@ -49,6 +50,8 @@
   "onay.oyunuBitir": "Oyunu bitirmek istediğine emin misin? Süren el kapanır.",
   "onay.evet": "Evet, bitir",
   "onay.hayir": "Vazgeç",
+  "bilgi.okeyAtildi": "Okey ya da sahte okey taşını attın. Bu hamle serbesttir, ceza yoktur; ama bu taş eksik bir taşın yerine geçtiği için elini bitirmekte en çok işe yarayan taştır.",
+  "bilgi.tamam": "Anladım",
   "oyuncu.sen": "Sen",
   "oyuncu.bot": "Bot {0}",
   "telefonuCevir": "Oynamak için telefonunu yatay çevir."

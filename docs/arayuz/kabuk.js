@@ -6,7 +6,10 @@
 // buraya iletir. Üç ekran vardır — `baslangic` (Yeni oyun + zorluk seçimi), `masa` (el sürüyor),
 // `sonuc` (el bitti) — ve geçişler yalnız burada tanımlıdır; ekran.js'te "şu düğme açıksa şu panel
 // görünür" biçiminde ikinci bir kural yazılmaz (ADR-016/1). Üst çubuktaki "Oyunu bitir" düğmesinin
-// onay sorusu da ayrı bir ekran değil, aynı makinenin `onay` alanıdır (tasokey#43).
+// onay sorusu da ayrı bir ekran değil, aynı makinenin `onay` alanıdır (tasokey#43); okey/sahte okey
+// atıldığında gösterilen bilgilendirme penceresi de `bilgi` alanıdır (tasokey#50, ADR-016/8).
+// Kabuk bugün `{ ekran, zorluk, onay, bilgi, dokumAcik }` tutar; `zorluk` dışındaki hiçbiri kayda
+// yazılmaz (`kayitAlanlari`).
 //
 // Kademe adlarının tek kaynağı `bot/bot.js` (`KADEME`, ADR-013): kabuk kendi zorluk listesini
 // yazmaz, botun tanımını okur. Kayıt katmanı (`kayit/depo.js`) zorluğu **opak dize** olarak saklar;
@@ -30,6 +33,9 @@ export const OLAY = Object.freeze({
   OYUNU_BITIR: 'oyunuBitir',
   ONAY_EVET: 'onayEvet',
   ONAY_HAYIR: 'onayHayir',
+  BILGI_GOSTER: 'bilgiGoster',
+  BILGI_KAPAT: 'bilgiKapat',
+  DOKUM_AC_KAPA: 'dokumAcKapa',
 });
 
 // Bekleyen onay sorusu (tasokey#43): ekran değişmeden önce sorulan "emin misin?". Kabuğun bir
@@ -37,6 +43,14 @@ export const OLAY = Object.freeze({
 // gibi devam edilir. Şimdilik tek soru var; yeni bir onay eklenirse buraya bir değer girer.
 export const ONAY = Object.freeze({
   OYUNU_BITIR: 'oyunuBitir',
+});
+
+// Bilgilendirme penceresi (tasokey#50, ADR-016/8): oyuncuya bir şey SORMAZ, yalnız olup biteni
+// anlatır ve tek düğmeyle kapanır. Onay gibi kabuğun bir ALANIDIR (`bilgi`), ayrı ekran değildir:
+// masa arkada durmayı sürdürür, pencere kapanınca el aynı yerden devam eder. Hamleyi engellemez —
+// pencere açıldığında hamle motora çoktan işlenmiştir (ceza/geri alma yok).
+export const BILGI = Object.freeze({
+  OKEY_ATILDI: 'okeyAtildi',
 });
 
 // Oyuncuya sunulan zorluklar = botun kademeleri (tek kaynak); sıra arayüzdeki düğme sırasıdır.
@@ -63,10 +77,17 @@ export function zorlukCozumle(deger) {
   return zorlukGecerliMi(deger) ? deger : VARSAYILAN_KADEME;
 }
 
-// İlk açılış her zaman `baslangic` ekranındadır (iş isteği); zorluk kayıttan okunur. Bekleyen onay
-// kayıttan GELMEZ: soru oturum içinde sorulur, açılışta hiçbir pencere açık değildir.
+// İlk açılış her zaman `baslangic` ekranındadır (iş isteği); zorluk kayıttan okunur. Bekleyen onay,
+// bilgilendirme penceresi ve sonuç penceresinin açılır döküm bölümü kayıttan GELMEZ: üçü de oturum
+// içi durumdur, açılışta hiçbir pencere açık ve döküm bölümü kapalıdır (Sahip ek bilgisi, #50).
 export function kabukBaslat(kayit = null) {
-  return Object.freeze({ ekran: EKRAN.BASLANGIC, zorluk: zorlukCozumle(kayit?.zorluk), onay: null });
+  return Object.freeze({
+    ekran: EKRAN.BASLANGIC,
+    zorluk: zorlukCozumle(kayit?.zorluk),
+    onay: null,
+    bilgi: null,
+    dokumAcik: false,
+  });
 }
 
 // Üst çubuktaki "Oyunu bitir" düğmesi yalnız el sürerken anlamlıdır: başlangıç ekranında
@@ -78,6 +99,22 @@ export function oyunuBitirilebilirMi(kabuk) {
 
 export function onayBekliyorMu(kabuk) {
   return kabuk.onay !== null;
+}
+
+export function bilgiBekliyorMu(kabuk) {
+  return kabuk.bilgi !== null;
+}
+
+export function bilgiGecerliMi(deger) {
+  return Object.values(BILGI).includes(deger);
+}
+
+// Sonuç penceresindeki "oyuncuların kalan taşları" bölümü açık mı? (Sahip ek bilgisi, tasokey#50:
+// bölüm açılıp kapanabilir olsun, pencere ilk açıldığında KAPALI olsun.) Bayrağı kabuk tutar,
+// `ekran.js` kendi ikinci bayrağını açmaz (ADR-016/1) — ve ekran değiştiren her geçiş kapatır,
+// böylece pencere her açılışında kapalı başlar.
+export function dokumAcikMi(kabuk) {
+  return kabuk.dokumAcik === true;
 }
 
 // Tek geçiş kapısı: tanımsız olay ya da o ekranda geçersiz olay kabuğu **değiştirmez** (aynı nesne
@@ -103,21 +140,43 @@ export function gecis(kabuk, olay, veri = {}) {
   }
   if (olay === OLAY.ONAY_EVET) {
     if (kabuk.onay !== ONAY.OYUNU_BITIR) return kabuk;
-    return Object.freeze({ ...kabuk, ekran: EKRAN.BASLANGIC, onay: null });
+    return Object.freeze({ ...kabuk, ekran: EKRAN.BASLANGIC, onay: null, bilgi: null, dokumAcik: false });
+  }
+  // Bilgilendirme (tasokey#50, ADR-016/8): yalnız masa ekranında açılır — insan oyuncunun kendi
+  // hamlesini anlatır, başka ekranda anlatacak hamle yoktur. Bilinmeyen bilgi türü ve pencere
+  // zaten açıkken gelen ikinci istek yok sayılır (tek kapı, ADR-016/1).
+  if (olay === OLAY.BILGI_GOSTER) {
+    if (kabuk.ekran !== EKRAN.MASA || bilgiBekliyorMu(kabuk) || !bilgiGecerliMi(veri.bilgi)) return kabuk;
+    return Object.freeze({ ...kabuk, bilgi: veri.bilgi });
+  }
+  if (olay === OLAY.BILGI_KAPAT) {
+    if (!bilgiBekliyorMu(kabuk)) return kabuk;
+    return Object.freeze({ ...kabuk, bilgi: null });
+  }
+  // Sonuç penceresindeki döküm bölümünü aç/kapat: yalnız o pencere açıkken anlamlı, ekranı
+  // değiştirmez ve el durumuna dokunmaz.
+  if (olay === OLAY.DOKUM_AC_KAPA) {
+    if (kabuk.ekran !== EKRAN.SONUC) return kabuk;
+    return Object.freeze({ ...kabuk, dokumAcik: !dokumAcikMi(kabuk) });
   }
   const hedef = GECISLER[kabuk.ekran]?.[olay];
   if (!hedef) return kabuk;
-  // Ekran değişince bekleyen soru düşer: onay yalnız sorulduğu ekranda anlamlıdır (ör. botlar soru
-  // açıkken oynamayı sürdürür ve el biterse `masa → sonuc` geçişi soruyu kapatır — iki pencere
-  // birden açılmaz).
-  return Object.freeze({ ...kabuk, ekran: hedef, onay: null });
+  // Ekran değişince bekleyen soru ve bilgilendirme düşer, döküm bölümü de kapanır: üçü de yalnız
+  // açıldıkları ekranda anlamlıdır (ör. botlar soru açıkken oynamayı sürdürür ve el biterse
+  // `masa → sonuc` geçişi soruyu kapatır — iki pencere birden açılmaz; sonuç penceresi de her
+  // açılışında kapalı dökümle başlar).
+  return Object.freeze({ ...kabuk, ekran: hedef, onay: null, bilgi: null, dokumAcik: false });
 }
 
-// Botun sırası mı? (ADR-016) Üç koşul birlikte sorulur: masa ekranı açık, el hâlâ sürüyor ve sıra
-// insanda değil. Tek kapı: `ekran.js` hem bot sırasını başlatırken hem bekleyen bir tur
-// ateşlendiğinde buradan geçer — koşul iki yerde ayrı ayrı yazılmaz (ADR-016/1).
+// Botun sırası mı? (ADR-016) Dört koşul birlikte sorulur: masa ekranı açık, bilgilendirme penceresi
+// kapalı, el hâlâ sürüyor ve sıra insanda değil. Tek kapı: `ekran.js` hem bot sırasını başlatırken
+// hem bekleyen bir tur ateşlendiğinde buradan geçer — koşul iki yerde ayrı ayrı yazılmaz
+// (ADR-016/1). Bilgilendirme açıkken bot oynamaz (ADR-016/8): oyuncu pencereyi okurken masa
+// değişmesin; pencere kapanınca `ekran.js` sırayı yeniden başlatır. (Onay sorusu bundan AYRIDIR —
+// orada botlar oynamayı sürdürür, bkz. tasokey#43.)
 export function botSirasiMi(kabuk, elDurumu, insanOyuncusu) {
   if (kabuk.ekran !== EKRAN.MASA) return false;
+  if (bilgiBekliyorMu(kabuk)) return false;
   if (!elDurumu || elDurumu.sonuc !== EL_SONUCU.SUREN) return false;
   return elDurumu.sira !== insanOyuncusu;
 }

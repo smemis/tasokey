@@ -8,8 +8,14 @@ test('12-13-1 geçişi per sayılmaz', () => {
   assert.equal(KURAL_VARSAYILAN.onUcBirGecisiPerSayilir, false);
 });
 
-test('okey ve sahte okey atmak yasaktır', () => {
-  assert.equal(KURAL_VARSAYILAN.okeyVeSahteOkeyAtmaYasak, true);
+// tasokey#50 (ADR-008 sürüm 2): varsayılan DÖNDÜ — okey ve sahte okey atılabilir. Ayar yine
+// duruyor ve kapatma anahtarı olarak çalışıyor (iki yönlü ölçümü `el.test.js`de).
+test('okey ve sahte okey atmak serbesttir (varsayılan), ayar kapatma anahtarı olarak duruyor', () => {
+  assert.equal(KURAL_VARSAYILAN.okeyVeSahteOkeyAtmaYasak, false);
+  assert.ok(
+    'okeyVeSahteOkeyAtmaYasak' in KURAL_VARSAYILAN,
+    'kapatma anahtarı silinmiş: yasağı geri açmanın tek satırlık yolu kalmadı',
+  );
 });
 
 test('gösterge sahte okey çıkarsa yeniden açılır', () => {

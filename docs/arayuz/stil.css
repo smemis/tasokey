@@ -609,12 +609,13 @@ html, body {
   touch-action: none;
 }
 
-/* Kalıcı pencereler (başlangıç + sonuç + oyunu bitirme onayı — ADR-015; başlangıç ekranı ADR-016,
-   tasokey#42; onay tasokey#43): hepsi aynı pencere kademesini kullanır, masadaki hiçbir taş
-   üstlerine çıkamaz. Hangisinin görünür olduğuna `arayuz/kabuk.js` durum makinesi karar verir
-   (ekran.js yalnız `gorunur` sınıfını koyar). */
+/* Kalıcı pencereler (başlangıç + sonuç + oyunu bitirme onayı + bilgilendirme — ADR-015; başlangıç
+   ekranı ADR-016, tasokey#42; onay tasokey#43; bilgilendirme ADR-016/8, tasokey#50): hepsi aynı
+   pencere kademesini kullanır, masadaki hiçbir taş üstlerine çıkamaz. Hangisinin görünür olduğuna
+   `arayuz/kabuk.js` durum makinesi karar verir (ekran.js yalnız `gorunur` sınıfını koyar). */
 #baslangicPaneli,
 #onayPaneli,
+#bilgiPaneli,
 #sonucPaneli {
   position: fixed;
   inset: 0;
@@ -627,11 +628,13 @@ html, body {
 
 #baslangicPaneli.gorunur,
 #sonucPaneli.gorunur,
-#onayPaneli.gorunur { display: flex; }
+#onayPaneli.gorunur,
+#bilgiPaneli.gorunur { display: flex; }
 
 #baslangicKutusu,
 #sonucKutusu,
-#onayKutusu {
+#onayKutusu,
+#bilgiKutusu {
   background: var(--panel);
   padding: 24px 32px;
   border-radius: 10px;
@@ -679,23 +682,69 @@ html, body {
   font-weight: 700;
 }
 
-/* Onay kutusu: tek soru satırı + iki düğme; dar ekranda da sığsın diye genişliği sınırlı. */
-#onayKutusu { max-width: min(28rem, 90vw); }
+/* Onay ve bilgilendirme kutusu: tek satır metin + düğme(ler); dar ekranda da sığsın diye
+   genişliği sınırlı (bilgilendirme tasokey#50, ADR-016/8). */
+#onayKutusu,
+#bilgiKutusu { max-width: min(28rem, 90vw); }
+
+/* Sonuç kutusu İÇERİĞİYLE boyutlanır (Sahip ek bilgisi 2, tasokey#50): sabit bir en/boy yok —
+   genişlik `fit-content` ile en uzun satıra oturur (üst sınır dar ekranda viewport'tan gelir),
+   yükseklik de satır sayısı kadardır. Döküm listesi kapalıyken (ek bilgi 1, varsayılan) kutu
+   yalnız sonuç satırı + iki düğme kadar kalır, açılınca büyür; çok uzarsa kutu kendi içinde
+   kaydırılır, pencereden taşmaz. */
+#sonucKutusu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: fit-content;
+  max-width: min(34rem, 90vw);
+  max-height: 86vh;
+  overflow: auto;
+}
+
+/* Açılır bölüm başlığı (Sahip ek bilgisi 1, tasokey#50): düz bir düğme — metni dil anahtarından
+   gelir, açık/kapalı durumu `aria-expanded`ta ve yalnız görsel olan oktadır (harf değil, bu yüzden
+   dil dosyasına girmez). */
+.acilir-baslik {
+  background: transparent;
+  border: none;
+  color: var(--metin);
+  font: inherit;
+  font-size: 0.9rem;
+  opacity: 0.85;
+  padding: 2px 4px;
+  cursor: pointer;
+}
+
+.acilir-baslik::after {
+  content: '▾';
+  display: inline-block;
+  margin-inline-start: 6px;
+}
+
+.acilir-baslik[aria-expanded='true']::after { transform: rotate(180deg); }
 
 #sonucDugmeleri,
-#onayDugmeleri {
+#onayDugmeleri,
+#bilgiDugmeleri {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
-  margin-top: 16px;
 }
+
+/* Metinle düğme arasındaki boşluk: sonuç kutusu bunu `gap` ile verir (içeriğe göre boyutlanan
+   akış), onay ve bilgilendirme kutusu tek satır metin taşıdığı için kendi payını burada alır. */
+#onayDugmeleri,
+#bilgiDugmeleri { margin-top: 16px; }
 
 #yeniOyunButonu,
 #yeniElButonu,
 #baslangicaDonButonu,
 #onayEvetButonu,
-#onayHayirButonu {
+#onayHayirButonu,
+#bilgiTamamButonu {
   padding: 8px 20px;
   font-size: 1rem;
   border-radius: 6px;
@@ -849,22 +898,29 @@ html, body {
 @media (orientation: portrait) and (max-width: 600px) {
   #durumSatiri, #masa { display: none; }
   #telefonUyarisi { display: flex; flex: 1 1 auto; }
-  /* Başlangıç ekranı ve oyunu bitirme onayı da oyun alanının parçasıdır (ADR-016): dikeyde
+  /* Başlangıç ekranı, oyunu bitirme onayı ve bilgilendirme penceresi de oyun alanının parçasıdır
+     (ADR-016, madde 8 tasokey#50): dikeyde
      gizlenirler, yoksa "telefonu yan çevir" uyarısının üstünü örterlerdi (R-014). Telefon yatay
      çevrilince geri gelirler — kabuğun durumu değişmediği için soru da olduğu gibi durur.
      (İki kural ayrı yazılır: panel taramaları her pencereyi kendi seçicisiyle arar.) */
   #baslangicPaneli.gorunur { display: none; }
   #onayPaneli.gorunur { display: none; }
+  #bilgiPaneli.gorunur { display: none; }
 }
 
+/* Oyuncuların kalan taşları: akış boşluğunu artık `#sonucKutusu`nun `gap`i verir (içeriğe göre
+   boyutlanma, tasokey#50), bu yüzden kendi üst payı yok. Kapalıyken `hidden` ile hiç yer tutmaz. */
 #sonucKalanTaslar {
   list-style: none;
-  margin: 16px 0 0;
+  margin: 0;
   padding: 0;
   font-size: 0.9rem;
   opacity: 0.9;
   text-align: left;
+  align-self: stretch;
 }
+
+#sonucKalanTaslar[hidden] { display: none; }
 
 /* El sonu dökümü (Sahip ek bilgisi, 2026-11-20): oyuncunun kalan taş satırının altında per /
    çift / per olmayan / okey sayıları. Metnin tamamı dil anahtarlarından gelir (ekran.js

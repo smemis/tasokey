@@ -170,43 +170,48 @@ test('kabul (d): tam turda (4 atış) dört yığının da uzunluğu 1 olur', ()
   }
 });
 
-// --- (d) okey/sahte okey atma engelleniyor (ADR-008/2), sebep çağırana döner ---
+// --- (d) okey/sahte okey atma İKİ YÖNLÜ: varsayılanda serbest, ayar açıkken reddedilir ---
+// tasokey#50 (ADR-008 sürüm 2, Sahip kararı): varsayılan artık atmaya izin verir — hamle
+// engellenmez, ceza yoktur. Ayar `okeyVeSahteOkeyAtmaYasak: true` yapıldığında motorun eski ret
+// yolu (REDDEDILME_SEBEBI.OKEY_ATILAMAZ) olduğu gibi çalışır; her iki test iki yönü de ölçer ki
+// davranış sabit kodlanmasın.
 
-test('gerçek okey taşı atılamaz (sebep: okeyAtilamaz)', () => {
-  const okeyTas = t(OKEY_TASI.renk, OKEY_TASI.sayi, 1);
-  const durum = temelDurum({
+const KURAL_YASAK = { ...KURAL_VARSAYILAN, okeyVeSahteOkeyAtmaYasak: true };
+
+function jokerliDurum(joker) {
+  return temelDurum({
     sira: 0,
     cekildiMi: true,
-    eller: [[okeyTas, t('kirmizi', 1)], temelDurum().eller[1], temelDurum().eller[2], temelDurum().eller[3]],
+    eller: [[joker, t('kirmizi', 1)], temelDurum().eller[1], temelDurum().eller[2], temelDurum().eller[3]],
   });
-  const sonuc = at(durum, 0, okeyTas.id);
-  assert.equal(sonuc.basarili, false);
-  assert.equal(sonuc.sebep, REDDEDILME_SEBEBI.OKEY_ATILAMAZ);
+}
+
+test('gerçek okey taşı varsayılan kuralda atılabilir; yasak ayarı açıkken reddedilir (okeyAtilamaz)', () => {
+  const okeyTas = t(OKEY_TASI.renk, OKEY_TASI.sayi, 1);
+  const durum = jokerliDurum(okeyTas);
+
+  const serbest = at(durum, 0, okeyTas.id);
+  assert.equal(serbest.basarili, true, 'varsayılan kuralda okey atılamadı');
+  assert.equal(serbest.durum.eller[0].some((tas) => tas.id === okeyTas.id), false, 'atılan okey elde kalmış');
+  assert.equal(serbest.durum.atilanYiginlar[0].at(-1).id, okeyTas.id, 'okey atan oyuncunun yığınına konmadı');
+
+  const yasakli = at(durum, 0, okeyTas.id, KURAL_YASAK);
+  assert.equal(yasakli.basarili, false, 'yasak ayarı açıkken okey atılabildi');
+  assert.equal(yasakli.sebep, REDDEDILME_SEBEBI.OKEY_ATILAMAZ);
 });
 
-test('sahte okey atılamaz (sebep: okeyAtilamaz)', () => {
+test('sahte okey varsayılan kuralda atılabilir; yasak ayarı açıkken reddedilir (okeyAtilamaz)', () => {
   const sahte = sOkey(1);
-  const durum = temelDurum({
-    sira: 0,
-    cekildiMi: true,
-    eller: [[sahte, t('kirmizi', 1)], temelDurum().eller[1], temelDurum().eller[2], temelDurum().eller[3]],
-  });
-  const sonuc = at(durum, 0, sahte.id);
-  assert.equal(sonuc.basarili, false);
-  assert.equal(sonuc.sebep, REDDEDILME_SEBEBI.OKEY_ATILAMAZ);
-  assert.ok(sonuc.durum.eller[0].some((tas) => tas.id === sahte.id), 'reddedilen hamlede taş elde kalmalı');
-});
+  const durum = jokerliDurum(sahte);
 
-test('kural kapalıyken (okeyVeSahteOkeyAtmaYasak: false) okey atılabilir', () => {
-  const okeyTas = t(OKEY_TASI.renk, OKEY_TASI.sayi, 1);
-  const durum = temelDurum({
-    sira: 0,
-    cekildiMi: true,
-    eller: [[okeyTas, t('kirmizi', 1)], temelDurum().eller[1], temelDurum().eller[2], temelDurum().eller[3]],
-  });
-  const sonuc = at(durum, 0, okeyTas.id, { ...KURAL_VARSAYILAN, okeyVeSahteOkeyAtmaYasak: false });
-  assert.equal(sonuc.basarili, true);
-  assert.equal(sonuc.durum.eller[0].some((tas) => tas.id === okeyTas.id), false);
+  const serbest = at(durum, 0, sahte.id);
+  assert.equal(serbest.basarili, true, 'varsayılan kuralda sahte okey atılamadı');
+  assert.equal(serbest.durum.eller[0].some((tas) => tas.id === sahte.id), false, 'atılan sahte okey elde kalmış');
+
+  const yasakli = at(durum, 0, sahte.id, KURAL_YASAK);
+  assert.equal(yasakli.basarili, false, 'yasak ayarı açıkken sahte okey atılabildi');
+  assert.equal(yasakli.sebep, REDDEDILME_SEBEBI.OKEY_ATILAMAZ);
+  assert.ok(yasakli.durum.eller[0].some((tas) => tas.id === sahte.id), 'reddedilen hamlede taş elde kalmalı');
 });
 
 test('elde olmayan taş atılamaz (sebep: tasEldeYok)', () => {

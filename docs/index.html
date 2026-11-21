@@ -89,10 +89,15 @@
         <button id="yeniOyunButonu" type="button"></button>
       </div>
     </div>
+    <!-- Sonuç penceresi: kutu içeriğiyle boyutlanır (sabit en/boy yok — Sahip ek bilgisi 2,
+         tasokey#50). Oyuncuların kalan taşları AÇILIR bölümdür (ek bilgi 1): düğme listeyi
+         aç/kapat eder, pencere her açıldığında kapalı başlar (kabuk.dokumAcik). -->
     <div id="sonucPaneli">
       <div id="sonucKutusu">
         <div id="sonucMetni"></div>
-        <ul id="sonucKalanTaslar"></ul>
+        <button id="dokumAcKapaButonu" class="acilir-baslik" type="button"
+                aria-expanded="false" aria-controls="sonucKalanTaslar"></button>
+        <ul id="sonucKalanTaslar" hidden></ul>
         <div id="sonucDugmeleri">
           <button id="yeniElButonu" type="button"></button>
           <button id="baslangicaDonButonu" type="button"></button>
@@ -108,6 +113,17 @@
         <div id="onayDugmeleri">
           <button id="onayEvetButonu" type="button"></button>
           <button id="onayHayirButonu" type="button"></button>
+        </div>
+      </div>
+    </div>
+    <!-- Bilgilendirme penceresi (tasokey#50, ADR-016/8): insan oyuncu okey/sahte okey attığında
+         açılır. Soru sormaz, hamleyi geri almaz — tek düğmesi yalnız kapatır; hangi bilginin
+         gösterildiğine `arayuz/kabuk.js` karar verir (kabuk.bilgi). Metinler dil anahtarından. -->
+    <div id="bilgiPaneli" role="dialog" aria-modal="true" aria-labelledby="bilgiMetni">
+      <div id="bilgiKutusu">
+        <div id="bilgiMetni"></div>
+        <div id="bilgiDugmeleri">
+          <button id="bilgiTamamButonu" type="button"></button>
         </div>
       </div>
     </div>
