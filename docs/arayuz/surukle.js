@@ -81,6 +81,8 @@ function enUsttekiTas(kaynakElemani) {
 // Sürükleyerek ÇEKME (tasokey#40; R-012): hareket ıstakada değil, yer destesinde ya da bir köşe
 // yığınında başlar ve ıstakaya bırakılır. Hangi kaynağın hangi çekmeye karşılık geldiğine burada
 // karar verilmez — karar `etkilesim.js`in (`cekmeKararVer`), onay `cekirdek/el.js`'in (ADR-002).
+// Bu katman ayrıca bırakılan ıstaka yuvasını (`.raf-yuva` slotIndex) geri bildirir (tasokey#48,
+// ADR-019): çekilen taş o yuvada kalır. Yuva kararın parçası DEĞİLDİR; yerleşimi `raf.js` kurar.
 // Kaynak öğeleri tek tek değil masa üstünden dinlenir: bırakma tarafındaki (`birak`) ile aynı
 // seçiciler kullanılır, böylece hedef halkasına (ADR-014) yapılan isabet de kaynağı bulur.
 export function cekmeSurukleBagla(masaElemani, rafElemani, kaynaktanCekCallback) {
@@ -203,7 +205,13 @@ export function cekmeSurukleBagla(masaElemani, rafElemani, kaynaktanCekCallback)
     if (!noktadakiEleman || !rafElemani.contains(noktadakiEleman)) return;
     yutulacakTiklamaZamani = performance.now();
     yutulacakKaynak = oge;
-    kaynaktanCekCallback(tur, bilgi);
+    // Bırakma noktasının altındaki yuva (ıstakanın yuvasız bir yerine düşen bırakma da hamledir,
+    // o zaman yuva bildirilmez ve çekilen taş ilk boş yuvaya girer — ekran.js/raf.js).
+    const rafYuva = noktadakiEleman.closest('.raf-yuva');
+    const birakma = rafYuva && rafElemani.contains(rafYuva)
+      ? { slotIndex: Number(rafYuva.dataset.slotIndex) }
+      : {};
+    kaynaktanCekCallback(tur, bilgi, birakma);
   });
 
   // İptal edilen hareket (ör. işletim sisteminin el koyduğu dokunma) hamle sayılmaz.

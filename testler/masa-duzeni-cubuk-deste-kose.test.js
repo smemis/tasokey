@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import {
   BirimHatasi, calcIfadeleri, degiskenleriTopla, ifadeHesapla, kuralGovdesi, varCoz, yorumlariAt,
 } from './yardimci/css-olcu.js';
+import { RAF_SUTUN_SAYISI } from '../docs/arayuz/raf.js';
 
 // tasokey#33 (sınıf K) — Sahip'in 4 maddelik masa düzeni düzeltmesi:
 // 1) rakip ıstakaları gri kutu yerine gerçek kenar boyu çubuk, ad çubuğun üstünde
@@ -33,9 +34,9 @@ const YORUMSUZ_STIL = yorumlariAt(STIL_CSS);
 /** Dosyadaki bütün özel değişken bildirimleri: ad → [değer, …] (kademeler dahil). */
 function degiskenSozlugu() {
   const sozluk = degiskenleriTopla(YORUMSUZ_STIL);
-  // --raf-sutun-sayisi CSS'te değil, ekran.js'te tanımlanır (tek kaynak, baslat()).
-  const sutun = EKRAN_JS.match(/const RAF_SUTUN_SAYISI = (\d+);/);
-  if (sutun) sozluk.set('--raf-sutun-sayisi', [sutun[1]]);
+  // --raf-sutun-sayisi CSS'te değil `arayuz/raf.js`te tanımlanır (tek kaynak, ADR-019/tasokey#48);
+  // ekran.js baslat() onu CSS değişkenine yazar.
+  sozluk.set('--raf-sutun-sayisi', [String(RAF_SUTUN_SAYISI)]);
   return sozluk;
 }
 
@@ -230,7 +231,7 @@ test('madde-4-b: erişilebilir adet etiketi (aria-label) boşken de gerçek say�
 // Sahip ek bilgisi (2026-11-20): "Istakanın tek sırası 12 taş alacak genişlikte olsun ve taşlar
 // arasında boşluk olmasın" — gerçek okey ıstakasında taşlar bitişik durur.
 test('madde-ek-a: ıstakanın bir sırası 12 taş alıyor', () => {
-  assert.match(EKRAN_JS, /const RAF_SUTUN_SAYISI = 12;/, 'ekran.js RAF_SUTUN_SAYISI 12 değil');
+  assert.equal(RAF_SUTUN_SAYISI, 12, 'raf.js RAF_SUTUN_SAYISI 12 değil');
 });
 
 // Boşluk sıfır olmalı (bitişik taş), AMA uzunluk birimiyle: aynı değişken

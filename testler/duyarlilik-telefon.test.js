@@ -8,6 +8,8 @@ import { join } from 'node:path';
 // yapılır (JS'te sabit karar yok) — kaynak taraması ile ölçülür (tahminle değil).
 // Ek bilgi (Sahip, 2026-11-20): rakip ıstakalarında taş hiç görünmez, yalnız ince ahşap sırt.
 
+import { RAF_SATIR_SAYISI } from '../docs/arayuz/raf.js';
+
 const DOCS_KOK = join(import.meta.dirname, '..', 'docs');
 const INDEX_HTML = readFileSync(join(DOCS_KOK, 'index.html'), 'utf8');
 const STIL_CSS = readFileSync(join(DOCS_KOK, 'arayuz', 'stil.css'), 'utf8');
@@ -114,5 +116,6 @@ test('kose-47-kademe: hiçbir duyarlı kademe .kose kuralını geçersiz kılmı
 });
 
 test('oyuncunun kendi ıstakası iki kademeli kalır (RAF_SATIR_SAYISI değişmedi)', () => {
-  assert.match(EKRAN_JS, /const RAF_SATIR_SAYISI = 2;/, 'ekran.js RAF_SATIR_SAYISI artık 2 değil');
+  // Sabitin yeri tasokey#48'de `arayuz/raf.js`e taşındı (ADR-019, tek kaynak); değeri değişmedi.
+  assert.equal(RAF_SATIR_SAYISI, 2, 'raf.js RAF_SATIR_SAYISI artık 2 değil');
 });

@@ -5,6 +5,7 @@ import { join } from 'node:path';
 
 import { EL_SONUCU } from '../docs/cekirdek/el.js';
 import { rakipEliAcikMi } from '../docs/arayuz/etkilesim.js';
+import { RAF_SUTUN_SAYISI } from '../docs/arayuz/raf.js';
 
 // tasokey#38 ek bilgi (Sahip, 2026-11-20): "El bittiğinde rakiplerin ıstakaları da gösterilsin."
 // El SÜRERKEN rakip taşı hiç görünmez (tasokey#31 ek bilgisi: yalnız ıstakanın ahşap sırtı);
@@ -89,7 +90,8 @@ test('kabul-f: 15 taşlık el kenara sığacak sütun düzeniyle seriliyor', () 
   const dikey = Number(STIL_CSS.match(/--rakip-acik-sutun-dikey:\s*(\d+)/)[1]);
   const olcek = Number(STIL_CSS.match(/--rakip-acik-olcek:\s*([\d.]+)/)[1]);
   const tasGenislik = Number(STIL_CSS.match(/--tas-genislik:\s*(\d+)px/)[1]);
-  const sutunSayisi = Number(EKRAN_JS.match(/const RAF_SUTUN_SAYISI = (\d+);/)[1]);
+  // Istaka sütun sayısının tek kaynağı `arayuz/raf.js` (ADR-019/tasokey#48).
+  const sutunSayisi = RAF_SUTUN_SAYISI;
 
   // Üst kenar: açılan sıra, Sahip'in kendi ıstakasından (12 taş genişliği) geniş olmamalı.
   assert.ok(

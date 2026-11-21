@@ -176,6 +176,25 @@ test('(e) tek kaynak: sürükleme yolu ile dokunma yolu her durumda AYNI çekme 
   }
 });
 
+// tasokey#48 (ADR-019): sürükleyerek çekmede artık bırakılan ıstaka yuvası da taşınıyor
+// (`surukle.js` → `ekran.js` → `raf.js`). Bu bilgi KARAR katmanına girmez: çekme kararı yalnız
+// kaynağa, sıraya ve el durumuna bakar — yuva yerleşim ayrıntısıdır.
+test('(e) yerleşim ayrıntısı (bırakılan yuva) çekme kararını değiştirmez', () => {
+  const durum = temelElDurumu({ cekildiMi: false });
+  for (const slotIndex of [0, 7, 23]) {
+    assert.deepEqual(
+      cekmeKararVer(CEKME_KAYNAGI.YER_DESTESI, durum, OYUNCU, { slotIndex }),
+      cekmeKararVer(CEKME_KAYNAGI.YER_DESTESI, durum, OYUNCU),
+      'deste: bırakılan yuva çekme kararına karıştı',
+    );
+    assert.deepEqual(
+      cekmeKararVer(CEKME_KAYNAGI.KOSE, durum, OYUNCU, { kose: CEKILEBILIR_KOSE, slotIndex }),
+      cekmeKararVer(CEKME_KAYNAGI.KOSE, durum, OYUNCU, { kose: CEKILEBILIR_KOSE }),
+      'köşe: bırakılan yuva çekme kararına karıştı',
+    );
+  }
+});
+
 // --- (c) bitirilemez elde desteye bırakma ret ---
 
 test('(c) ret: bitirilemez elde seçili taşı desteye bırakınca "bitirilemez" döner', () => {

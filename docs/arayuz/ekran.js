@@ -18,6 +18,7 @@ import {
 import { kayitOku, kayitYaz } from '../kayit/depo.js';
 import { gorselOlustur, gorselleriOnYukle } from './gorseller.js';
 import { oyuncuKenarHaritasi, oyuncununAtilanKosesi } from './yerlesim.js';
+import { RAF_SUTUN_SAYISI, rafYerlesimiGuncelle, tasiYuvayaTasi, yerlesimKur } from './raf.js';
 
 // masa-zemin.svg ve istaka.svg CSS arka planı olarak kullanılır (arayuz/stil.css #masa / #rafAlani
 // — burada önceden yüklenmesi gerekmez). Sayı yüzü artık tek paylaşılan gövde (tas-govde.svg) +
@@ -27,14 +28,8 @@ const GORSEL_DOSYALARI = ['tas-govde.svg', 'tas-sahte-okey.svg', 'tas-okey-cerce
 const INSAN_OYUNCUSU = 0;
 const BOT_GECIKME_MS = 450;
 
-// Oyuncunun ıstakası gerçek okey ıstakası gibi 2 sıra (tasokey#13 ek bilgi); yuva sayısı en
-// yüksek el boyutundan (15, dagitim.js BASLAYAN_OYUNCU_EL_BOYUTU) fazla tutulur ki oyuncu taşları
-// aralıklı dizerken boş yuva kalsın. Bir sıra 12 taş alır (Sahip ek bilgisi, 2026-11-20 — gerçek
-// ıstaka ölçüsü), taşlar arasında boşluk yoktur (stil.css --raf-yuva-bosluk: 0).
-// Tek kaynak: CSS `--raf-sutun-sayisi` bu sabitten okunur (baslat()).
-const RAF_SATIR_SAYISI = 2;
-const RAF_SUTUN_SAYISI = 12;
-const RAF_SLOT_SAYISI = RAF_SATIR_SAYISI * RAF_SUTUN_SAYISI;
+// Istakanın yuva sayıları ve bütün yerleşim kuralları `arayuz/raf.js`te (ADR-019, tasokey#48);
+// bu dosya yalnız dönen yerleşimi çizer. CSS `--raf-sutun-sayisi` de aynı sabitten okunur (baslat()).
 
 // ADR-012 (tasokey#29): Sahip (oyuncu 0) her zaman alt kenarda; diğer kenarlar/köşeler
 // `arayuz/yerlesim.js`in saf mantığıyla, el.js'in sıra yönüyle (sonrakiOyuncu) hesaplanır.
@@ -120,31 +115,19 @@ function tasAriaEtiketi(tas, okeyTasi) {
   return metinAl(anahtar, [renkMetni, tas.sayi]);
 }
 
-// Yuva içeriğini yeni ele göre günceller: hâlâ elde olan taş kendi yuvasında kalır (oyuncunun
-// dizilimi/aralığı bozulmaz), elden çıkan taşın yuvası boş kalır, yeni çekilen taş ilk boş yuvaya girer.
-function rafYerlesimiGuncelle(yeniEl) {
-  const mevcutIdSeti = new Set(yeniEl.map((tas) => tas.id));
-  const yerlesim = durumKutu.rafYerlesimi.map((id) => (id !== null && mevcutIdSeti.has(id) ? id : null));
-  const yerlesimdekiIdSeti = new Set(yerlesim.filter((id) => id !== null));
-  for (const tas of yeniEl) {
-    if (yerlesimdekiIdSeti.has(tas.id)) continue;
-    const bosIndex = yerlesim.indexOf(null);
-    if (bosIndex === -1) yerlesim.push(tas.id);
-    else yerlesim[bosIndex] = tas.id;
-  }
-  durumKutu.rafYerlesimi = yerlesim;
+// Yuva içeriğini yeni ele göre günceller; kural `raf.js`te (ADR-019). `yeniTasYuvasi` yalnız
+// sürükleyerek çekmede doludur: çekilen taş bırakıldığı yuvada kalır (dokunma/klavye yolunda
+// verilmez, taş ilk boş yuvaya girer).
+function rafYerlesiminiTazele(yeniEl, yeniTasYuvasi) {
+  durumKutu.rafYerlesimi = rafYerlesimiGuncelle(durumKutu.rafYerlesimi, yeniEl, { yeniTasYuvasi });
 }
 
-// Sürükleyip bırakmayla bir taşı hedef yuvaya koyar: hedef boşsa taş oraya geçer ve eski yuvası
-// boş kalır (oyuncu taşları aralıklı dizebilir); hedef doluysa iki taş yer değiştirir.
-function tasiYuvayaTasi(tasId, hedefIndex) {
-  const yerlesim = durumKutu.rafYerlesimi.slice();
-  const kaynakIndex = yerlesim.indexOf(tasId);
-  if (kaynakIndex === -1 || kaynakIndex === hedefIndex || hedefIndex < 0 || hedefIndex >= yerlesim.length) return;
-  const hedefIcerik = yerlesim[hedefIndex];
-  yerlesim[hedefIndex] = tasId;
-  yerlesim[kaynakIndex] = hedefIcerik;
-  durumKutu.rafYerlesimi = yerlesim;
+// Sürükleyip bırakmayla bir taşı hedef yuvaya koyar; bırakma kuralı (yer açma, itme yönü, taşma)
+// `raf.js`te durur — burada yalnız sonucu yerleşime yazıp yeniden çizmek var.
+function rafYuvasinaBirak(tasId, hedefIndex) {
+  const yeniYerlesim = tasiYuvayaTasi(durumKutu.rafYerlesimi, tasId, hedefIndex);
+  if (yeniYerlesim === durumKutu.rafYerlesimi) return;
+  durumKutu.rafYerlesimi = yeniYerlesim;
   rafCiz();
 }
 
@@ -467,14 +450,16 @@ function durumuIlerlet(yeniDurum) {
   }
 }
 
-function cekSonucunuIsle(sonuc) {
+// `yeniTasYuvasi`: sürükleyerek çekmede taşın bırakıldığı ıstaka yuvası (tasokey#48, ADR-019);
+// dokunma/klavye yolunda verilmez.
+function cekSonucunuIsle(sonuc, yeniTasYuvasi) {
   if (!sonuc.basarili) {
     mesajGoster(sonuc.sebep);
     ciz();
     return;
   }
   durumuIlerlet(sonuc.durum);
-  rafYerlesimiGuncelle(sonuc.durum.eller[INSAN_OYUNCUSU]);
+  rafYerlesiminiTazele(sonuc.durum.eller[INSAN_OYUNCUSU], yeniTasYuvasi);
   mesajGoster(null);
   ciz();
 }
@@ -492,7 +477,7 @@ function atVeyaBitirUygula(tasId) {
   }
   durumuIlerlet(sonuc.durum);
   durumKutu.secilenTasId = null;
-  rafYerlesimiGuncelle(sonuc.durum.eller[INSAN_OYUNCUSU]);
+  rafYerlesiminiTazele(sonuc.durum.eller[INSAN_OYUNCUSU]);
   mesajGoster(null);
   ciz();
   botSirasiniBaslat();
@@ -501,22 +486,23 @@ function atVeyaBitirUygula(tasId) {
 // `etkilesim.js`in döndürdüğü eylem kararını uygular: sürükleme, dokunma (tıklama) ve klavye
 // yolu hepsi buraya varır (tasokey#30). Doğrulama burada yok — yalnız hangi motor çağrısının
 // (`cek`/`at`) yapılacağına ya da rafta taşıma olduğuna göre dağıtır.
-function eylemiUygula(karar) {
+// `yeniTasYuvasi` yalnız sürükleyerek çekme yolundan gelir (bırakılan ıstaka yuvası, tasokey#48).
+function eylemiUygula(karar, yeniTasYuvasi) {
   if (karar.eylem === EYLEM.GECERSIZ) {
     mesajGoster(karar.sebep);
     ciz();
     return;
   }
   if (karar.eylem === EYLEM.RAFTA_TASI) {
-    tasiYuvayaTasi(karar.tasId, karar.slotIndex);
+    rafYuvasinaBirak(karar.tasId, karar.slotIndex);
     return;
   }
   if (karar.eylem === EYLEM.CEK_DESTE) {
-    cekSonucunuIsle(cek(durumKutu.durum, INSAN_OYUNCUSU, KAYNAK.YER));
+    cekSonucunuIsle(cek(durumKutu.durum, INSAN_OYUNCUSU, KAYNAK.YER), yeniTasYuvasi);
     return;
   }
   if (karar.eylem === EYLEM.CEK_KOSE) {
-    cekSonucunuIsle(cek(durumKutu.durum, INSAN_OYUNCUSU, KAYNAK.ATILAN));
+    cekSonucunuIsle(cek(durumKutu.durum, INSAN_OYUNCUSU, KAYNAK.ATILAN), yeniTasYuvasi);
     return;
   }
   atVeyaBitirUygula(karar.tasId);
@@ -536,8 +522,10 @@ function hedefeBirakUygula(tasId, hedefTuru, hedef) {
 
 // Sürükleyerek çekme yolu (tasokey#40, R-012): hareket destede/köşede başlayıp ıstakada bittiğinde
 // kaynağın hangi çekmeye karşılık geldiğine `etkilesim.js` karar verir, motor yine `el.js`.
-function kaynaktanCekUygula(kaynakTuru, kaynak) {
-  eylemiUygula(cekmeKararVer(kaynakTuru, durumKutu.durum, INSAN_OYUNCUSU, kaynak));
+// `birakma.slotIndex` bırakılan ıstaka yuvasıdır (tasokey#48): çekme KARARINA girmez, yalnız
+// motor çekmeyi onayladıktan sonra taşın hangi yuvaya konacağını `raf.js`e söyler (ADR-019).
+function kaynaktanCekUygula(kaynakTuru, kaynak, birakma = {}) {
+  eylemiUygula(cekmeKararVer(kaynakTuru, durumKutu.durum, INSAN_OYUNCUSU, kaynak), birakma.slotIndex);
 }
 
 // Bekleyen bot turunu düşürür: zamanlayıcıyı iptal eder ve bot sırasını kapatır. Masadan çıkan ya
@@ -612,10 +600,7 @@ function elDurumunuSifirla(tohum) {
   botSirasiniDurdur();
   durumKutu.elNesli += 1;
   durumKutu.durum = elBaslat(tohum);
-  durumKutu.rafYerlesimi = new Array(RAF_SLOT_SAYISI).fill(null);
-  durumKutu.durum.eller[INSAN_OYUNCUSU].forEach((tas, index) => {
-    durumKutu.rafYerlesimi[index] = tas.id;
-  });
+  durumKutu.rafYerlesimi = yerlesimKur(durumKutu.durum.eller[INSAN_OYUNCUSU]);
   durumKutu.secilenTasId = null;
   durumKutu.mesajAnahtari = null;
 }

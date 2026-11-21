@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import {
   degiskenOlcusu, kademeSozlukleri, kuralGovdesi as kuralGovdesiCoz, yorumlariAt,
 } from './yardimci/css-olcu.js';
+import { RAF_SUTUN_SAYISI } from '../docs/arayuz/raf.js';
 
 // tasokey#39 — ADR-014: taş atma ve çekme hedef alanları büyütülsün.
 // İstek (Sahip): "Köşe yığınlarının ve yer destesinin bırakma/tıklama hedefi taş boyundan
@@ -17,7 +18,6 @@ import {
 
 const DOCS_KOK = join(import.meta.dirname, '..', 'docs');
 const STIL_CSS = readFileSync(join(DOCS_KOK, 'arayuz', 'stil.css'), 'utf8');
-const EKRAN_JS = readFileSync(join(DOCS_KOK, 'arayuz', 'ekran.js'), 'utf8');
 const SURUKLE_JS = readFileSync(join(DOCS_KOK, 'arayuz', 'surukle.js'), 'utf8');
 const INDEX_HTML = readFileSync(join(DOCS_KOK, 'index.html'), 'utf8');
 const YORUMSUZ_STIL = yorumlariAt(STIL_CSS);
@@ -33,8 +33,9 @@ function kuralGovdesi(secici) {
 }
 
 function ekDegiskenler() {
-  const sutun = EKRAN_JS.match(/const RAF_SUTUN_SAYISI = (\d+);/);
-  return new Map(sutun ? [['--raf-sutun-sayisi', [sutun[1]]]] : []);
+  // --raf-sutun-sayisi CSS'te değil `arayuz/raf.js`te tanımlanır (tek kaynak, ADR-019/tasokey#48;
+  // ekran.js baslat() onu CSS değişkenine yazar).
+  return new Map([['--raf-sutun-sayisi', [String(RAF_SUTUN_SAYISI)]]]);
 }
 
 test('kabul-1: hedef payı stil.css :root içinde TEK kez tanımlı (tek kaynak)', () => {
