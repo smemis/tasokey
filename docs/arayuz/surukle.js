@@ -16,20 +16,106 @@ const SURUKLEME_ESIGI_PX = 6;
 // dolunca kendiliğinden düşsün ki sonraki tıklama bayat bir bayrağa takılmasın (tasokey#40).
 const UYUM_TIKLAMASI_PENCERESI_MS = 700;
 
+// Parmağı izleyen öğenin sınıfı (tasokey#59). Katman ve konum kuralları stil.css'tedir
+// (`.tas.surukleme-kopyasi` / `.tas-arka.surukleme-kopyasi`); burada yalnız kopyanın başlangıç
+// kutusu ve karedeki kayması yazılır.
+const KOPYA_SINIFI = 'surukleme-kopyasi';
+
+/**
+ * Sürükleme kopyası — TEK KAPI: ıstakadaki sürükleme de desteden/köşeden çekme de bunu kullanır
+ * (tasokey#59).
+ *
+ * Belirti (Sahip'in telefon görüntüleri, is/tasokey-59/ekler/): Android Chrome'da sürükleme
+ * sırasında ıstaka bölgesi satır satır gürültüye dönüyor, taşlar kayık çiziliyor, bir sıra
+ * kararıyordu. Sebep: hareket eden taş ıstakanın akışının İÇİNDEydi ve her karede `transform` +
+ * `opacity` alıyordu; kendi derleyici katmanı olmadığı için tarayıcı her karede ıstakanın boyanmış
+ * bölgesini (iki sıra yuva + `istaka.svg` arka planı) yeniden boyuyordu. APK de aynı WebView
+ * motorunu kullanacağından düzeltme oyun kodundadır.
+ *
+ * Çözüm: parmağı taşın KOPYASI izler. Kopya gövdeye eklenir (ıstakanın boyanmış bölgesinin
+ * dışında), kaynağın kutusuna sabit konumla oturur ve `translate3d` ile taşınır — 3B dönüşüm +
+ * `will-change` onu kendi derleyici katmanına alır, kaydırma karede yalnız katmanı taşır, hiçbir
+ * şeyi yeniden boyamaz. Asıl taş yerinde, saydamlıksız bekler.
+ *
+ * Kopya karara karışmaz: isabet testinden çekilidir (`pointer-events: none`, stil.css) ve bırakma
+ * anından ÖNCE kaldırılır, böylece `document.elementFromPoint` yine altındaki yuvayı/köşeyi/desteyi
+ * görür — bırakma davranışı (ADR-019 itme kuralı, bırakılan yuva, çekme kaynağı) değişmez.
+ */
+function surukleKopyasi() {
+  let kopya = null;
+
+  return {
+    /** Kaynağın şu anki kutusunda bir kopya açar (zaten açıksa dokunmaz). */
+    ac(kaynakEleman, dikdortgen = kaynakEleman?.getBoundingClientRect()) {
+      if (kopya || !kaynakEleman) return;
+      kopya = kaynakEleman.cloneNode(true);
+      kopya.classList.add(KOPYA_SINIFI);
+      // Kalkık duruş (seçili taş) kopyada tekrarlanmaz: kopyanın konumunu yalnız translate3d verir.
+      kopya.classList.remove('secili');
+      // Asıl taşın `.surukleniyor` sınıfı da kopyaya geçmez: o kural akışta duran taşı anlatır
+      // (`position: relative`) ve kopyanın `position: fixed` kuralıyla aynı özgüllüktedir — ikisi
+      // birlikte durursa kopyanın konumunu stil.css'teki kural SIRASI belirlerdi.
+      kopya.classList.remove('surukleniyor');
+      // Kopya ikinci bir taş değildir: ne odak sırasına girer ne erişilebilirlik ağacında görünür.
+      kopya.removeAttribute('tabindex');
+      kopya.removeAttribute('id');
+      kopya.setAttribute('aria-hidden', 'true');
+      kopya.style.left = `${dikdortgen.left}px`;
+      kopya.style.top = `${dikdortgen.top}px`;
+      kopya.style.width = `${dikdortgen.width}px`;
+      kopya.style.height = `${dikdortgen.height}px`;
+      kopya.style.transform = 'translate3d(0, 0, 0)';
+      document.body.appendChild(kopya);
+    },
+    /** Kopyayı başlangıç kutusundan (dx, dy) kadar kaydırır. */
+    tasi(dx, dy) {
+      if (kopya) kopya.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
+    },
+    /** Kopyayı sayfadan kaldırır (bırakma, iptal ve bayat durumun düşürülmesi). */
+    kapat() {
+      if (!kopya) return;
+      kopya.remove();
+      kopya = null;
+    },
+  };
+}
+
 export function surukleBagla(rafElemani, hedefeBirakCallback) {
   let suruklenenTasId = null;
   let suruklenenEleman = null;
+  let baslangicDikdortgeni = null;
   let baslangicMerkezX = 0;
   let baslangicMerkezY = 0;
+  // Sürüklemeyi başlatan işaretçinin kimliği: masada aynı anda başka parmaklar da olabilir, bayat
+  // durumu düşüren belge ağı (aşağıda) yalnız BU işaretçinin bırakmasına bakar (tasokey#59).
+  let aktifIsaretciId = null;
+  const kopya = surukleKopyasi();
+
+  // Sürükleme durumunu düşürür: kopyayı kaldırır, asıl taşı normale döndürür, durumu boşaltır.
+  // Bırakma KARARI vermez (hedef arama ve geri bildirim `birak`a aittir) — bu yüzden ADR-019 itme
+  // kuralı, bırakılan yuva ve çekme kaynağı davranışı bu yoldan etkilenmez.
+  function durumuDusur() {
+    kopya.kapat();
+    if (suruklenenEleman) suruklenenEleman.classList.remove('surukleniyor');
+    suruklenenTasId = null;
+    suruklenenEleman = null;
+    baslangicDikdortgeni = null;
+    aktifIsaretciId = null;
+  }
 
   rafElemani.addEventListener('pointerdown', (e) => {
     const hedef = e.target.closest('.tas');
     if (!hedef || !rafElemani.contains(hedef)) return;
+    // Önceki sürüklemeden kalmış bayat durum burada düşer: `ac()` açık bir kopya görürse erken
+    // döner, o zaman parmağı YENİ taş değil eski taşın kopyası (eski çapasıyla) izlerdi.
+    durumuDusur();
     const dikdortgen = hedef.getBoundingClientRect();
     suruklenenEleman = hedef;
     suruklenenTasId = hedef.dataset.tasId;
+    baslangicDikdortgeni = dikdortgen;
     baslangicMerkezX = dikdortgen.left + dikdortgen.width / 2;
     baslangicMerkezY = dikdortgen.top + dikdortgen.height / 2;
+    aktifIsaretciId = e.pointerId;
     hedef.setPointerCapture(e.pointerId);
     hedef.classList.add('surukleniyor');
   });
@@ -38,35 +124,53 @@ export function surukleBagla(rafElemani, hedefeBirakCallback) {
     if (!suruklenenEleman) return;
     const dx = e.clientX - baslangicMerkezX;
     const dy = e.clientY - baslangicMerkezY;
-    suruklenenEleman.style.transform = `translate(${dx}px, ${dy}px)`;
+    // Kopya ilk harekette doğar: hareketsiz dokunma (seçme yolu) boşuna düğüm yaratmasın.
+    // Taşıma eskisiyle aynı eşlemedir (taşın merkezi parmağın altına gelir) — görünen davranış
+    // değişmez, değişen yalnız hangi öğenin hareket ettiğidir.
+    kopya.ac(suruklenenEleman, baslangicDikdortgeni);
+    kopya.tasi(dx, dy);
   });
 
   function birak(e) {
     if (!suruklenenEleman) return;
-    suruklenenEleman.style.transform = '';
-    suruklenenEleman.classList.remove('surukleniyor');
+    const tasId = suruklenenTasId;
+    durumuDusur();
 
-    // .surukleniyor pointer-events: none bırakır ki elementFromPoint, sürüklenen taşın kendisini
-    // değil altındaki yuvayı/köşeyi/desteyi görsün.
+    // Kopya bu noktadan ÖNCE kaldırıldı (ayrıca pointer-events: none taşır): elementFromPoint
+    // parmağın altındaki yuvayı/köşeyi/desteyi görür, sürüklemenin görsel kopyasını değil.
     const noktadakiEleman = document.elementFromPoint(e.clientX, e.clientY);
     const rafYuva = noktadakiEleman?.closest('.raf-yuva');
     const kose = noktadakiEleman?.closest('.kose[data-kose]');
     const yerDestesi = noktadakiEleman?.closest('[data-hedef="yerDestesi"]');
 
     if (rafYuva && rafElemani.contains(rafYuva)) {
-      hedefeBirakCallback(suruklenenTasId, HEDEF_TURU.RAF_YUVA, { slotIndex: Number(rafYuva.dataset.slotIndex) });
+      hedefeBirakCallback(tasId, HEDEF_TURU.RAF_YUVA, { slotIndex: Number(rafYuva.dataset.slotIndex) });
     } else if (kose) {
-      hedefeBirakCallback(suruklenenTasId, HEDEF_TURU.KOSE, { kose: kose.dataset.kose });
+      hedefeBirakCallback(tasId, HEDEF_TURU.KOSE, { kose: kose.dataset.kose });
     } else if (yerDestesi) {
-      hedefeBirakCallback(suruklenenTasId, HEDEF_TURU.YER_DESTESI, {});
+      hedefeBirakCallback(tasId, HEDEF_TURU.YER_DESTESI, {});
     }
-
-    suruklenenTasId = null;
-    suruklenenEleman = null;
   }
 
   rafElemani.addEventListener('pointerup', birak);
   rafElemani.addEventListener('pointercancel', birak);
+
+  // Istakanın DIŞINDA biten bırakmanın ağı (tasokey#59). Istaka sürükleme sürerken yeniden
+  // çizilebilir (`ekran.js` `rafCiz()`; bot turu her sıra geçişinde çizer): sürüklenen taş belgeden
+  // düşer ve işaretçi yakalaması kopar. Parmak o anda ıstakanın dışında kalkarsa `pointerup` artık
+  // yukarıdaki dinleyiciye ulaşmaz, `birak` hiç çalışmaz ve kopya gövdede asılı kalırdı.
+  // Yalnız ıstaka dışında biten bırakmaya bakar: ıstaka içinde biten bırakmayı `birak` görür (olay
+  // sırasından bağımsız) ve hamle yolu değişmez. Istaka dışında biten bırakma zaten hamle değildir,
+  // bu yüzden bu ağ yalnız temizler. Başka parmağın bırakması süren sürüklemeyi düşürmez.
+  function istakaDisindaBirakildi(e) {
+    if (!suruklenenEleman) return;
+    if (aktifIsaretciId !== null && e.pointerId !== aktifIsaretciId) return;
+    if (e.target && rafElemani.contains(e.target)) return;
+    durumuDusur();
+  }
+
+  document.addEventListener('pointerup', istakaDisindaBirakildi);
+  document.addEventListener('pointercancel', istakaDisindaBirakildi);
 }
 
 // Yığının en üstteki taşı, en son eklenen öğedir (ekran.js `koseYiginiCiz` / `yerDestesiYiginiCiz`
@@ -98,10 +202,11 @@ export function cekmeSurukleBagla(masaElemani, rafElemani, kaynaktanCekCallback)
   let tasindiMi = false;
   let yutulacakTiklamaZamani = -Infinity;
   let yutulacakKaynak = null;
+  const kopya = surukleKopyasi();
 
   function sifirla() {
+    kopya.kapat();
     if (ustTas) {
-      ustTas.style.transform = '';
       ustTas.classList.remove('surukleniyor');
     }
     kaynakTuru = null;
@@ -156,6 +261,12 @@ export function cekmeSurukleBagla(masaElemani, rafElemani, kaynaktanCekCallback)
       if (aktifIsaretciId !== null && e.pointerId === aktifIsaretciId) sifirla();
       return;
     }
+    // Basış bir kaynağın üstünde: aşağıdaki atamalar durumun DEĞERLERİNİ zaten eziyor, ama bayat
+    // durumun ARTIKLARINI (gövdede asılı kopya, eski üst taşın `surukleniyor` sınıfı) ezmiyordu —
+    // `ac()` açık bir kopya görünce erken döner, o zaman parmağı YENİ üst taş değil eskisinin
+    // kopyası eski çapasıyla izlerdi (tasokey#59, Denetçi turu 2). Istaka yolundaki `durumuDusur()`
+    // ile aynı yer, aynı amaç; `sifirla()` bırakma kararı vermediği için çekme davranışı değişmez.
+    sifirla();
     kaynakTuru = yerDestesi ? CEKME_KAYNAGI.YER_DESTESI : CEKME_KAYNAGI.KOSE;
     kaynak = yerDestesi ? {} : { kose: kose.dataset.kose };
     kaynakOgesi = kaynakElemani;
@@ -182,11 +293,15 @@ export function cekmeSurukleBagla(masaElemani, rafElemani, kaynaktanCekCallback)
     if (!tasindiMi && Math.hypot(dx, dy) < SURUKLEME_ESIGI_PX) return;
     if (!tasindiMi) {
       tasindiMi = true;
-      // Istakadaki sürüklemeyle aynı görsel dil: taş parmağı izler, soluklaşır ve
-      // `pointer-events: none` ile isabet testinden çekilir (altındaki ıstaka görünsün).
-      if (ustTas) ustTas.classList.add('surukleniyor');
+      // Istakadaki sürüklemeyle aynı görsel dil (tasokey#59: aynı tek kapı): parmağı taşın
+      // kopyası izler, asıl taş yerinde bekler ve `pointer-events: none` ile isabet testinden
+      // çekilir (altındaki ıstaka/köşe görünsün).
+      if (ustTas) {
+        ustTas.classList.add('surukleniyor');
+        kopya.ac(ustTas);
+      }
     }
-    if (ustTas) ustTas.style.transform = `translate(${dx}px, ${dy}px)`;
+    kopya.tasi(dx, dy);
   });
 
   masaElemani.addEventListener('pointerup', (e) => {
@@ -219,4 +334,24 @@ export function cekmeSurukleBagla(masaElemani, rafElemani, kaynaktanCekCallback)
     if (aktifIsaretciId !== null && e.pointerId !== aktifIsaretciId) return;
     sifirla();
   });
+
+  // Masanın DIŞINDA biten bırakmanın ağı (tasokey#59, Denetçi turu 2) — ıstaka yolundaki
+  // `istakaDisindaBirakildi` ile aynı dil. Deste ve köşe yığınları da sürükleme sürerken yeniden
+  // çizilebilir (`ekran.js` `yerDestesiYiginiCiz`/`koseYiginiCiz`, ikisi de `innerHTML = ''`):
+  // sürüklenen üst taş belgeden düşer ve işaretçi yakalaması kopar. Parmak o anda masanın dışında
+  // kalkarsa `pointerup` yukarıdaki dinleyicilere ulaşmaz, `sifirla()` hiç çalışmaz ve kopya
+  // gövdede asılı kalırdı.
+  // Yalnız masa dışında biteni temizler: masanın içinde biten bırakmayı (yakalama varken olayın
+  // hedefi de kaynak öğedir, o da masanın içindedir) yine masa dinleyicisi görür ve çekme kararını
+  // o verir. Istaka masanın içindedir, bu yüzden masa dışında biten bırakma zaten çekme değildir —
+  // ağ hiçbir zaman karar üretmez/yutmaz. Başka parmağın bırakması süren çekmeyi düşürmez.
+  function masaDisindaBirakildi(e) {
+    if (!kaynakTuru) return;
+    if (aktifIsaretciId !== null && e.pointerId !== aktifIsaretciId) return;
+    if (e.target && masaElemani.contains(e.target)) return;
+    sifirla();
+  }
+
+  document.addEventListener('pointerup', masaDisindaBirakildi);
+  document.addEventListener('pointercancel', masaDisindaBirakildi);
 }
