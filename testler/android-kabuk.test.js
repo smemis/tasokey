@@ -307,6 +307,8 @@ test('ASIL KABUL: varlık sunucusu ".." ve kök dışını reddediyor; varlığ�
     'kök dışına düşen sonucu reddeden son kapı yok');
   assert.match(govde, /indexOf\s*\(\s*'\\\\'\s*\)/, 'ters bölü taşıyan yol reddedilmiyor');
   assert.match(govde, /%2e/, 'yüzde kaçışlı nokta (%2e) reddedilmiyor');
+  // Türkçe kültürde "I" → "ı" dönüşümü kaçış denetimini kaydırmasın (ders: tr-TR/invariant tuzağı).
+  assert.match(govde, /toLowerCase\s*\(\s*Locale\.ROOT\s*\)/, 'kaçış denetimi Locale.ROOT ile küçültülmeli');
 
   // Varlık açan tek çağrı, çözücünün döndürdüğü değişkeni açar ve null denetiminden sonra gelir.
   const yanit = metotGovdesi(sunucu, 'yanit');
