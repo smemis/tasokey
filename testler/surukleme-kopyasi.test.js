@@ -154,8 +154,19 @@ function sahneKur(t) {
     return govde.cocuklar.filter((cocuk) => cocuk.classList.contains('surukleme-kopyasi'));
   }
 
+  // `ekran.js` → `rafCiz()`: ıstakanın içeriği boşaltılıp (`eleman.raf.innerHTML = ''`) yeniden
+  // kurulur. Bot turu her sıra geçişinde `ciz()` çağırdığı için bu, sürükleme SÜRERKEN de olur:
+  // sürüklenen taş belgeden düşer ve işaretçi yakalaması kopar (tasokey#59, Denetçi turu 1).
+  function rafiYenidenCiz() {
+    for (const cocuk of [...raf.cocuklar]) raf.removeChild(cocuk);
+    const yuva = cocukYap(raf, ['.raf-yuva'], { slotIndex: '3' });
+    const tas = cocukYap(yuva, ['.tas'], { tasId: 'mavi-3-a' }, { left: 500, top: 200, width: 40, height: 60 });
+    tas.siniflar.add('tas');
+    return { yuva, tas };
+  }
+
   return { govde, masa, raf, rafYuva, rafTasi, deste, desteTasi, birakmalar, cekmeler, isaretci, kopyalar,
-    noktaya: (oge) => { noktadaki = oge; } };
+    rafiYenidenCiz, noktaya: (oge) => { noktadaki = oge; } };
 }
 
 test('ASIL KABUL: ıstakada sürüklenen asıl taş yerinde kalır — kendisine transform yazılmaz', (t) => {
@@ -216,6 +227,91 @@ test('hareketsiz dokunuşta (seçme yolu) kopya hiç yaratılmaz', (t) => {
   s.noktaya(s.rafYuva);
   s.isaretci(s.raf, 'pointerup', s.rafTasi, 120, 230);
   assert.deepEqual(s.kopyalar(), [], 'dokunma yolunda gereksiz DOM düğümü yaratılmamalı');
+});
+
+// --- Bayat kopya (tasokey#59, Denetçi turu 1) -------------------------------------------------
+// Denetçi bulgusu: kopya yalnız `birak()`/`sifirla()` ile kapanıyordu. Istaka sürükleme sırasında
+// yeniden çizilince (bot turu) sürüklenen taş belgeden düşer, işaretçi yakalaması kopar; parmak
+// ıstakanın DIŞINDA kalkarsa `pointerup` artık `#raf`a ulaşmaz → kopya gövdede asılı kalır ve
+// sonraki sürüklemede parmağı eski taşın kopyası izler.
+
+test('ASIL KABUL: ıstaka sürükleme sırasında yeniden çizilir, parmak dışarıda kalkar — kopya kalmaz', (t) => {
+  const s = sahneKur(t);
+  s.isaretci(s.raf, 'pointerdown', s.rafTasi, 120, 230);
+  s.isaretci(s.raf, 'pointermove', s.rafTasi, 260, 300);
+  assert.equal(s.kopyalar().length, 1, 'ön koşul: sürükleme kopyası doğdu');
+
+  s.rafiYenidenCiz();
+  // Yakalama koptuğu için bırakma #raf'a değil masaya gider.
+  s.isaretci(s.masa, 'pointerup', s.masa, 700, 700);
+
+  assert.deepEqual(
+    s.kopyalar(),
+    [],
+    'ASIL KABUL: kopya gövdede asılı kalıyor → ekranda parmağı izlemeyen hayalet taş',
+  );
+  assert.equal(s.rafTasi.classList.contains('surukleniyor'), false, 'asıl taşın sürükleme sınıfı da düşmeli');
+  assert.equal(s.birakmalar.length, 0, 'ıstaka dışında biten bırakma hamle değildir (davranış değişmez)');
+});
+
+test('ASIL KABUL: bayat kopya sonraki sürüklemeyi bozmaz — kopya yeni taşa çapalanır', (t) => {
+  const s = sahneKur(t);
+  s.isaretci(s.raf, 'pointerdown', s.rafTasi, 120, 230);
+  s.isaretci(s.raf, 'pointermove', s.rafTasi, 260, 300);
+  // Bırakma hiç gelmiyor (yakalama koptu, parmak başka bir pencerede/dışarıda kalktı).
+  const { tas: yeniTas } = s.rafiYenidenCiz();
+
+  s.isaretci(s.raf, 'pointerdown', yeniTas, 520, 230);
+  s.isaretci(s.raf, 'pointermove', yeniTas, 560, 260);
+
+  const kopyalar = s.kopyalar();
+  assert.equal(kopyalar.length, 1, 'ASIL KABUL: eski kopya kalınca gövdede iki kopya oluyor');
+  assert.equal(kopyalar[0].dataset.tasId, 'mavi-3-a', 'ASIL KABUL: parmağı eski taşın kopyası izliyor');
+  assert.equal(kopyalar[0].style.left, '500px', 'kopya yeni taşın kutusuna çapalanmalı (eski çapa 100px)');
+  assert.equal(kopyalar[0].style.transform, 'translate3d(40px, 30px, 0)', 'kopya yeni parmağı izlemeli');
+});
+
+test('başka parmağın masada bıraktığı işaretçi süren ıstaka sürüklemesini düşürmez', (t) => {
+  const s = sahneKur(t);
+  s.isaretci(s.raf, 'pointerdown', s.rafTasi, 120, 230);
+  s.isaretci(s.raf, 'pointermove', s.rafTasi, 260, 300);
+
+  s.isaretci(s.masa, 'pointerup', s.masa, 700, 700, 9);
+  assert.equal(s.kopyalar().length, 1, 'ikinci parmağın bırakması süren sürüklemeyi bozmamalı');
+
+  s.noktaya(s.rafYuva);
+  s.isaretci(s.raf, 'pointerup', s.rafTasi, 260, 300);
+  assert.equal(s.birakmalar.length, 1, 'sürükleme kendi parmağıyla bitince bırakma yine bildirilir');
+  assert.deepEqual(s.kopyalar(), [], 'bırakmada kopya kaldırılır');
+});
+
+test('ASIL KABUL: kopya asıl taşın sürükleme sınıfını taşımaz (ıstaka yolu)', (t) => {
+  const s = sahneKur(t);
+  s.isaretci(s.raf, 'pointerdown', s.rafTasi, 120, 230);
+  s.isaretci(s.raf, 'pointermove', s.rafTasi, 260, 300);
+
+  const kopya = s.kopyalar()[0];
+  assert.equal(kopya.classList.contains('surukleme-kopyasi'), true, 'kopya kendi sınıfını taşır');
+  assert.equal(
+    kopya.classList.contains('surukleniyor'),
+    false,
+    'ASIL KABUL: kopya `.surukleniyor` taşıyor → `position: fixed` yalnız kural sırası sayesinde kazanıyor (.tas.surukleniyor position: relative; özgüllükler eşit)',
+  );
+  assert.equal(s.rafTasi.classList.contains('surukleniyor'), true, 'asıl taş yerinde beklerken sınıfını taşır');
+});
+
+test('ASIL KABUL: kopya asıl taşın sürükleme sınıfını taşımaz (deste yolu)', (t) => {
+  const s = sahneKur(t);
+  s.isaretci(s.masa, 'pointerdown', s.deste, 320, 180);
+  s.isaretci(s.masa, 'pointermove', s.deste, 380, 240);
+
+  const kopya = s.kopyalar()[0];
+  assert.equal(
+    kopya.classList.contains('surukleniyor'),
+    false,
+    'ASIL KABUL: deste kopyası da `.surukleniyor` taşıyor (tek kapı ikisinde de aynı olmalı)',
+  );
+  assert.equal(s.desteTasi.classList.contains('surukleniyor'), true, 'destenin asıl taşı sınıfını taşır');
 });
 
 test('ASIL KABUL: desteden sürüklemede üst taşın kopyası taşınır, asıl taş yerinde kalır', (t) => {

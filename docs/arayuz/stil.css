@@ -603,7 +603,10 @@ html, body {
    ile taşınır. `will-change: transform` + 3B dönüşüm onu kendi derleyici katmanına alır: kaydırma
    karede katmanı taşır, hiçbir şeyi yeniden boyamaz. Ölçü kaynaktan (JS, satır içi left/top/
    width/height) geldiği için kural içine taş ölçüsü yazılmaz. Seçici `.tas`/`.tas-arka` ile
-   nitelenir: `.tas.secili`nin kalkık duruşunu ve kutu gölgesini özgüllükte geçsin. */
+   nitelenir: `.tas.secili`nin kalkık duruşunu ve kutu gölgesini özgüllükte geçsin.
+   Kopya `.secili` ve `.surukleniyor` sınıflarını taşımaz (surukle.js ikisini de kopyadan siler):
+   yukarıdaki `.tas.surukleniyor` ile aynı özgüllükte olan `position` burada kural sırasına
+   kalmaz. */
 .tas.surukleme-kopyasi,
 .tas-arka.surukleme-kopyasi {
   position: fixed;
