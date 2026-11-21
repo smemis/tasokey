@@ -386,19 +386,36 @@ html, body {
 /* Köşeler: her oyuncunun attığı taş kendi köşe yığınında durur (R-011); en üstteki taş tam
    görünür, alttakiler `arayuz/ekran.js`de satır/sütun kaydırmasıyla (translate) kısmi görünür.
    Erişilebilir adet etiketi görünen sayaçtan ayrı, köşenin aria-label'ında tutulur (ekran.js). */
+/* Atılan taş alanı KÖŞE HÜCRESİNİ doldurur (Sahip isteği, tasokey#47): hücre = o oyuncunun ıstaka
+   satırı ile komşu kenarın ıstaka sütununun kesişimi (#masa ızgarasının solUst/sagUst/solAlt/sagAlt
+   alanı), yani iki ıstakanın arasında kalan boş alan. Kural DÖRT KÖŞE İÇİN AYNIDIR (ADR-010
+   simetrisi): köşe başına kural yazılmaz, hücreleri ayıran tek şey ızgara satır/sütun ölçüsüdür
+   (#koseSolUst… kuralları yalnız grid-area taşır).
+   `stretch`, #masa'nın `align-items/justify-items: center` ortalamasını bu öğe için geçersiz kılar.
+   min-width/min-height DEĞİŞMEDİ: `auto` ölçülü satır/sütunun ızgara izini hâlâ yalnız taş ölçüsü
+   belirler, yani hücre bu yüzden büyümez (ADR-014'ün B seçeneğinin reddedilme gerekçesi korunur) —
+   kutu yalnız var olan boşluğu kaplar ve kademe değişince taşla birlikte küçülür. Kutu hücrenin
+   dışına taşmadığı (kenar boşluğu olmadığı) için ADR-014'ün hedef halkası yine yalnız ızgara
+   boşluğuna girer, komşu kutuya değil. */
 .kose {
   position: relative;
+  justify-self: stretch;
+  align-self: stretch;
   min-width: calc(var(--tas-genislik) + 2 * var(--kose-kaydirma));
   min-height: calc(var(--tas-yukseklik) + 2 * var(--kose-kaydirma));
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  /* Yığın alanın TAM ORTASINDA durur: üstteki ve alttaki esneme satırı eşit olduğundan (1fr … 1fr)
+     yığın satırı ortaya oturur; sayaç yığının altındaki satırda, kendi satırının başında kalır ve
+     yüksekliği yığını merkezden KAYDIRMAZ (eski akışta sayaç ortalamaya katılıyor, taş sayaç
+     yüksekliğinin yarısı kadar yukarıda duruyordu). */
+  display: grid;
+  grid-template-rows: 1fr auto 1fr;
+  justify-items: center;
   gap: 2px;
 }
 
 .kose-yigin {
   position: relative;
+  grid-row: 2;
   width: var(--tas-genislik);
   height: var(--tas-yukseklik);
 }
@@ -417,7 +434,13 @@ html, body {
   outline: 2px solid #e8c547;
 }
 
-.kose-sayac { font-size: 0.75rem; opacity: 0.8; }
+/* Sayaç yığının altındaki satırda, satırın BAŞINDA (yığına yakın): yığının ortalanmasına katılmaz. */
+.kose-sayac {
+  grid-row: 3;
+  align-self: start;
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
 
 /* Madde 4 (tasokey#33): köşe boşken "0" yerine boş yuva/silik taş çerçevesi (raftaki boş yuvayla
    aynı görsel: yuva-bos.svg) görünür — ekran.js koseYiginiCiz. */

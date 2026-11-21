@@ -6,6 +6,8 @@
 > eşitlendi (§1, §4). Yalnız belge; arayüz kodu bu işte değişmedi.
 > **v0.2** (`tasokey#46`, Sahip isteği 2026-11-21): taşın çevresine çok ince, çok az görünen kenar çizgisi eklendi (§4);
 > değerin tek kaynağı `arayuz/stil.css` `:root`. Görsel beğeni hâlâ Sahip'te (K4).
+> **v0.3** (`tasokey#47`, Sahip isteği 2026-11-21): atılan taş alanı (köşe) iki ıstaka arasındaki boş alanı doldurur,
+> atılan taş bu alanın ortasında durur (§4). Taşın kendi ölçüsü değişmedi. Görsel beğeni hâlâ Sahip'te (K4).
 
 | Alan | Değer |
 |---|---|
@@ -45,6 +47,10 @@ Uygulanmaz (proje 2B web arayüzü; 3B varlık planı yok).
   gövdenin yuvarlak köşesini izler ve taşın görünen ölçüsünü büyütmez; kalınlık/renk/opaklık değerinin **tek kaynağı**
   `arayuz/stil.css` `:root` (`--tas-kenar-kalinlik` / `--tas-kenar-renk` / `--tas-kenar-opaklik`) — üç gövde varyantı
   (taş yüzü, sahte okey, kapalı taş) aynı değeri okur, SVG dosyalarına sayı yazılmaz.
+- **Atılan taş alanı (Sahip isteği, 2026-11-21 — `tasokey#47`):** her köşedeki atılan taş yığınının alanı, o oyuncunun
+  ıstaka satırı ile komşu kenarın ıstaka sütununun kesiştiği **boş alanı doldurur** (iki ıstaka arasında boşta kalan keçe
+  yoktur); atılan taş bu alanın **ortasında** durur, adet sayacı taşın hemen altında kalır. Kural dört köşe için aynıdır
+  (`MIMARI.md` ADR-010 simetrisi) ve taşın görünen ölçüsünü büyütmez.
 - **Istaka görseli (Sahip kararı, 2026-11-20):** kalın ahşap, **iki kademeli** (alt ve üst raf), iki ucunda ayak/kulak; taşlar
   rafa oturur, taşlar arasında boşluk bırakılabilir.
 - Gösterge taşı, köşe (atılan taş) yığınları, oyuncu rafı (14-15 taş) için ayrı görsel durumlar gerekir — ayrıntı Mimar/Varlık

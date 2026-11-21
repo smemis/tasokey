@@ -88,6 +88,31 @@ test('rakip ıstakası ince ahşap sırt: kalınlık uzunluktan belirgin biçimd
   assert.ok(oran >= 6, `rakip ıstakası yeterince ince değil (uzunluk/kalınlık oranı ${oran}, beklenen >= 6)`);
 });
 
+// tasokey#47: atılan taş alanı (köşe) artık ızgara hücresini doldurur. Sığdırma bakımından kritik
+// olan şey, kutunun hücreyi doldurması DEĞİL (boş alanı kaplar, yer istemez), ızgara izinin
+// büyümemesidir: `auto` ölçülü satır/sütun katkısı hâlâ yalnız taş değişkenlerinden gelir, bu yüzden
+// her kademede taşla birlikte küçülür ve 844x390 sığdırması (R-014, tasokey#32) bozulmaz.
+test('kose-47-sigdirma: köşenin en küçük ölçüsü taş değişkenlerinden türer (kademeyle küçülür)', () => {
+  const koseEslesme = STIL_CSS.match(/\n\.kose\s*\{([\s\S]*?)\n\}/);
+  assert.ok(koseEslesme, 'stil.css içinde .kose kuralı yok');
+  const kose = koseEslesme[1];
+  assert.match(kose, /min-width:\s*calc\([^;]*var\(--tas-genislik\)/, '.kose min-width taş genişliğinden türemiyor');
+  assert.match(kose, /min-height:\s*calc\([^;]*var\(--tas-yukseklik\)/, '.kose min-height taş yüksekliğinden türemiyor');
+  assert.doesNotMatch(kose, /(^|;|\s)(width|height)\s*:/, '.kose sabit width/height tanımlıyor — ızgara izi kademeyle küçülmez');
+});
+
+test('kose-47-kademe: hiçbir duyarlı kademe .kose kuralını geçersiz kılmıyor (tek kural)', () => {
+  const kademeler = [...STIL_CSS.matchAll(/@media[^{]*\{/g)].map((e) => e.index);
+  assert.ok(kademeler.length >= 4, `beklenenden az kademe bulundu (${kademeler.length})`);
+  const kademeMetni = STIL_CSS.slice(kademeler[0]);
+  assert.doesNotMatch(
+    kademeMetni,
+    /(^|[,}\s])\.kose\s*\{/m,
+    'bir @media bloğu .kose kuralını yeniden tanımlıyor — köşe davranışı kademeden kademeye '
+    + 'ayrışır, dört köşe tek kuraldan okunamaz',
+  );
+});
+
 test('oyuncunun kendi ıstakası iki kademeli kalır (RAF_SATIR_SAYISI değişmedi)', () => {
   assert.match(EKRAN_JS, /const RAF_SATIR_SAYISI = 2;/, 'ekran.js RAF_SATIR_SAYISI artık 2 değil');
 });
