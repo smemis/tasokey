@@ -1,0 +1,12 @@
+# tasokey — depoya girmeyecekler (tasokey#56, üst iş tasokey#52)
+
+# Android derleme çıktısı: android/derle.ps1'in -Cikti varsayılanı. Ara ürünler (aşama kopyası,
+# res.zip, üretilen R.java, .class, classes.dex, hizalanmamış/imzasız APK) ve imzalı APK burada
+# durur; hiçbiri kaynak değildir, hepsi tek komutla yeniden üretilir.
+android/cikti/
+
+# İmza anahtarı ve parolası depoya ASLA girmez (donmuş alan; anahtar Masa'da durur).
+# Ofis denemelerinde keytool ile üretilen geçici anahtar da bu kalıba düşer.
+*.jks
+*.keystore
+*.parola

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Taş Okey Android kabuğu (tasokey#54, üst iş tasokey#52).
+
+  Kabuk = web oyununu (docs/) tek bir WebView içinde çevrimdışı çalıştıran ince Android katmanı.
+  Oyun kuralı, arayüzü, dili burada DEĞİLDİR; kabuk yalnız pencereyi açar, varlıkları yerelden
+  sunar ve çıkışı sorar — ADR-020 madde 1 (MIMARI.md §5; durumu "koşullu kabul": teknik şekil
+  bağlayıcı, ürün kapsamı PRD farkıyla Sahip'te).
+
+  İzin yok (0 satır `uses-permission`) — ADR-020 madde 2: bütün varlıklar APK'nın içinden,
+  appassets.androidplatform.net adresi VarlikSunucusu tarafından karşılanır. INTERNET izni
+  olmadığı için dışarıya istek fiziksel olarak başarısız olur — ADR-007'nin ("dışarıya istek
+  yok") cihazdaki karşılığı.
+
+  `android:screenOrientation` YAZILMAZ — ADR-020 madde 3: yön kararı web katmanındadır (ADR-012 —
+  dikeyde ızgara gizlenir, dil anahtarlı uyarı gösterilir). Kabuk yönü kilitlerse o karar
+  ölçülemez hâle gelir. Aynı madde `configChanges` kümesini de bağlar (aşağıdaki yedi değer:
+  eksiği yön değişiminde WebView'i yeniden kurar, sürmekte olan el gider).
+
+  `uses-sdk` (en düşük / hedef Android sürümü) bu dosyada YOKTUR — ADR-020 madde 4: donmuş alan
+  (R sınıfı, karar Masa'da). Derleme betiği aapt2 link adımında `min-sdk-version` /
+  `target-sdk-version` bayraklarıyla verir; depo bir sürüm numarası sabitlemez. (Bayrakların
+  başındaki iki tire burada yazılamaz: XML yorumu iki tireyi yan yana taşıyamaz, ayrıştırıcı
+  "not well-formed" der — ÖLÇÜLDÜ, tasokey#55.)
+
+  `android:icon` tek bir kaynak adını gösterir (`@mipmap/ic_launcher`): API 26+ bunu
+  res/mipmap-anydpi-v26/ic_launcher.xml (uyarlanır simge) olarak, API 24-25 aynı adı taşıyan
+  mipmap-*dpi/ic_launcher.png olarak çözer — simgenin iki yoğunluk yolu manifestte değil kaynak
+  adında buluşur (tasokey#55, android/SIMGE.md).
+  `android:roundIcon` YAZILMAZ: yuvarlak yedek PNG kümesi bu işin kapsamı dışıdır ve API 26+ için
+  maskeyi başlatıcı zaten uyarlanır simgeden üretir.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.kraftdcm.tasokey">
+
+    <application
+        android:label="@string/uygulama_adi"
+        android:icon="@mipmap/ic_launcher"
+        android:theme="@style/TemaOyun"
+        android:allowBackup="false"
+        android:hardwareAccelerated="true"
+        android:supportsRtl="false">
+
+        <activity
+            android:name=".OyunEtkinligi"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode|density">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>

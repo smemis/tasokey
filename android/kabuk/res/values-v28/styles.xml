@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 9 (API 28) ve üstü: çentik/kesik alanı. Oyun kenardan kenara çizilir, çentiğin altına
+  da girer; güvenli alan boşluğu web katmanının CSS'inde (safe-area) verilir — kabuk pencereyi
+  açar, düzen kararı vermez.
+
+  Yalnız API 28 ile gelen madde burada durur; ortak maddeler res/values/styles.xml'deki
+  `TemaOyunTemel`de (tek kaynak), bu dosya ondan türer.
+-->
+<resources>
+
+    <style name="TemaOyun" parent="TemaOyunTemel">
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+
+</resources>

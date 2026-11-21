@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Uyarlanır simgenin ÖN katmanı (tasokey#55): tek okey taşı, üstünde kırmızı "1", altında kırmızı
+  daire. Motif, oyunun taş gövdesiyle (docs/gorsel/tas-govde.svg, ADR-011) aynı orandan türer.
+
+  ÖLÇÜ (tuval 108x108 dp; maskenin gördüğü alan ortadaki 72 dp, dairesel maskede güvenli alan
+  merkezli 66 dp çap):
+
+    taş gövdesi      38,0 x 53,2 dp   (35,0 ; 27,4) → (73,0 ; 80,6), merkez (54 ; 54)
+                     köşegen = 65,4 dp < 66 dp  → maske ne olursa olsun kırpılmaz
+    oran             100:140 (tas-govde.svg viewBox'ı birebir), ölçek katsayısı 0,38
+    köşe yarıçapı    3,8 dp  (genişliğin %10'u = SVG rx=10 / 100)
+    rakam alanı      (41,84 ; 33,48) + 24,32 x 29,64 dp  (SVG data-alan="rakam" 18,16,64,78 × 0,38)
+    alt daire        merkez (54 ; 69,2), yarıçap 2,85 dp  (SVG circle 50,110 r=7,5 × 0,38)
+    döndürme/eğim    yok — 48 px'de eğim bulanıklık gibi okunur
+
+  Çizim komutu kısıtı: yalnız MUTLAK M, L, C, Z. Yuvarlak köşe ve daire kübik Bézier ile çizilir
+  (çeyrek daire kontrol noktası uzaklığı r × 0,5523 → köşede 2,0987; dairede 1,574). Gerekçe
+  ic_launcher_arka.xml'de: beş PNG'nin üreticisi geometriyi bu dosyadan okur, tek kaynak burasıdır.
+
+  BİLEREK YOK: taşın ince kenar çizgisi (değeri docs/arayuz/stil.css'te tek kaynak, mdpi'de
+  görünmez) ve gölge (vektör drawable bulanıklık üretmez; sahte gölge ikinci bir gövde kopyası
+  ister). Rakam, web'deki gibi sistem yazı tipi glifi DEĞİL, elle çizilmiş yoldur — küçük ölçekte
+  yazı tipi ölçeklemesine bırakılmaması için.
+
+  Renkler @color/... üzerinden gelir (res/values/colors.xml) — burada onaltılık değer yok.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Taş gövdesi: 38,0 x 53,2 dp yuvarlatılmış dikdörtgen (r = 3,8). -->
+    <path
+        android:fillColor="@color/simge_tas_govde"
+        android:pathData="M 38.8,27.4 L 69.2,27.4 C 71.2987,27.4 73.0,29.1013 73.0,31.2 L 73.0,76.8 C 73.0,78.8987 71.2987,80.6 69.2,80.6 L 38.8,80.6 C 36.7013,80.6 35.0,78.8987 35.0,76.8 L 35.0,31.2 C 35.0,29.1013 36.7013,27.4 38.8,27.4 Z" />
+
+    <!-- Kırmızı katman: "1" rakamı (rakam alanının içinde) + altındaki daire. -->
+    <path
+        android:fillColor="@color/simge_rakam"
+        android:pathData="M 51.2,33.48 L 56.8,33.48 L 56.8,58.92 L 61.2,58.92 L 61.2,63.12 L 46.8,63.12 L 46.8,58.92 L 51.2,58.92 L 51.2,38.6 L 46.8,41.5 L 46.8,38.3 Z M 56.85,69.2 C 56.85,70.774 55.574,72.05 54.0,72.05 C 52.426,72.05 51.15,70.774 51.15,69.2 C 51.15,67.626 52.426,66.35 54.0,66.35 C 55.574,66.35 56.85,67.626 56.85,69.2 Z" />
+
+</vector>
