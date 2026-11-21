@@ -10,12 +10,16 @@
   CSS değişkeni okuyamadığı için değer burada ikinci kez yazılmak zorundadır. Kopya sessiz
   kalmasın diye iki dosyanın EŞİTLİĞİ ölçülür (bkz. android/SIMGE.md "Ölçüm" tablosu, madde e):
 
-    simge_arka       = --masa-zemin     (koyu keçe masa zemini)
-    simge_tas_govde  = --tas-govde      (taşın fildişi gövdesi)
-    simge_rakam      = --renk-kirmizi   (4 oyun renginden biri)
+    simge_arka       = masa-zemin     (koyu keçe masa zemini)
+    simge_tas_govde  = tas-govde      (taşın fildişi gövdesi)
+    simge_rakam      = renk-kirmizi   (4 oyun renginden biri)
 
-  Taşın çok ince kenar çizgisi (--tas-kenar-*) simgeye BİLEREK girmez: değeri CSS'te tek
-  kaynaktır ve mdpi'de kalınlığı ~0,6 px'e düşüp görünmez olur.
+  CSS'te bu üç adın başında iki tire vardır; XML YORUMU iki tireyi yan yana taşıyamaz (aapt2
+  "xml parser error: not well-formed" der — ÖLÇÜLDÜ, tasokey#55), bu yüzden yorumda tireler
+  atıldı. Değerleri karşılaştıran ölçüm yorumu değil stil.css'in kendisini okur.
+
+  Taşın çok ince kenar çizgisi (tas-kenar ile başlayan CSS değişkenleri) simgeye BİLEREK girmez:
+  değeri CSS'te tek kaynaktır ve mdpi'de kalınlığı ~0,6 px'e düşüp görünmez olur.
 -->
 <resources>
     <color name="simge_arka">#0f3d2e</color>
