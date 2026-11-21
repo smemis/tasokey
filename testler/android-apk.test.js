@@ -431,6 +431,10 @@ function sirBulgulari() {
   return { bulgular, taranan: metinler.length, ikili };
 }
 
+// SINIR (mutasyonla ölçüldü, tasokey#57): `.gitignore`a takılan bir anahtar dosyası bu taramada
+// GÖRÜNMEZ — `--exclude-standard` onu listelemez. Bu bilinçli: öyle bir dosya işlemeye giremez,
+// yani depoya iz bırakmaz. İzin gerçekten kaçabildiği yol zorla dizine eklenmesidir
+// (`git add -f`), o da `--cached` ile buraya düşer ve ölçüldü: test kırmızı yanıyor.
 test('ASIL KABUL: depoda anahtar/parola uzantısı taşıyan dosya yok (0)', () => {
   const dosyalar = depoDosyalari();
   assert.ok(dosyalar.length > 50, `depo listesi okunamadı (${dosyalar.length} dosya)`);
