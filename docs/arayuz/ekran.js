@@ -13,6 +13,7 @@ import { HEDEF_TURU, EYLEM, eylemKararVer, cekmeKararVer, rakipEliAcikMi } from 
 import {
   EKRAN, OLAY, ZORLUKLAR, kabukBaslat, gecis, kayitAlanlari, botTurunuOynat,
   oyunuBitirilebilirMi, onayBekliyorMu, botSirasiMi, bekleyenBotTuruGecerliMi,
+  ustCubukBaslikTarifi,
 } from './kabuk.js';
 import { kayitOku, kayitYaz } from '../kayit/depo.js';
 import { gorselOlustur, gorselleriOnYukle } from './gorseller.js';
@@ -195,10 +196,15 @@ function sonucMetni() {
 
 // Üst çubuk: başlık, dil düğmesi ve "Oyunu bitir" (tasokey#43). Düğmenin görünürlüğü kabuğa
 // sorulur (yalnız el sürerken anlamlı) — burada "şu panel kapalıysa göster" kuralı yazılmaz.
+//
+// Başlık da aynı kapıdan gelir (tasokey#45): hangi anahtarlardan kurulacağına `kabuk.js`
+// (`ustCubukBaslikTarifi`) karar verir — burada kademe adı, ayırıcı ya da sıra yazılmaz, yalnız
+// tarifteki anahtarlar çevrilir. `document.title` (sekme adı) kademeyle DEĞİŞMEZ: sekmede ürün
+// adı durur, oynanan kademe yalnız çubuğun kendisinde okunur.
 function ustCubukCiz() {
-  const baslik = metinAl('baslik');
-  eleman.baslikMetni.textContent = baslik;
-  document.title = baslik;
+  const tarif = ustCubukBaslikTarifi(durumKutu.kabuk);
+  eleman.baslikMetni.textContent = metinAl(tarif.anahtar, tarif.degerAnahtarlari.map((anahtar) => metinAl(anahtar)));
+  document.title = metinAl('baslik');
   eleman.dilDugmesi.textContent = metinAl('dilDegistir');
   eleman.oyunuBitirButonu.textContent = metinAl('oyunuBitir');
   eleman.oyunuBitirButonu.hidden = !oyunuBitirilebilirMi(durumKutu.kabuk);

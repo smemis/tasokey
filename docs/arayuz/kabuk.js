@@ -134,6 +134,20 @@ export function bekleyenBotTuruGecerliMi(kabuk, elDurumu, insanOyuncusu, bekleye
   return botSirasiMi(kabuk, elDurumu, insanOyuncusu);
 }
 
+// Üst çubuk başlığının hangi dil anahtarlarından kurulacağına karar veren TEK yer (tasokey#45):
+// `masa` ve `sonuc` ekranında oynanan kademe de başlıkta okunur ("Taş Okey — Kolay"), `baslangic`
+// ekranında düz ürün adı kalır (orada kademe zaten düğmelerde seçilidir). İki kural birden
+// yazılmasın diye karar ekran.js'te değil burada durur (ADR-016/2-3): `ekran.js` kademe adını hiç
+// yazmaz, bu tarifi çeviriciye verir.
+//
+// Ayırıcı ve sıra **koda gömülmez**: biçim `baslik.zorluklu` anahtarındadır ({0} ürün adı,
+// {1} kademe adı), kademe adı da `zorluk.<kademe>` anahtarından gelir (R-008). Burada yalnız
+// anahtar ADLARI durur — metin yok, birleştirme yok (`dil/cevir.js` işi).
+export function ustCubukBaslikTarifi(kabuk) {
+  if (kabuk.ekran === EKRAN.BASLANGIC) return { anahtar: 'baslik', degerAnahtarlari: [] };
+  return { anahtar: 'baslik.zorluklu', degerAnahtarlari: ['baslik', `zorluk.${kabuk.zorluk}`] };
+}
+
 // Kayda yazılacak alan (ADR-006 şema sürüm 2): kabuk neyi sakladığını kendisi söyler, ekran.js
 // alan adını ikinci kez yazmaz.
 export function kayitAlanlari(kabuk) {

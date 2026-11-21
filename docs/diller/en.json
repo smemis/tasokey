@@ -1,5 +1,6 @@
 {
   "baslik": "Stone Rummikub",
+  "baslik.zorluklu": "{0} — {1}",
   "yerDestesi": "Draw pile",
   "atilanYigin": "Discard",
   "gosterge": "Indicator",

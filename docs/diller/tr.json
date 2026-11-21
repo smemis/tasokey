@@ -1,10 +1,11 @@
 {
   "baslik": "Taş Okey",
+  "baslik.zorluklu": "{0} — {1}",
   "yerDestesi": "Yer destesi",
   "atilanYigin": "Atılan",
   "gosterge": "Gösterge",
   "koseYigini.adet": "{0}: {1} taş",
-  "rafim": "Rafım",
+  "rafim": "Istakam",
   "rakipAcikEl": "{0} ıstakası — {1} taş",
   "dilDegistir": "EN",
   "sira.sen": "Sıra sende — çek ya da at.",
