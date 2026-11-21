@@ -7,6 +7,13 @@
 > **v3** (`tasokey#36`, üst iş `tasokey#35`, Sahip onayı 2026-11-20): R-004 ve R-005 metinleri gerçek Klasik Okey bitiş kuralına
 > göre düzeltildi (per = seri + sayı peri · çift = iki birebir aynı taş · bitiş ya tamamen per ya tam 7 çift). Gereksinim
 > numaraları değişmedi, yeni gereksinim eklenmedi; kural kodu bu işte değişmedi. Bkz. §10 ve `GDD.md` §1 kural 6, 7, 13.
+> **Onay bekleyen fark** (`tasokey#58`, taslak `tasokey#52` §6, 2026-11-22): **Android uygulaması** (aynı `docs/` ağacını gömen
+> çevrimdışı WebView kabuğu) ürün kapsamına girsin mi? Fark §4 platform satırına, **§5.1**'e (önerilen gereksinimler
+> **R-016…R-019**, numaralar ayrıldı) ve §6 kapsam dışı satırına **"Sahip onayı bekliyor"** damgasıyla yazıldı.
+> **PRD sürümü artmadı (3)**, durum `onaylandı` kaldı: onay gelmeden Android kapsam **dışıdır**, R-016…R-019 karşılanmış
+> gereksinim sayılmaz, APK yayına çıkmaz ve `ofis/` dalı `main`e birleştirilmez. Mevcut **R-001…R-015 metinleri
+> değişmedi, gevşetilmedi**; numaralar yeniden kullanılmaz. Onaylanırsa PRD sürümü **4** olur. Bkz. §10 son satır,
+> `MIMARI.md` ADR-020 (durumu **koşullu kabul**).
 
 | Alan | Değer |
 |---|---|
@@ -35,7 +42,7 @@ Türkiye'nin kumar yasağına baştan uyumlu (gerçek para yok) sade bir Okey de
 ## 4. Platform ve kapsam özeti
 | Konu | Karar |
 |---|---|
-| Platformlar | Web tarayıcı (masaüstü + mobil tarayıcı); hangi tarayıcı/sürüm aralığı Mimar'ın işi |
+| Platformlar | Web tarayıcı (masaüstü + mobil tarayıcı); hangi tarayıcı/sürüm aralığı Mimar'ın işi. **Önerilen ek (Sahip onayı bekliyor, `tasokey#58`):** "+ **Android uygulaması**: aynı `docs/` ağacını gömen, **çevrimdışı** çalışan WebView kabuğu (`MIMARI.md` ADR-020); **iOS kapsam dışı** kalır (Mac yok)". Onay gelmeden geçerli karar bu satırın ilk cümlesidir — Android **kapsam dışıdır** (§6) |
 | Ekran yönü | Duyarlı (responsive); mobilde **yatay** oynanır, dikey yönde dil anahtarlı "telefonu çevir" uyarısı gösterilir — v1'deki "dikey öncelikli" önerisi R-014 kararıyla netleşti (bkz. §5 R-014, `GDD.md` §6) |
 | Çevrim içi / çevrim dışı | M1: çevrimdışı/yerel, yalnız bota karşı — K1 onaylı (§9 Soru 2) |
 | Diller | TR + EN (KraftDcm varsayılanı); sabit metin yok, dil anahtarından okunur |
@@ -71,6 +78,26 @@ Kilometre taşları: **M1** çekirdek (kurallar, testler; bota karşı tek el) �
 > yazılmadı** — kapsamı netleşmemiş bir karardır, bkz. §9 Soru 2. Onaylanırsa yeni numaralarla (R-011…) eklenecek bir PRD farkı
 > olur.
 
+### 5.1 Onay bekleyen gereksinim önerileri — Android uygulaması (**Sahip onayı bekliyor**)
+
+> **Damga:** bu bölümün tamamı bir **PRD farkı taslağıdır** (`tasokey#52` §6, `tasokey#58`'de yazıldı). Aşağıdaki
+> numaralar **ayrılmıştır** (başka bir gereksinime verilmez, yeniden kullanılmaz) ama **onaylanmamıştır**: §5'in onaylı
+> tablosunun parçası değiller, "Durum" sütunları `onay bekliyor`dur ve hiçbir iş bunları "karşılandı" diye
+> işaretleyemez. Onay gelmeden Android paketi **§6 kapsam dışıdır**; APK yayına çıkmaz, dal `main`e birleştirilmez.
+> Onaylanırsa bu bölüm §5 tablosuna taşınır ve PRD sürümü **4** olur. Teknik şekil `MIMARI.md` ADR-020'de
+> (durumu **koşullu kabul** — teknik karar bağlayıcı, ürün kapsamı Sahip'te).
+>
+> **Mevcut R-001…R-015 metinleri bu farkla değişmiyor ve gevşetilmiyor.** Kabukta da aynen geçerli olup davranışı
+> değişmeyenler: R-008 (sabit metin yok — kabuğun kendi TR/EN dize kaynağı var), R-009/R-014 (duyarlı düzen, telefon
+> dikey uyarısı), R-006 (bot ve kural kodu kabukta değil, dokunulmuyor).
+
+| No | Gereksinim (öneri) | Olmazsa olmaz | KT | Kabul ölçütü (nasıl ölçülür) | Durum |
+|---|---|---|---|---|---|
+| R-016 | Android uygulaması `docs/` ağacının tamamını gömülü taşır, `https://appassets.androidplatform.net/` kökünden sunar ve **çevrimdışı** çalışır: tam ekran (çentik alanı dahil), ekran yönü serbest, döndürmede süren el bozulmaz, ekran kapanmaz, yakınlaştırma kapalı, metin büyütmesi %100, ses dokunma gerektirmez | evet | M3 | APK içerik karşılaştırması (`android/dogrula.ps1`: eksik 0 / fazla 0 / boyut farkı 0) **+ cihazda deneme (Sahip)**: uçak kipinde açılıyor, döndürmede el sürüyor. Ses ayarı bugün ölçülemiyor (oyunda ses yok — `MIMARI.md` §7 risk 15) | **onay bekliyor** |
+| R-017 | Geri tuşuna basıldığında dil anahtarlı (TR/EN) "Oyundan çıkılsın mı?" sorusu çıkar; onaylanmadıkça uygulama kapanmaz | evet | M3 | Kabuk dize kaynağı öz-testi (TR/EN anahtar kümeleri birebir aynı, iki dilde farklı metin, kodda sabit metin yok) **+ cihazda deneme (Sahip)** | **onay bekliyor** |
+| R-018 | Kayıt (dil + zorluk; `MIMARI.md` ADR-006 şema 2) uygulama kapatılıp yeniden açıldığında korunur | evet | M3 | **Cihazda deneme (Sahip)**: dil/zorluk seçimi ikinci açılışta duruyor. (Ofiste ölçülebilen tek şey kökenin `file://` değil https olduğu — kalıcılığın önkoşulu) | **onay bekliyor** |
+| R-019 | İmzalı APK **internetsiz ve dış derleme sistemi olmadan** tek komutla üretilir; kimlik ve imza parametreyle verilir, depoda anahtar/parola bulunmaz; sürüm kodu ana daldaki işleme sayısıdır | evet | M3 | `apksigner verify` → "Verifies" + `derle.ps1` günlüğü (çıkış kodu 0); depo taraması: anahtar/parola izi **0** (`testler/android-apk.test.js`, her `npm test`te) | **onay bekliyor** |
+
 ## 6. Kapsam dışı
 - Gerçek para ile oynama, gerçek para karşılığı jeton/bahis satışı ya da nakde çevrilebilir herhangi bir sanal değer (bkz. §8 —
   Türkiye'de kumar yasağı kapsamına girer, sabit karar, soru değil).
@@ -79,6 +106,11 @@ Kilometre taşları: **M1** çekirdek (kurallar, testler; bota karşı tek el) �
 - Turnuva, sıralama tablosu (liderlik tablosu), arkadaş ekleme/sosyal özellikler — istenmedi.
 - Reklam ve satın alma (ilk sürüm) — KraftDcm varsayılan kararı, ileride ayrı PRD farkıyla değerlendirilir.
 - Mobil uygulama (Android/iOS native) paketi — bu iş yalnız web (tarayıcı) sürümünü kapsıyor.
+  **Önerilen değişiklik (Sahip onayı bekliyor, `tasokey#58`; taslak `tasokey#52` §6):** bu satır ikiye ayrılsın →
+  (a) **iOS** paketi kapsam dışı **kalır** (Mac yok, `ofis-sistem-rehberi.md` D-15); (b) Android **kabuğu** kapsama
+  **girer** (`tasokey#51`/`#52`, Sahip'in 2026-11-21 kararı): oyun kodu değişmeden APK'ya gömülür, mağazaya yükleme
+  yine yalnız Sahip'te. **Onay gelene kadar yukarıdaki satır yürürlüktedir** — yani Android bugün hâlâ kapsam dışıdır;
+  önerilen gereksinimler §5.1'de, teknik karar `MIMARI.md` ADR-020'de (**koşullu kabul**).
 
 ## 7. Ne zaman bitmiş sayılır? (başarı ölçütleri)
 | Ölçüt | Hedef | Nasıl ölçülür |
@@ -132,4 +164,5 @@ Kapsamı değiştiren her istek önce bir **PRD farkı** olur ve Sahip'e sorulur
 | 3 | 2026-11-20 | Bot sezgiseli ADR-018'e göre yenilendi: **R-006** durumu "açık" → **"karşılandı"**. Gereksinim metni ve ölçütü ("N bot × M el öz-testi hatasız biter") değişmedi, gevşetilmedi; yeni gereksinim yok. Kanıt: `testler/bot-dayaniklilik.test.js` (200 el, turSiniri 20 → **0**, ihlal 0) ve `testler/bot-kolay.test.js` (ADR-018 kaynak kontrolü + tohum 90007 regresyonu). `MIMARI.md` sürüm 5 | `tasokey#37` (plan: Mimar) | Geliştirici, 2026-11-20 (Denetçi kararı bekliyor) |
 | 3 | 2026-11-21 | Bot zorluk kademeleri (ADR-013, `GDD.md` §7 Soru 3 kapandı — B): **R-006**'nın kanıt sütunu güncellendi — bot artık üç kademede (kolay/orta/zor) oynuyor, dosya `docs/bot/kolay.js` → `docs/bot/bot.js`. Gereksinim metni ve ölçütü ("en az bir zorluk kademesi", "N bot × M el hatasız biter") **değişmedi, gevşetilmedi**; eklenen/çıkan gereksinim yok, PRD sürümü artmadı. Ölçüldü: kazanma oranı kolay %5,5 · orta %26,5 · zor %34,5; ihlal 0, sonlanmayan el 0. `MIMARI.md` sürüm 8, `GDD.md` v4 | `tasokey#41` (üst iş `tasokey#35`) | Geliştirici, 2026-11-21 (Denetçi kararı bekliyor) |
 | 3 | 2026-11-21 | Okey/sahte okey atmak **serbest** (ADR-008 **sürüm 2**, Sahip kararı) + insan oyuncunun joker atışında **bilgilendirme penceresi** (ADR-016 **madde 8**): `GDD.md` §1 kural 10 değişti (v5), kural `cekirdek/kural.js`'teki aynı ayarda **kapatma anahtarı** olarak duruyor. Gereksinim **metinleri değişmedi**, eklenen/çıkan gereksinim yok, **PRD sürümü artmadı** (3 kaldı): R-003'ün "kurala aykırı hamle engellenir" ölçütü gevşetilmedi — joker atmak artık kurala aykırı değil, öbür ret yolları (sıra dışı, çekmeden atma, elde olmayan taş) aynı. Etkilenen kanıt sütunu: **R-006** (kademe ölçümü yeniden yapıldı — kolay kademe artık joker de atıyor: kazanma %5,5 → **%3,5**, berabere %66 → %74; orta ve zor değişmedi, ihlal 0, sonlanmayan el 0). Ayrıca Sahip'in iki ek bilgisi: sonuç penceresindeki oyuncu taş sayıları bölümü **açılıp kapanıyor** ve pencere ilk açıldığında **kapalı**; pencere **içeriğine göre boyutlanıyor** (sabit en/boy yok) — ikisi de R-007/R-009 sunumu, yeni gereksinim değil. `MIMARI.md` sürüm 13, `GDD.md` v5 | `tasokey#50` (üst iş `tasokey#44`) | Geliştirici, 2026-11-21 (Denetçi kararı bekliyor) |
+| 3 → **4 (öneri)** | 2026-11-22 | **PRD farkı yazıldı, onay bekliyor — Android uygulaması kapsama girsin mi?** §4 platform satırına önerilen ek (Android WebView kabuğu, çevrimdışı; **iOS kapsam dışı kalır**), §6 kapsam dışı satırına önerilen ayrım (iOS dışı / Android içeri), **§5.1** yeni bölüm: önerilen gereksinimler **R-016, R-017, R-018, R-019** — numaralar **ayrıldı** ama onaylanmadı (durumları `onay bekliyor`; §5'in onaylı tablosuna girmediler). **Eklenen/çıkan onaylı gereksinim yok; R-001…R-015 metinleri değişmedi, gevşetilmedi; PRD sürümü 3 kaldı** ve onay gelmeden Android **kapsam dışıdır** (APK yayına çıkmaz, dal `main`e birleştirilmez). Teknik şekil `MIMARI.md` ADR-020 (**koşullu kabul**, sürüm 14-15); bu işte `MIMARI.md` sürüm **16** (§2/§3/§6 kabuk satırları, §7 risk 12-21). Kanıt: `android/ARACLAR.md` §4 (araç zinciri ölçüldü), `android/OKU.md` §4 (gerçek APK: eşleşen 32/32 · eksik 0 · fazla 0). Yalnız belge; `docs/`, `android/`, `testler/` kaynakları değişmedi | `tasokey#58` (üst iş `tasokey#52`; kapsam kararı Sahip, 2026-11-21) | **Sahip onayı bekliyor** |
 | 3 | 2026-11-20 | Gerçek Klasik Okey bitiş kuralı: **R-004** ve **R-005** metinleri değişti (per = seri + sayı peri · çift = iki birebir aynı taş · bitiş ya tamamen per ya tam 7 çift, karışık yok). Eklenen/çıkan gereksinim yok, numaralar değişmedi; R-004/R-005 durumu "açık" kaldı (motor işi kapatacak). `GDD.md` v3 (§1 kural 6, 7, yeni 13 ve "Kazanma / bitiş koşulu"), `ARASTIRMA.md` §2 düzeltme notu. Yalnız belge; kural kodu değişmedi | `tasokey#36` (karar: `tasokey#35`) | Sahip onayı 2026-11-20, tasokey#35 |
