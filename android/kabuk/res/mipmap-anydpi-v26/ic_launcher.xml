@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Uyarlanır simge kökü (API 26 ve üstü) — tasokey#55.
+
+  Başlatıcı iki katmanı kendi maskesiyle (daire, yuvarlatılmış kare, squircle…) keser ve
+  devinimde (parallax/pulse) birbirine göre kaydırır; bu yüzden anlam taşıyan çizim ortadaki
+  72 dp'nin, dairesel maskede 66 dp çapın içinde durur (bkz. drawable/ic_launcher_on.xml).
+
+  API 24-25 bu dosyayı okumaz; o sürümler aynı geometriden türetilmiş mipmap-*dpi/ic_launcher.png
+  dosyalarını olduğu gibi basar (android/SIMGE.md).
+
+  `monochrome` katmanı (API 33+ temalı simge) ve `ic_launcher_round` bu işin kapsamı dışıdır.
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_arka" />
+    <foreground android:drawable="@drawable/ic_launcher_on" />
+</adaptive-icon>

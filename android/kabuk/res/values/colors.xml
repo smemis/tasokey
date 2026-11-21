@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Uygulama simgesinin üç rengi (tasokey#55, üst iş tasokey#52).
+
+  TEK KAYNAK: simgenin vektör drawable'ları (drawable/ic_launcher_on.xml, ic_launcher_arka.xml)
+  yalnız @color/... ile buraya başvurur; o dosyaların içine onaltılık değer YAZILMAZ.
+
+  Değerler projenin mevcut paletinden gelir, yeni renk icat edilmez. Palet asıl kaynağı web
+  tarafındaki `docs/arayuz/stil.css` `:root`'tur (ADR-011 dilinde "tek kaynak"); Android kaynağı
+  CSS değişkeni okuyamadığı için değer burada ikinci kez yazılmak zorundadır. Kopya sessiz
+  kalmasın diye iki dosyanın EŞİTLİĞİ ölçülür (bkz. android/SIMGE.md "Ölçüm" tablosu, madde e):
+
+    simge_arka       = --masa-zemin     (koyu keçe masa zemini)
+    simge_tas_govde  = --tas-govde      (taşın fildişi gövdesi)
+    simge_rakam      = --renk-kirmizi   (4 oyun renginden biri)
+
+  Taşın çok ince kenar çizgisi (--tas-kenar-*) simgeye BİLEREK girmez: değeri CSS'te tek
+  kaynaktır ve mdpi'de kalınlığı ~0,6 px'e düşüp görünmez olur.
+-->
+<resources>
+    <color name="simge_arka">#0f3d2e</color>
+    <color name="simge_tas_govde">#ece6d6</color>
+    <color name="simge_rakam">#c0392b</color>
+</resources>

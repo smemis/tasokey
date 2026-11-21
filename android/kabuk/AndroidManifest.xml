@@ -20,12 +20,20 @@
   `uses-sdk` (en düşük / hedef Android sürümü) bu dosyada YOKTUR — ADR-020 madde 4: donmuş alan
   (R sınıfı, karar Masa'da). Derleme betiği aapt2 link adımında `--min-sdk-version` /
   `--target-sdk-version` olarak verir; depo bir sürüm numarası sabitlemez.
+
+  `android:icon` tek bir kaynak adını gösterir (`@mipmap/ic_launcher`): API 26+ bunu
+  res/mipmap-anydpi-v26/ic_launcher.xml (uyarlanır simge) olarak, API 24-25 aynı adı taşıyan
+  mipmap-*dpi/ic_launcher.png olarak çözer — simgenin iki yoğunluk yolu manifestte değil kaynak
+  adında buluşur (tasokey#55, android/SIMGE.md).
+  `android:roundIcon` YAZILMAZ: yuvarlak yedek PNG kümesi bu işin kapsamı dışıdır ve API 26+ için
+  maskeyi başlatıcı zaten uyarlanır simgeden üretir.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.kraftdcm.tasokey">
 
     <application
         android:label="@string/uygulama_adi"
+        android:icon="@mipmap/ic_launcher"
         android:theme="@style/TemaOyun"
         android:allowBackup="false"
         android:hardwareAccelerated="true"
