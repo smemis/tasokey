@@ -68,7 +68,11 @@ Seçmeli. Drive kopyasını hiç denemez (ofis denemelerinde böyle koşulur: G:
 kapsamı dışındadır).
 
 .EXAMPLE
-powershell -File android/derle.ps1 -Kimlik com.kraftdcm.tasokey -Anahtar D:\Guvenli\tasokey.jks -ParolaDosyasi D:\Guvenli\tasokey.parola
+powershell -File android/derle.ps1 -Kimlik com.kraftdcm.tasokey -Anahtar <anahtar deposu> -ParolaDosyasi <parola dosyası>
+
+Anahtarın ve parola dosyasının GERÇEK yolu burada (ve depoda hiçbir yerde) yazılı DEĞİLDİR: ikisi
+de yalnız komut satırında yaşar. Kuralı `testler/android-apk.test.js` depo taramasıyla ölçer
+(tasokey#57); bu örnek satır bir kez tam yol taşıdığı için yer tutucuya çevrildi.
 
 .EXAMPLE
 powershell -File android/derle.ps1 -Kimlik com.kraftdcm.tasokey -Anahtar gecici.jks -ParolaDosyasi gecici.parola -Deneme -DriveYok
