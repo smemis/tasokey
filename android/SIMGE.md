@@ -32,31 +32,46 @@ gövdesi tek kaynak), ADR-009 (kumar çağrışımı yok: jeton/para/zar/rulet i
 Üretici program **depoda değildir** (istek böyle): `is/tasokey-55/uretici/` içinde durur ve
 geometriyi yukarıdaki XML'lerden **okur** — kendi içine koordinat yazmaz.
 
+Depodaki PNG'ler **birincil yolla** üretildi: Unity'nin OpenJDK'sı (`AndroidPlayer\OpenJDK\bin\java.exe`,
+**17.0.9**) + Java2D + ImageIO, tek dosya kaynak başlatıcısıyla (JEP 330), penceresiz:
+
 ```
-node is/tasokey-55/uretici/simge-uret.mjs <depo-koku>
+"<AndroidPlayer>\OpenJDK\bin\java.exe" "-Djava.awt.headless=true" ^
+    is\tasokey-55\uretici\SimgeUret.java android\kabuk\res android\kabuk\res
 ```
 
-Şartnamenin birincil yolu Unity OpenJDK (`AndroidPlayer\OpenJDK\bin\java.exe`, 17.0.9) +
-Java2D/ImageIO idi. O yol **çalıştırılamadı**: `tasokey#55`'in iş manifestinde dış araç çalıştırma
-yetkisi yok (koruma kancası reddetti) — ImageIO yazıcısının çalışıp çalışmadığı hâlâ **ölçülmedi**.
-Bu yüzden şartname §5'in **yedek yolu** kullanıldı: Node v22.20.0 + `zlib`, PNG kodlayıcı elle
-(`uretici/cizim.mjs`). Ek paket yok, ağ yok. Çizim: 108 dp tuvalin ortadaki 72 dp'si, köşe
-yuvarlatma kenarın %18'i, piksel başına 4×4 örnekle kenar yumuşatma, RGBA 8 bit.
+(`<AndroidPlayer>` yolu `powershell -File android/yol-coz.ps1 -Json` ile çözülür — araç yolu
+hiçbir betiğin içine yazılmaz.) ImageIO'nun PNG yazıcısının **gerçekten var olduğu ölçüldü**
+(`com.sun.imageio.plugins.png.PNGImageWriter`); program yazıcı bulamazsa durur, sessizce yedek
+yola geçmez. Ağ yok, ek paket yok.
+
+Çizim: 108 dp tuvalin ortadaki 72 dp'si, köşe yuvarlatma kenarın %18'i, Java2D kenar yumuşatma
+(`ANTIALIAS_ON` + `STROKE_PURE`), RGBA 8 bit.
+
+**Yedek yol da duruyor ve karşılaştırıldı:** şartname §5'in yedeği (Node v22.20.0 + `zlib`, PNG
+kodlayıcı elle — `uretici/cizim.mjs`, `simge-uret.mjs`) aynı XML'den aynı şekli çiziyor. İki yolun
+çıktısı piksel piksel ölçüldü (`uretici/Karsilastir.java`): fark yalnız kenar yumuşatmada, kanal
+farkı ortalaması ≤ 1,8/255 ve farklı piksellerin oranı %2,7-10,9 (hepsi kontur pikselleri).
 
 ## 3. Üretilen dosyaların özeti (SHA-256)
 
 | Dosya | Ölçü | Bayt | SHA-256 |
 |---|---|---|---|
-| `mipmap-mdpi/ic_launcher.png` | 48×48 | 420 | `96ad5f3816e9e73ff4e750dc2a1d724e80a997298397e67edfb49c66d4096b9e` |
-| `mipmap-hdpi/ic_launcher.png` | 72×72 | 552 | `c274a9680874f41517885086b215c2958ffd46a2f8356bf21da0b9810f117ee2` |
-| `mipmap-xhdpi/ic_launcher.png` | 96×96 | 799 | `e65d61c2154ea65ff3106812b6e8a6c2e2f2e3b0361bde8fd4a50ce65e8043cc` |
-| `mipmap-xxhdpi/ic_launcher.png` | 144×144 | 1332 | `21076996b79aae5211a302f9f9569c2bf57d1be6ae60a6a44231c57f51bd6664` |
-| `mipmap-xxxhdpi/ic_launcher.png` | 192×192 | 1789 | `6bbb73db6829510f0cd57c0ef8fa048a18b3b02ebe4d5e5d22d8515ebc099be8` |
+| `mipmap-mdpi/ic_launcher.png` | 48×48 | 499 | `770ac2c0ac91180e1d8e8157005ce500c9faa688b743b466d3e9b7a14b6be759` |
+| `mipmap-hdpi/ic_launcher.png` | 72×72 | 736 | `f9637f151abc82ea906a2e1fe745df4075c02f6d488855a651555aabde3d756f` |
+| `mipmap-xhdpi/ic_launcher.png` | 96×96 | 958 | `d55564d5768b13cdb68e952da9b7f5aa826d300ec5a733898bf4f398b65c0463` |
+| `mipmap-xxhdpi/ic_launcher.png` | 144×144 | 1656 | `8fd0b8a7b7f977c85c111530650fece90026cdd9ca09182aa1065fe2665059d4` |
+| `mipmap-xxxhdpi/ic_launcher.png` | 192×192 | 2263 | `9d55059df5609108e3dbcf4b50a75a92ca754ffcd2a15d9920568b0e19c2be4e` |
 
 Bu özetler **depodaki baytların** kimliğidir (dosya elle değiştirildi mi, buradan görülür).
 Yeniden üretimde piksellerin aynı çıkması beklenir; sıkıştırılmış baytların aynı çıkması
-**zlib sürümüne bağlıdır**, yani farklı bir Node sürümünde SHA-256 değişebilir — o durumda
-karşılaştırılacak şey özet değil, ölçülen piksel ölçüsü ve görüntüdür.
+**JDK sürümüne bağlıdır** (ImageIO'nun satır filtresi seçimi ve `Deflater` sürümü), yani başka bir
+JDK'da SHA-256 değişebilir — o durumda karşılaştırılacak şey özet değil, ölçülen piksel ölçüsü ve
+görüntüdür.
+
+> PNG satır filtreleri: ImageIO **uyarlanır** filtre seçer (hepsi "filtre 0" değildir). PNG'leri
+> okuyan bir araç yazılırsa beş filtrenin hepsi çözülmelidir; "filtre 0" varsaymak sessizce çöp
+> görüntü üretir (ÖLÇÜLDÜ — `uretici/onizleme.mjs` bu yüzden düzeltildi).
 
 ## 4. Ne ölçüldü, ne ölçülmedi
 
@@ -67,14 +82,30 @@ sığması (ölçülen köşegen **65,378 dp**); `pathData` komut kısıtı; ü�
 manifestte `icon` var / `roundIcon` yok; `uygulama_adi` iki dilde `Taş Okey`. Ölçümün gerçekten
 ölçtüğü mutasyonla kanıtlandı (`is/tasokey-55/mutasyon-gunlugu.txt`).
 
-**Ölçülmedi:** `aapt2 compile` ile kaynakların derlenmesi (dış araç; izin bekliyor) ve simgenin
-**cihazda görünüşü** (APK derlenmedi, kurulmadı). Bu dosyada "başlatıcıda şöyle duruyor" denebilecek
-bir ölçüm yoktur. Görsel beğeni Sahip'tedir.
+**Kaynaklar aapt2 ile derlendi** (günlük `is/tasokey-55/aapt2-gunlugu.txt`):
+
+```
+aapt2 compile --dir android/kabuk/res -o is/tasokey-55/res-derleme.zip
+```
+
+çıkış kodu **0**, `stdout`/`stderr` **boş** (uyarı yok), 13 derlenmiş kaynak. Bu koşu gerçek bir
+kusur buldu: `values/colors.xml` ilk koşuda `xml parser error: not well-formed` ile reddedildi,
+çünkü XML **yorumunun** içinde iki tire yan yana duruyordu (`--masa-zemin` gibi CSS değişken
+adları). Aynı kusur `AndroidManifest.xml`'de de vardı (`tasokey#54`'ten kalma, `--min-sdk-version`);
+`aapt2 compile` manifesti okumadığı için o hata ancak **link** adımında çıkardı. İkisi de
+düzeltildi, dokuz XML'in iyi biçimliliği JDK ayrıştırıcısıyla ölçüldü (`uretici/XmlDenetle.java`:
+9 dosya, 0 bozuk) ve kural ölçüme bağlandı (`olcum.mjs` madde j).
+
+**XML yorumlarında iki tire yazılmaz** — bu dosyadaki bütün `.xml` kaynaklar için geçerli kuraldır.
+
+**Ölçülmedi:** simgenin **cihazda görünüşü** (APK derlenmedi, kurulmadı; `aapt2 link` çalıştırılmadı).
+Bu dosyada "başlatıcıda şöyle duruyor" denebilecek bir ölçüm yoktur. Görsel beğeni Sahip'tedir.
 
 ## 5. Değiştirmek gerekirse
 
 - **Motif/çizim değişikliği:** yalnız `ic_launcher_on.xml`'in `pathData`'sı değişir; sonra PNG'ler
-  §2'deki komutla yeniden üretilir ve bu dosyadaki özet tablosu tazelenir.
+  §2'deki komutla yeniden üretilir, bu dosyadaki özet tablosu tazelenir ve `aapt2 compile` yeniden
+  koşturulur.
 - **Renk değişikliği:** önce `docs/arayuz/stil.css` `:root` (asıl palet), sonra `colors.xml` —
   eşitliği ölçüm düşürür, yani biri unutulursa sessiz kalmaz.
 - **Yeni yoğunluk/katman** (`monochrome`, `ic_launcher_round`): bu işin kapsamı dışıdır, ayrı iş.
