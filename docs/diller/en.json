@@ -37,6 +37,13 @@
   "sonuc.dokumPerDisi": "{0} tiles in no group",
   "sonuc.dokumOkey": "{0} jokers",
   "yeniEl": "New hand",
+  "baslangic.baslik": "Welcome to Stone Rummikub",
+  "baslangic.zorluk": "Opponent bot difficulty",
+  "zorluk.kolay": "Easy",
+  "zorluk.orta": "Medium",
+  "zorluk.zor": "Hard",
+  "yeniOyun": "New game",
+  "baslangicaDon": "Start screen",
   "oyuncu.sen": "You",
   "oyuncu.bot": "Bot {0}",
   "telefonuCevir": "Rotate your phone to landscape to play."

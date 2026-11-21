@@ -37,6 +37,13 @@
   "sonuc.dokumPerDisi": "per olmayan {0} taş",
   "sonuc.dokumOkey": "{0} okey",
   "yeniEl": "Yeni el",
+  "baslangic.baslik": "Taş Okey'e hoş geldin",
+  "baslangic.zorluk": "Rakip botların zorluğu",
+  "zorluk.kolay": "Kolay",
+  "zorluk.orta": "Orta",
+  "zorluk.zor": "Zor",
+  "yeniOyun": "Yeni oyun",
+  "baslangicaDon": "Başlangıç ekranı",
   "oyuncu.sen": "Sen",
   "oyuncu.bot": "Bot {0}",
   "telefonuCevir": "Oynamak için telefonunu yatay çevir."

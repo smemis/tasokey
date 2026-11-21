@@ -7,10 +7,10 @@ import { tasOkeyMi } from '../cekirdek/dagitim.js';
 import { elBitirenTaslar, elDokumu, dokumSirasi } from '../cekirdek/cozucu.js';
 import { KURAL_VARSAYILAN } from '../cekirdek/kural.js';
 import { elSonucunuHesapla } from '../cekirdek/puan.js';
-import { botTurOyna, VARSAYILAN_KADEME } from '../bot/bot.js';
 import { cevir } from '../dil/cevir.js';
 import { surukleBagla, cekmeSurukleBagla } from './surukle.js';
 import { HEDEF_TURU, EYLEM, eylemKararVer, cekmeKararVer, rakipEliAcikMi } from './etkilesim.js';
+import { EKRAN, OLAY, ZORLUKLAR, kabukBaslat, gecis, kayitAlanlari, botTurunuOynat } from './kabuk.js';
 import { kayitOku, kayitYaz } from '../kayit/depo.js';
 import { gorselOlustur, gorselleriOnYukle } from './gorseller.js';
 import { oyuncuKenarHaritasi, oyuncununAtilanKosesi } from './yerlesim.js';
@@ -63,8 +63,17 @@ const KOSE_GORUNEN_MAKSIMUM = 3;
 // ters taş üst üste görünür; gerçek kalan sayı ayrıca sayaçta okunur.
 const DESTE_GORUNEN_MAKSIMUM = 4;
 
+// Zorluk düğmelerinin eleman adları kademe adından türetilir (ADR-016): yeni bir kademe eklenirse
+// `bot/bot.js` → `kabuk.js` ZORLUKLAR zinciri yeter, burada ikinci bir liste tutulmaz. Karşılığı
+// index.html'de `id="zorlukKolay"` … düğmeleridir.
+const ZORLUK_DUGME_ADLARI = Object.fromEntries(
+  ZORLUKLAR.map((zorluk) => [zorluk, `zorluk${zorluk[0].toUpperCase()}${zorluk.slice(1)}`]),
+);
+
 const durumKutu = {
   durum: null,
+  // Hangi ekran açık + hangi zorluk oynanıyor (arayuz/kabuk.js durum makinesi, ADR-016).
+  kabuk: null,
   diller: {},
   dilKodu: 'tr',
   rafYerlesimi: [],
@@ -372,14 +381,35 @@ function sonucKalanTaslariCiz(sonuc) {
   }
 }
 
+// Panelin görünürlüğü artık yalnız kabuğun ekranından gelir (ADR-016): "el bitti mi" sorusu
+// `elSonucunuHesapla` ile iki kez sorulmaz, geçiş `durumuIlerlet`te bir kez yapılır.
 function sonucPaneliCiz() {
-  const { durum } = durumKutu;
+  const { durum, kabuk } = durumKutu;
+  const sonucEkraninda = kabuk.ekran === EKRAN.SONUC;
+  eleman.sonucPaneli.classList.toggle('gorunur', sonucEkraninda);
+  if (!sonucEkraninda) return;
   const sonuc = elSonucunuHesapla(durum);
-  eleman.sonucPaneli.classList.toggle('gorunur', sonuc !== null);
-  if (sonuc === null) return;
   eleman.sonucMetni.textContent = sonucMetni();
-  sonucKalanTaslariCiz(sonuc);
+  if (sonuc !== null) sonucKalanTaslariCiz(sonuc);
   eleman.yeniElButonu.textContent = metinAl('yeniEl');
+  eleman.baslangicaDonButonu.textContent = metinAl('baslangicaDon');
+}
+
+// Başlangıç ekranı (ADR-016): Yeni oyun + zorluk seçimi. Seçili kademe hem görsel olarak
+// (`.etkin`) hem erişilebilir olarak (`aria-checked`) işaretlenir; metinler dil anahtarından.
+function baslangicPaneliCiz() {
+  const { kabuk } = durumKutu;
+  eleman.baslangicPaneli.classList.toggle('gorunur', kabuk.ekran === EKRAN.BASLANGIC);
+  eleman.baslangicBaslik.textContent = metinAl('baslangic.baslik');
+  eleman.zorlukBaslik.textContent = metinAl('baslangic.zorluk');
+  for (const zorluk of ZORLUKLAR) {
+    const dugme = eleman[ZORLUK_DUGME_ADLARI[zorluk]];
+    const seciliMi = kabuk.zorluk === zorluk;
+    dugme.textContent = metinAl(`zorluk.${zorluk}`);
+    dugme.classList.toggle('etkin', seciliMi);
+    dugme.setAttribute('aria-checked', String(seciliMi));
+  }
+  eleman.yeniOyunButonu.textContent = metinAl('yeniOyun');
 }
 
 // R-014: dikey/yatay geçişi CSS ortam sorgusu yönetir (stil.css `orientation: portrait`); burada
@@ -394,7 +424,17 @@ function ciz() {
   masaCiz();
   rafCiz();
   telefonUyarisiCiz();
+  baslangicPaneliCiz();
   sonucPaneliCiz();
+}
+
+// El durumunu ilerletmenin TEK kapısı (ADR-016): motor eli bitirdiyse kabuk `masa` → `sonuc`
+// geçişini burada bir kez yapar; çizim işlevleri kendi başına "el bitti mi" kararı vermez.
+function durumuIlerlet(yeniDurum) {
+  durumKutu.durum = yeniDurum;
+  if (yeniDurum.sonuc !== EL_SONUCU.SUREN) {
+    durumKutu.kabuk = gecis(durumKutu.kabuk, OLAY.EL_BITTI);
+  }
 }
 
 function cekSonucunuIsle(sonuc) {
@@ -403,7 +443,7 @@ function cekSonucunuIsle(sonuc) {
     ciz();
     return;
   }
-  durumKutu.durum = sonuc.durum;
+  durumuIlerlet(sonuc.durum);
   rafYerlesimiGuncelle(sonuc.durum.eller[INSAN_OYUNCUSU]);
   mesajGoster(null);
   ciz();
@@ -420,7 +460,7 @@ function atVeyaBitirUygula(tasId) {
     ciz();
     return;
   }
-  durumKutu.durum = sonuc.durum;
+  durumuIlerlet(sonuc.durum);
   durumKutu.secilenTasId = null;
   rafYerlesimiGuncelle(sonuc.durum.eller[INSAN_OYUNCUSU]);
   mesajGoster(null);
@@ -471,10 +511,10 @@ function kaynaktanCekUygula(kaynakTuru, kaynak) {
 }
 
 function botAdimiOyna() {
-  const { durum } = durumKutu;
-  // ADR-013: kademe adı dışarıdan verilir; bugün sabit varsayılan (orta). Oyuncuya kademe seçimi
-  // sunmak arayüz işidir (dil anahtarı + ayar kaydı gerekir), bu işin kapsamında değildi.
-  const sonuc = botTurOyna(durum, durum.sira, VARSAYILAN_KADEME);
+  const { durum, kabuk } = durumKutu;
+  // ADR-013 + ADR-016: kademe adı dışarıdan verilir ve oyuncunun başlangıç ekranındaki seçiminden
+  // gelir. Kademe adı burada YAZILMAZ — `kabuk.js` botun tek girişini kendi zorluğuyla çağırır.
+  const sonuc = botTurunuOynat(kabuk, durum, durum.sira);
   if (!sonuc.basarili) {
     // Bot her zaman geçerli hamle seçmeli (ADR-002 değişmezi); burası yalnız teşhis için.
     console.error('bot hamlesi motor tarafından reddedildi', sonuc.sebep);
@@ -482,7 +522,7 @@ function botAdimiOyna() {
     ciz();
     return;
   }
-  durumKutu.durum = sonuc.durum;
+  durumuIlerlet(sonuc.durum);
   ciz();
   if (sonuc.durum.sonuc !== EL_SONUCU.SUREN || sonuc.durum.sira === INSAN_OYUNCUSU) {
     durumKutu.botCalisiyor = false;
@@ -491,8 +531,10 @@ function botAdimiOyna() {
   setTimeout(botAdimiOyna, BOT_GECIKME_MS);
 }
 
+// Botlar yalnız masa ekranında oynar (ADR-016): başlangıç ekranı açıkken hiçbir tur işlenmez.
 function botSirasiniBaslat() {
-  const { durum } = durumKutu;
+  const { durum, kabuk } = durumKutu;
+  if (kabuk.ekran !== EKRAN.MASA) return;
   if (durum.sonuc !== EL_SONUCU.SUREN || durum.sira === INSAN_OYUNCUSU) return;
   durumKutu.botCalisiyor = true;
   setTimeout(botAdimiOyna, BOT_GECIKME_MS);
@@ -518,8 +560,37 @@ function elDurumunuSifirla(tohum) {
   durumKutu.botCalisiyor = false;
 }
 
+// Sonuç ekranındaki "Yeni el": aynı zorlukla hemen yeni el (R-010, kabuk `sonuc → masa`).
 function yeniElBaslat() {
+  durumKutu.kabuk = gecis(durumKutu.kabuk, OLAY.YENI_EL);
   elDurumunuSifirla(tohumuBelirle());
+  ciz();
+  botSirasiniBaslat();
+}
+
+// Başlangıç ekranındaki "Yeni oyun": seçilen kademeyle yeni el dağıtılır (kabuk `baslangic → masa`).
+// Dağıtımı buradan yapmak elin **seçimden sonra** kurulmasını da garanti eder.
+function yeniOyunBaslat() {
+  durumKutu.kabuk = gecis(durumKutu.kabuk, OLAY.YENI_OYUN);
+  elDurumunuSifirla(tohumuBelirle());
+  ciz();
+  botSirasiniBaslat();
+}
+
+// Sonuç ekranından başlangıç ekranına dönüş (kabuk `sonuc → baslangic`): oyuncu zorluğu
+// değiştirebilir. Masadaki el olduğu gibi kalır; "Yeni oyun"a basılınca yenisi dağıtılır.
+function baslangicaDon() {
+  durumKutu.kabuk = gecis(durumKutu.kabuk, OLAY.BASLANGICA_DON);
+  ciz();
+}
+
+// Zorluk seçimi: karar kabukta (yalnız başlangıç ekranında geçerli), kalıcılığı kayıtta
+// (ADR-006 şema sürüm 2 — seçim bir sonraki açılışta geri okunur).
+function zorlukSec(zorluk) {
+  const yeniKabuk = gecis(durumKutu.kabuk, OLAY.ZORLUK_SEC, { zorluk });
+  if (yeniKabuk === durumKutu.kabuk) return;
+  durumKutu.kabuk = yeniKabuk;
+  kayitYaz(kayitAlanlari(yeniKabuk));
   ciz();
 }
 
@@ -537,7 +608,9 @@ function elemanlariTopla() {
     'koseSolAlt', 'koseSolAltYigin', 'koseSolAltSayac',
     'koseSagAlt', 'koseSagAltYigin', 'koseSagAltSayac',
     'rafBaslik', 'raf',
-    'sonucPaneli', 'sonucMetni', 'sonucKalanTaslar', 'yeniElButonu',
+    'sonucPaneli', 'sonucMetni', 'sonucKalanTaslar', 'yeniElButonu', 'baslangicaDonButonu',
+    'baslangicPaneli', 'baslangicBaslik', 'zorlukBaslik', 'yeniOyunButonu',
+    ...Object.values(ZORLUK_DUGME_ADLARI),
   ];
   for (const id of idler) eleman[id] = document.getElementById(id);
 }
@@ -552,6 +625,11 @@ function olaylariBagla() {
   }
   eleman.dilDugmesi.addEventListener('click', dilDegistir);
   eleman.yeniElButonu.addEventListener('click', yeniElBaslat);
+  eleman.baslangicaDonButonu.addEventListener('click', baslangicaDon);
+  eleman.yeniOyunButonu.addEventListener('click', yeniOyunBaslat);
+  for (const zorluk of ZORLUKLAR) {
+    eleman[ZORLUK_DUGME_ADLARI[zorluk]].addEventListener('click', () => zorlukSec(zorluk));
+  }
   surukleBagla(eleman.raf, hedefeBirakUygula);
   cekmeSurukleBagla(eleman.masa, eleman.raf, kaynaktanCekUygula);
 }
@@ -575,7 +653,14 @@ async function baslat() {
   document.documentElement.style.setProperty('--raf-sutun-sayisi', String(RAF_SUTUN_SAYISI));
   const [diller] = await Promise.all([dilleriYukle(), gorselleriOnYukle(GORSEL_DOSYALARI)]);
   durumKutu.diller = diller;
-  durumKutu.dilKodu = kayitOku().dilKodu;
+  // Kayıt bir kez okunur: dil ve zorluk aynı kayıttan gelir (ADR-006 şema sürüm 2). Eski/bozuk
+  // kayıt sürüm denetiminde atılır, zorluk da `kabuk.js`te varsayılana düşer.
+  const kayit = kayitOku();
+  durumKutu.dilKodu = kayit.dilKodu;
+  // İlk açılış `baslangic` ekranındadır (ADR-016). El yine de dağıtılır: masa pencerenin arkasında
+  // çizilir ve çizim işlevleri boş durumla uğraşmaz; botlar `botSirasiniBaslat` ile yalnız masa
+  // ekranında, yani "Yeni oyun"dan sonra oynamaya başlar.
+  durumKutu.kabuk = kabukBaslat(kayit);
   elDurumunuSifirla(tohumuBelirle());
   olaylariBagla();
   ciz();

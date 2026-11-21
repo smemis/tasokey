@@ -69,7 +69,12 @@ iki yolda da eksik taşın yerine geçer. Elin tamamı bu iki biçimden birine b
 | Dizme/deneme | Elindeki taşları sürükleyip per/çift grupları oluşturmayı dener (yalnız görsel düzenleme, masaya açma değil) | Geçerliliği anlık doğrulamaz zorunlu değildir; bitişte tam kontrol yapar | R-004, R-005 |
 | Bitirme | Son taşını atarak "bitti" bildirir | Elin tamamının geçerli per/çift olduğunu doğrular, kazananı ilan eder | R-005, R-006 |
 | Bot turu | (Yok — bot kendi kendine oynar) | Botun elini kural motoruyla değerlendirip hamle seçer | R-006 |
-| Sonuç gösterimi | Sonuç ekranını görür, yeni el başlatabilir | Puanı hesaplar, ekrana yazar | R-007, R-010 |
+| Sonuç gösterimi | Sonuç ekranını görür, yeni el başlatabilir ya da başlangıç ekranına dönüp zorluğu değiştirebilir | Puanı hesaplar, ekrana yazar | R-007, R-010 |
+
+- **Arayüz kabuğu** (ADR-016, `tasokey#42`): ekranlar tek durum makinesine bağlıdır — `baslangic` (Yeni oyun +
+  Kolay/Orta/Zor seçimi) → `masa` (el sürüyor) → `sonuc` (el bitti) → `baslangic`; `sonuc`tan "Yeni el" ile aynı
+  zorlukla doğrudan `masa`ya dönülür. İlk açılış `baslangic` ekranındadır ve seçilen kademe o eli oynayan botların
+  kademesidir (§4 "Zorluk kademeleri"). Seçim kayıtta durur (`kayit/depo.js` şema sürüm 2: yalnız dil + zorluk).
 
 - Oyun modları: M1'de yalnız "bota karşı" (1 insan + 3 bot), bkz. `PRD.md` §9 Soru 2.
 - Tur / akış: karma → dağıtım → gösterge/okey belirleme → sırayla çek-at → biten oyuncuda el sonu → sonuç ekranı.
@@ -83,7 +88,7 @@ değildir.
 ## 4. Botlar
 | Konu | Tanım |
 |---|---|
-| Zorluk kademeleri | **Üç kademe M1'de: kolay / orta / zor** (§7 Soru 3 kapandı — B; karar Mimar/Geliştirici, `MIMARI.md` ADR-013, `tasokey#41`). Üçü aynı sezgiselin üç ayarıdır, kuralı değiştirmez: orta ADR-018 sezgiselinin kendisi, kolay zayıflatılmış (bitirme fırsatını kaçırabilir, köşeden çekmeyi çoğunlukla kullanmaz, en izole taşı her zaman seçmez), zor güçlendirilmiş (bitiren taşı çözücüyle görür, atacağı taşı elin gerçek bölümüne göre seçer). Oyuncuya kademe **seçtiren arayüz** henüz yok: oyun varsayılan kademeyi (orta) oynatır |
+| Zorluk kademeleri | **Üç kademe M1'de: kolay / orta / zor** (§7 Soru 3 kapandı — B; karar Mimar/Geliştirici, `MIMARI.md` ADR-013, `tasokey#41`). Üçü aynı sezgiselin üç ayarıdır, kuralı değiştirmez: orta ADR-018 sezgiselinin kendisi, kolay zayıflatılmış (bitirme fırsatını kaçırabilir, köşeden çekmeyi çoğunlukla kullanmaz, en izole taşı her zaman seçmez), zor güçlendirilmiş (bitiren taşı çözücüyle görür, atacağı taşı elin gerçek bölümüne göre seçer). Oyuncu kademeyi **başlangıç ekranından seçer** (ADR-016, `tasokey#42`); seçim kayıtta durur, kayıt yoksa/bozuksa varsayılan (orta) oynanır |
 | Karar yöntemi | Kural tabanlı basit sezgisel (hangi taşı çekeceği/atacağı per-çift tamamlama olasılığına göre); ayrıntılı algoritma bu v0'da tanımlı değil, Mimar/Geliştirici tamamlar → `MIMARI.md` ADR-018 (sezgisel) + ADR-013 (kademeler) |
 | Oyunla aynı kural sınıfını kullanır mı | Evet — bot ve insan oyuncu aynı saf kural motorunu (per/çift geçerlilik, bitiş kontrolü) kullanır |
 | Ölçüm | Örnek hedef: N bot × M el öz-testi hatasız biter (kesin N/M Mimar/Geliştirici belirler); değişmez: botun asla kurala aykırı hamle yapmaması. **Ölçüldü** (`tasokey#41`, kademe başına 200 el, 4 bot, sabit tohum): motorun reddettiği öneri 0 ve sonlanmayan el 0 — üç kademede de. Kademe gücü aynı dağıtımlarda kazanma oranıyla ölçülür: kolay **%5,5** · orta **%26,5** · zor **%34,5** (`testler/bot-zorluk.olcum.js`) |

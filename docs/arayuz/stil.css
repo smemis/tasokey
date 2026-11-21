@@ -550,8 +550,10 @@ html, body {
   touch-action: none;
 }
 
-/* Kalıcı pencere (sonuç; ileride başlangıç/onay pencereleri de aynı kademeyi kullanır — ADR-015):
-   masadaki hiçbir taş bu pencerenin üstüne çıkamaz. */
+/* Kalıcı pencereler (başlangıç + sonuç — ADR-015; başlangıç ekranı ADR-016, tasokey#42): ikisi de
+   aynı pencere kademesini kullanır, masadaki hiçbir taş üstlerine çıkamaz. Hangisinin görünür
+   olduğuna `arayuz/kabuk.js` durum makinesi karar verir (ekran.js yalnız `gorunur` sınıfını koyar). */
+#baslangicPaneli,
 #sonucPaneli {
   position: fixed;
   inset: 0;
@@ -562,8 +564,10 @@ html, body {
   z-index: var(--kademe-pencere);
 }
 
+#baslangicPaneli.gorunur,
 #sonucPaneli.gorunur { display: flex; }
 
+#baslangicKutusu,
 #sonucKutusu {
   background: var(--panel);
   padding: 24px 32px;
@@ -572,8 +576,57 @@ html, body {
   font-size: 1.2rem;
 }
 
-#yeniElButonu {
+/* Başlangıç kutusu: başlık, zorluk seçimi (üç düğme), Yeni oyun düğmesi — dar ekranda da
+   sığsın diye dikey akar ve ölçüler panel dolgusu değişkeninden gelir. */
+#baslangicKutusu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 90vw;
+}
+
+#baslangicKutusu h2 { margin: 0; font-size: 1.3rem; }
+
+#zorlukBaslik { font-size: 0.9rem; opacity: 0.85; }
+
+#zorlukSecimi {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.zorluk-dugmesi {
+  padding: 8px 16px;
+  font-size: 0.95rem;
+  border-radius: 6px;
+  border: 1px solid var(--metin);
+  background: transparent;
+  color: var(--metin);
+  cursor: pointer;
+}
+
+/* Seçili kademe (aria-checked ile aynı bilgi, görsel karşılığı): taşın `.secili` sınıfından ayrı
+   bir ad — orası taşın kalkma animasyonudur. */
+.zorluk-dugmesi.etkin {
+  background: #e8c547;
+  color: #1a1a1a;
+  border-color: #e8c547;
+  font-weight: 700;
+}
+
+#sonucDugmeleri {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
   margin-top: 16px;
+}
+
+#yeniOyunButonu,
+#yeniElButonu,
+#baslangicaDonButonu {
   padding: 8px 20px;
   font-size: 1rem;
   border-radius: 6px;
@@ -581,6 +634,13 @@ html, body {
   background: #e8c547;
   color: #1a1a1a;
   cursor: pointer;
+}
+
+/* İkincil eylem (başlangıca dön) birincil düğmeden ayrışsın: aynı ölçü, soluk görünüm. */
+#baslangicaDonButonu {
+  background: transparent;
+  color: var(--metin);
+  border: 1px solid var(--metin);
 }
 
 /* Duyarlı kademeler (tasokey#13, R-009) — ölçüm boyutları: 1920x1080, 1280x800,
@@ -717,6 +777,9 @@ html, body {
 @media (orientation: portrait) and (max-width: 600px) {
   #durumSatiri, #masa { display: none; }
   #telefonUyarisi { display: flex; flex: 1 1 auto; }
+  /* Başlangıç ekranı da oyun alanının parçasıdır (ADR-016): dikeyde gizlenir, yoksa ilk açılışta
+     "telefonu yan çevir" uyarısının üstünü örterdi (R-014). Telefon yatay çevrilince geri gelir. */
+  #baslangicPaneli.gorunur { display: none; }
 }
 
 #sonucKalanTaslar {

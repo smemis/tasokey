@@ -15,8 +15,9 @@
 >
 > **Sürüm 4** (`tasokey#37`, Geliştirici, 2026-11-20): ADR-017 (bitiş iki ayrı denetimin VEYA'sı; per = seri + sayı peri,
 > çift = birebir aynı taş) eklendi; karar Sahip'in (`tasokey#35`), bu iş kodu yazdı. Kaynak: `GDD.md` v3 §1 kural 6, 7, 13.
-> ADR-016 numarası kullanılmadı — 017 numarası GDD/PRD v3'te bu karara verilmişti
-> (ADR-013 o gün boştu, `tasokey#41`'de bot zorluk kademeleri kararına verildi — aşağıda §5).
+> ADR-016 numarası o gün boş bırakıldı — 017 numarası GDD/PRD v3'te bu karara verilmişti
+> (ADR-013 o gün boştu, `tasokey#41`'de bot zorluk kademeleri kararına verildi; ADR-016 `tasokey#42`'de
+> arayüz kabuğuna verildi — ikisi de aşağıda §5).
 > ADR-014 ve ADR-015 boş kalan numaralardandı: ADR-015 `tasokey#38`'de (Mimar hakemliği),
 > ADR-014 `tasokey#39`'da (Sahip'in isteği bu numarayı adlandırarak geldi) yazıldı — aşağıda §5.
 >
@@ -48,11 +49,18 @@
 > Düzeltme 2 (Denetçi bulgusu tur 2, aynı iş): ADR-013 "Seçenekler" E maddesindeki geri çekilmiş
 > "~0,5 ms" rakamı da aynı ölçümlerle (üreten komut + günlük yolu) değiştirildi; artık §7 risk 1 ile
 > aynı sayıları söylüyor.
+>
+> **Sürüm 9** (`tasokey#42`, Geliştirici uygulaması, 2026-11-21): ADR-016 (arayüz tek durum makinesine
+> bağlanır: `baslangic` → `masa` → `sonuc`; zorluk seçimi kayıt şemasında, sürüm 1 → 2) eklendi;
+> durumu **kabul**. Kaynak: Sahip'in `tasokey#42` isteği ("Başlangıç ekranı: Yeni oyun düğmesi ve
+> Kolay/Orta/Zor seçimi (ADR-016)" — numara istekte verildi) ve §7 risk 11 ("bot kademe seçimi
+> arayüzde yok"). `cekirdek/` ve `bot/` kodu değişmedi; `kural.js` ve PRD gereksinim metinleri
+> değişmedi, kayıt şeması değişti (§4).
 
 | Alan | Değer |
 |---|---|
 | Proje | `tasokey` |
-| Mimari karar sürümü | `8` (ADR-013 eklendi, Mimar/Geliştirici kararı, 2026-11-21, tasokey#41; önceki: ADR-014 sürüm 7, 2026-11-20, tasokey#39) |
+| Mimari karar sürümü | `9` (ADR-016 eklendi, Geliştirici uygulaması, 2026-11-21, tasokey#42; önceki: ADR-013 sürüm 8, 2026-11-21, tasokey#41) |
 | Bağlı PRD sürümü | `3` (`tasokey#36`, R-004/R-005 kural düzeltmesi) |
 | Profil | `kit\profiller\` içinde yok → `profil-oyun-web-taslak.md` (bu klasör; kit'e girmesi Sahip onayı ister, D-26) |
 | Hazırlayan | Mimar, 2026-11-19 |
@@ -102,19 +110,22 @@ Değerlendirilen ama önerilmeyen yollar ADR-001'in "Seçenekler" satırında.
 | `cekirdek/el.js` | El durumu, sıra, hamle doğrulama (çek/at), el sonu koşulları | dagitim, cozucu, kural | evet |
 | `cekirdek/puan.js` | El sonucu ve puan: kalan taş sayıları + oyuncu başına döküm (`dokumler`: per / çift / per olmayan / okey sayıları — `tasokey#39` ek bilgisi) | el, cozucu, kural | evet |
 | `bot/bot.js` (ADR-018 + ADR-013) | `bot/` katmanının **tek girişi**: `botTurOyna(durum, oyuncu, kademe, secenekler)`. Hangi taşı çeker / atar (sezgisel): bitiş yolunu seçer, en izole taşı atar, atılandan yalnız gerçek tamamlamada çeker. Üç zorluk kademesi (kolay/orta/zor) aynı sezgiselin üç ayarıdır (`KADEME_AYARI` tek kaynak); kolay kademenin zayıflatma zarı `karma.js`'in tohumlu üretecinden gelir, tohum durumdan türetilir. Kural sorularını `dizilim.js`/`cozucu.js`'in saf işlevlerine sorar, kendi per/çift tanımını yazmaz; hamleyi `el.js`'e onaylatır | cekirdek (dizilim, cozucu, el, kural, tas, dagitim, karma) | evet |
-| `arayuz/ekran.js` | Masa, raf, atılan taş yığını; olay bağlama | cekirdek, dil, yerlesim | hayır (DOM) |
+| `arayuz/ekran.js` | Masa, raf, atılan taş yığını; olay bağlama. Hangi panelin görünür olduğunu ve botların hangi kademeyle oynadığını kendisi karar vermez: `kabuk.js`'e sorar (ADR-016) | cekirdek, dil, yerlesim, kabuk | hayır (DOM) |
+| `arayuz/kabuk.js` (ADR-016) | Arayüz kabuğunun **tek durum makinesi**: hangi ekran açık (`baslangic` → `masa` → `sonuc` → `baslangic`) ve hangi zorluk kademesi oynanıyor. Geçişler yalnız burada tanımlı; kayıttan gelen bozuk/eski zorluk değeri burada varsayılana düşer; bot turu kabuğun zorluğuyla `bot/bot.js`'in tek girişine iletilir (`botTurunuOynat`) | bot (kademe adları) | evet |
 | `arayuz/surukle.js` | Sürükleme hareketi (Pointer Events): raftan sürükleyip rafa dizme ya da raf dışı hedefe bırakma; **desteden/köşe yığınından ıstakaya sürükleyerek çekme** (`tasokey#40`). Hangi hareketin hangi eyleme karşılık geldiğini `etkilesim.js`e sorar | ekran, etkilesim | hayır (DOM) |
 | `arayuz/yerlesim.js` (ADR-012) | Dört kenar/köşe ızgarası: sıra yönüne göre hangi oyuncunun hangi kenarda, hangi köşe yığınının hangi oyuncuya ait olduğunu hesaplar; sonucu grid-area adı olarak döner | cekirdek (kural — sıra yönü) | evet |
 | `arayuz/etkilesim.js` (ADR-010/012) | Sürükleme/dokunma **hedefinin** (deste, köşe yığını, raf konumu) ve sürüklemenin **kaynağının** (deste, köşe yığını — `cekmeKararVer`, `tasokey#40`) hangi oyun eylemine (çek/at/bitir) karşılık geldiğini saf mantıkla çözer; çekme kuralı tek yerde durur (dokunma ve sürükleme yolu aynı işlevi çağırır), hamleyi yine `cekirdek/el.js` onaylar | cekirdek, yerlesim | evet |
 | `dil/cevir.js` | Anahtar → metin; eksik anahtarda görünür hata | — | evet |
-| `kayit/depo.js` | `localStorage` sarmalayıcı + şema sürümü kontrolü | — | hayır (tarayıcı API) |
+| `kayit/depo.js` | `localStorage` sarmalayıcı + şema sürümü kontrolü (sürüm **2**, ADR-016); kayıtta duran alanların tek listesi (`ALANLAR`: dil + zorluk), şema dışı alanı okurken de yazarken de düşürür. Zorluğu **opak dize** olarak saklar — geçerliliğine `arayuz/kabuk.js` karar verir | — | hayır (tarayıcı API) |
 
 Sınır kuralı: `cekirdek/` ve `bot/` altında `document`, `window`, `localStorage`, `Math.random` **geçmez**. Bu bir öz-test ile
 ölçülür (kaynak taraması), tahminle değil (iş 1'in kabul ölçütü).
 
 ## 4. Veri ve kayıt
 
-- Tek anahtar: `tasokey.kayit` (JSON) + içinde `surum` alanı. İçerik: dil seçimi, ses açık/kapalı, (varsa) yarım kalmış el.
+- Tek anahtar: `tasokey.kayit` (JSON) + içinde `surum` alanı. İçerik (şema **sürüm 2**, ADR-016/`tasokey#42`):
+  **yalnız** `dilKodu` ve `zorluk`. Şema dışı alan (eski şemadan kalan ya da elle eklenmiş) okunmaz ve yazılmaz;
+  ses açık/kapalı ve yarım kalmış el bugün saklanmıyor (gerektiğinde şema sürümü yine yükselir).
 - Şema sürümü uyuşmazsa M1-M3'te **kayıt atılır ve yeniden başlatılır** (taşıma kodu yazılmaz; oyun yayınlanmadığı için
   taşınacak kullanıcı verisi yok). Yayından sonra kayıt şeması **donmuş alandır**: değişikliği R sınıfıdır, Masa'da yapılır.
 - Kişisel veri, çerez, sayaç, analitik **yok** (PRD §8). Dışarıya ağ isteği yok (üçüncü taraf yazı tipi/CDN dahil → ADR-007).
@@ -295,9 +306,21 @@ Sınır kuralı: `cekirdek/` ve `bot/` altında `document`, `window`, `localStor
 | Sonuçlar | Kolaylaştırır: "ne neyin üstünde" tek dosyadan okunur; `testler/yigilma-kademeleri.test.js` kaynak taramasıyla (a) kademelerin tek kaynaktan geldiğini, (b) pencere kademesinin sürüklenen taşınkinden büyük olduğunu, (c) JS'in z-index yazmadığını, (d) `stil.css`'te çıplak z-index kalmadığını doğrular → kural bir daha sessizce bozulamaz (ADR-002'nin kaynak taraması dilinin aynısı). Ölçüldü: `npm test` 264/264; 4 yatay boyutta (1920×1080, 1280×800, 1180×820, 844×390) ekran görüntüsü — `image-2.png`'deki belirti tekrar etmedi. **Zorlaştırır / bilinen sınır:** kural "pencere her zaman en üstte" olduğu için **844×390**'da sonuç penceresi, el bitince açılan üst rakibin ıstakasını tamamen örtüyor (ölçüldü, `is/tasokey-38/ekran/el-bitti-pencere-telefon-yatay.png`); o el pencere kapanmadan okunamaz. Küçük ekranda pencerenin konumu/kapatılabilirliği **ayrı iş** ve ürün kararıdır (Sahip), kademe sırası bu yüzden değiştirilmez (§7 risk 9) |
 | Etkilenen gereksinimler | — (arayüz hatası + Sahip'in ek bilgisi: el bitince rakip ıstakaları açılır). İlgili: R-011, R-015 (okunurluk) |
 
+### ADR-016: Arayüz tek durum makinesine bağlanır; zorluk seçimi kayıt şemasında
+
+| Alan | Değer |
+|---|---|
+| Tarih | 2026-11-21 · Durum: **kabul** (karar Sahip, `tasokey#42`; numara istekte verildi) |
+| Karar veren | Sahip (ürün: "Başlangıç ekranı: Yeni oyun düğmesi ve Kolay/Orta/Zor seçimi") · teknik karşılık + uygulama Geliştirici |
+| Bağlam | §7 risk 11: motor üç kademeyi (ADR-013) oynatıyordu ama `arayuz/ekran.js` sabit `VARSAYILAN_KADEME` (orta) çağırıyordu — oyuncu kolay/zor seçemiyordu. Arayüzde ayrıca "hangi ekran açık" diye bir kavram yoktu: sonuç penceresinin görünürlüğü her çizimde `elSonucunuHesapla(durum) !== null` sorusundan türetiliyordu, yani ekran kararı el durumuna gömülüydü ve üçüncü bir ekran (başlangıç) eklemenin yolu her çizim işlevine koşul dağıtmaktı. Kayıt şeması (ADR-006) yalnız dili tutuyordu; seçimin açılışlar arasında kalması için şemaya alan gerekiyordu |
+| Karar | (1) Arayüzün kabuğu **tek saf durum makinesidir**: `arayuz/kabuk.js` → `{ ekran, zorluk }`. Üç ekran: `baslangic` (Yeni oyun + zorluk seçimi), `masa` (el sürüyor), `sonuc` (el bitti). Geçişler tek kapıdan (`gecis(kabuk, olay)`): `baslangic --yeniOyun--> masa --elBitti--> sonuc --baslangicaDon--> baslangic`, ek olarak `sonuc --yeniEl--> masa` (R-010'un eski davranışı). O ekranda tanımlı olmayan olay kabuğu **değiştirmez**. (2) İlk açılış her zaman `baslangic`tır; `ekran.js` panel görünürlüğünü yalnız `kabuk.ekran`dan okur, "el bitti mi" sorusunu çizim sırasında ikinci kez sormaz (geçiş `durumuIlerlet`te bir kez yapılır). (3) Botların oynadığı kademe **oyuncunun seçimidir**: `ekran.js` kademe adı yazmaz, `kabuk.js` `botTurunuOynat(kabuk, …)` ile `bot/bot.js`'in tek girişini kabuğun zorluğuyla çağırır (ADR-013'ün "kademe adı dışarıdan verilir" kuralı korunur). Botlar yalnız `masa` ekranında oynar. (4) Zorluk kademelerinin adlarının tek kaynağı `bot/bot.js` `KADEME`'dir; `kabuk.js` kendi listesini yazmaz, `ZORLUKLAR` oradan türer ve arayüz düğme kimlikleri de bu listeden üretilir. (5) Kayıt şeması (ADR-006) **sürüm 1 → 2**: kayıtta **yalnız** `dilKodu` ve `zorluk` durur (`ALANLAR` tek liste; şema dışı alan okunmaz, yazılmaz), sürüm 1 kaydı **taşınmadan atılır** (yayın öncesi, taşınacak kullanıcı verisi yok). `kayit/depo.js` zorluğu opak dize olarak saklar — hangi değerin geçerli olduğuna `kabuk.js` `zorlukCozumle` karar verir, bozuk/eski/eksik değerde `VARSAYILAN_KADEME`'ye düşülür. (6) Başlangıç penceresi ADR-015'in `--kademe-pencere` kademesini kullanır ("ileride başlangıç/onay pencereleri" maddesinin karşılığı) ve telefon dikeyde gizlenir, yoksa R-014'ün "telefonu yan çevir" uyarısını örterdi |
+| Seçenekler | **B) Zorluk seçimini üst çubuğa bir açılır listeye koyup başlangıç ekranı yazmamak** — reddedildi: istek açıkça başlangıç ekranı istiyor, ayrıca el sürerken kademe değiştirilebilir olurdu (botların o eli hangi kademeyle oynadığı belirsizleşir). **C) Ekran kararını durum makinesi olmadan, panel başına koşulla çözmek** (`sonuc` paneli bugün olduğu gibi `elSonucunuHesapla`dan, başlangıç paneli ayrı bir bayraktan) — reddedildi: aynı karar iki-üç yere dağılır, "baslangic → masa → sonuc" çevrimi hiçbir yerde okunamaz ve DOM'suz ölçülemez. **D) Durum makinesini `cekirdek/el.js`'e eklemek** — reddedildi: hangi ekranın açık olduğu kural değil sunum bilgisidir, `cekirdek/` DOM/arayüz kavramı taşımaz (ADR-002). **E) Kademeyi kayıt yerine URL parametresinden okumak** — reddedildi: seçim açılışlar arasında kalmaz, kayıt şemasının sürümlenmesi (ADR-006) zaten bu iş için var. **F) Eski sürüm 1 kaydını taşımak (dili korumak)** — reddedildi: ADR-006 yayın öncesi taşıma kodu yazmamayı kararlaştırdı; tek kaybı dil tercihinin bir kez sıfırlanması |
+| Sonuçlar | Kolaylaştırır: ekran geçişleri tek dosyadan okunur ve DOM açmadan ölçülür (`testler/kabuk.test.js` — çevrim, geçersiz olay, zorluk kalıcılığı, seçilen kademenin botun tek girişine geçtiği casus ve gerçek bot karşılaştırmasıyla); yeni ekran (onay, ayarlar) eklemek tabloya bir satırdır. Arayüz artık kademe adı taşımadığından ADR-013'e yeni kademe eklemek arayüz değişikliği istemez. **Zorlaştırır / bilinen sınır:** (a) sürüm 1 kaydı atıldığı için oyuncunun daha önce seçtiği dil bir kez `tr`ye döner (yayın öncesi kabul); (b) el, başlangıç ekranı açıkken de dağıtılır (masa pencerenin arkasında çizilir, çizim işlevleri boş durumla uğraşmaz) — "Yeni oyun"a basılınca yeni tohumla yeniden dağıtılır, yani ilk dağıtım oynanmaz; (c) `ekran.js`in kabuğu gerçekten kullandığı (kademe adı yazmadığı, paneli kabuk ekranından okuduğu) kaynak taramasıyla ölçülür (`testler/baslangic-ekrani.test.js`), çünkü `ekran.js` DOM'suz import edilemez |
+| Etkilenen gereksinimler | R-006 (oyuncu artık kademeyi **seçiyor**; motor tarafı ADR-013'te karşılanmıştı) · R-010 (yeni el/yeni oyun) · R-008 (yeni metinler TR+EN anahtarı) · ADR-006 şema sürümü 2 · §7 risk 11 **kapandı** |
+
 ### ADR-017: Bitiş iki ayrı denetimin VEYA'sı; per = seri + sayı peri, çift = birebir aynı taş
-> Numara `GDD.md` v3 ve `PRD.md` v3'te (tasokey#36) bu kararı gösteriyordu; ADR-013 ve ADR-016 boş kaldı
-> (ADR-015 `tasokey#38`'de, ADR-014 `tasokey#39`'da yazıldı — yukarıda).
+> Numara `GDD.md` v3 ve `PRD.md` v3'te (tasokey#36) bu kararı gösteriyordu; ADR-013 ve ADR-016 o gün boştu
+> (ADR-015 `tasokey#38`'de, ADR-014 `tasokey#39`'da, ADR-013 `tasokey#41`'de, ADR-016 `tasokey#42`'de yazıldı).
 
 | Alan | Değer |
 |---|---|
@@ -351,5 +374,5 @@ uyarısı görünür, R-014).
 | 7 | `kraftdcm/tasokey` uzak deposu ve Pages ayarı ofisten görülemez; `git remote` boş (**ölçüldü**) | **Masa'da** | Sahip depoyu açar/Pages'i açar; ofis yalnız `docs/` üretir |
 | 8 | Kit'te "web oyunu" profili yok (D-26) | **eksik** | `profil-oyun-web-taslak.md` yazıldı; kit'e girmesi Sahip onayı ister (kit değişikliği) |
 | 10 | ADR-014'ün hedef payı ızgara boşluğunun yarısı olduğundan en dar kademede (`844×390`) yalnız 3 px: parmakla oynanan en küçük ekranda kazanç en az | **bilinen sınır** (ölçüldü: `--masa-bosluk: 6px`) | Masa boşluğunu/kenar paylarını telefon yatayda büyütmek ayrı düzen işidir; ölçüt gerçek dokunmayla denemedir (Sahip) |
-| 11 | Bot **kademe seçimi arayüzde yok** (ADR-013): motor üç kademeyi oynatıyor, arayüz sabit `VARSAYILAN_KADEME` (orta) çağırıyor. Oyuncu kolay/zor seçemiyor | **bilinen eksik** (tasokey#41 kapsamı bot katmanıydı) | Ayrı arayüz işi: kademe seçici + dil anahtarları (TR/EN) + kaydın `surum` şemasına seçim alanı; kabul ölçütü ekran görüntüsü + seçimin kayıttan geri okunması |
+| 11 | Bot **kademe seçimi arayüzde yok** (ADR-013): motor üç kademeyi oynatıyor, arayüz sabit `VARSAYILAN_KADEME` (orta) çağırıyor. Oyuncu kolay/zor seçemiyor | **kapandı** (ADR-016, `tasokey#42`: başlangıç ekranında Kolay/Orta/Zor seçimi, kayıt şeması sürüm 2) | Öz-test: `testler/kabuk.test.js` (seçilen kademe botun tek girişine geçiyor; zor/orta aynı durumda farklı çekiyor), `testler/kayit.test.js` (seçim kayıttan geri okunuyor), `testler/baslangic-ekrani.test.js` (arayüz kademe adı yazmıyor); ekran görüntüsü `tasokey#42` raporunda |
 | 9 | 844×390'da (telefon yatay) sonuç penceresi, el bitince açılan üst rakibin ıstakasını örtüyor; o el pencere kapanmadan okunamaz. İki istek (pencere her zaman en üstte + el bitince rakip ıstakaları açılsın) bu ölçüde çakışıyor | **Masa'da / Sahip kararı** (pencere konumu ya da kapatılabilirlik ürün kararı; ADR-015 kademe sırası değişmez) | 844×390 ekran görüntüsü: pencere açıkken üst kenar ıstakası görünür mü (bugün görünmüyor — `is/tasokey-38/ekran/el-bitti-pencere-telefon-yatay.png`) |

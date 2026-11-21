@@ -69,11 +69,28 @@
         <div id="telefonUyarisiMetni"></div>
       </div>
     </div>
+    <!-- Başlangıç ekranı (ADR-016, tasokey#42): kalıcı pencere, ilk açılışta görünür; hangi panelin
+         açık olduğuna `arayuz/kabuk.js` durum makinesi karar verir. Metinler dil anahtarından. -->
+    <div id="baslangicPaneli">
+      <div id="baslangicKutusu">
+        <h2 id="baslangicBaslik"></h2>
+        <div id="zorlukBaslik"></div>
+        <div id="zorlukSecimi" role="radiogroup" aria-labelledby="zorlukBaslik">
+          <button id="zorlukKolay" class="zorluk-dugmesi" type="button" role="radio" data-zorluk="kolay"></button>
+          <button id="zorlukOrta" class="zorluk-dugmesi" type="button" role="radio" data-zorluk="orta"></button>
+          <button id="zorlukZor" class="zorluk-dugmesi" type="button" role="radio" data-zorluk="zor"></button>
+        </div>
+        <button id="yeniOyunButonu" type="button"></button>
+      </div>
+    </div>
     <div id="sonucPaneli">
       <div id="sonucKutusu">
         <div id="sonucMetni"></div>
         <ul id="sonucKalanTaslar"></ul>
-        <button id="yeniElButonu" type="button"></button>
+        <div id="sonucDugmeleri">
+          <button id="yeniElButonu" type="button"></button>
+          <button id="baslangicaDonButonu" type="button"></button>
+        </div>
       </div>
     </div>
     <script type="module" src="arayuz/ekran.js"></script>
