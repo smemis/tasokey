@@ -10,8 +10,25 @@
 //
 // Bu dosya `*.test.js` kalıbına uymaz → `npm test` onu ayrı bir test dosyası olarak koşmaz.
 
+import { spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+
+/**
+ * `android/*.ps1` betiklerinin koşacağı kabuk: `pwsh` varsa o, yoksa Windows PowerShell —
+ * hangisinin gerçekten çalıştığı ÖLÇÜLÜR (bu makinede pwsh yok, android/ARACLAR.md §3).
+ * Windows dışında `null`; çağıran testler o zaman atlar. Tek kaynak: hem `android-yol-coz.test.js`
+ * hem `android-derle.test.js` buradan alır.
+ * @returns {string|null}
+ */
+export function kabukBul() {
+  if (process.platform !== 'win32') return null;
+  for (const aday of ['pwsh.exe', 'powershell.exe']) {
+    const deneme = spawnSync(aday, ['-NoProfile', '-Command', 'exit 7'], { encoding: 'utf8' });
+    if (!deneme.error && deneme.status === 7) return aday;
+  }
+  return null;
+}
 
 export const BUILD_TOOLS = '36.0.0';
 export const API = 36;
@@ -74,17 +91,42 @@ function cmdYaz(yol, satirlar) {
   writeFileSync(yol, `${satirlar.join('\r\n')}\r\n`, 'ascii');
 }
 
+// tasokey#56 — `android/derle.ps1`in zincirini ölçmek için sürüm basan taslak yetmiyor: araçların
+// asıl işi de YAPMASI gerekiyor (zip üret, R.java yaz, .class/.dex bırak, APK'ya girdi ekle,
+// imzala, doğrula). O davranış tek bir dağıtıcıda durur (`android-sahte-arac.js`); burada yalnız
+// onu çağıran `.cmd` sarmalayıcıları yazılır. Sürüm sorgularına da dağıtıcı cevap verir, yani
+// `yol-coz.ps1` bu ağaçta da çalışır.
+const DAVRANISLI_ARACLAR = ['aapt2', 'aapt', 'javac', 'd8', 'zipalign', 'apksigner'];
+const DAGITICI = join(import.meta.dirname, 'android-sahte-arac.js');
+
+function dagiticiTaslagi(ad) {
+  // `.cmd` ASCII yazılır (cmdYaz): ASCII dışı yol sessizce bozulup "modül bulunamadı" gibi
+  // alakasız bir hataya dönüşmesin, burada açıkça durulur.
+  for (const yol of [process.execPath, DAGITICI]) {
+    // eslint-disable-next-line no-control-regex
+    if (/[^\x00-\x7F]/.test(yol)) {
+      throw new Error(`sahte araç sarmalayıcısı ASCII dışı yol taşıyamaz: ${yol}`);
+    }
+  }
+  return ['@echo off', `"${process.execPath}" "${DAGITICI}" ${ad} %*`, 'exit /b %errorlevel%'];
+}
+
 /**
  * Sahte Unity kurulumunu `kok` altına kurar ve kökü geri verir.
  * @param {string} kok kurulacak klasör (yoksa oluşturulur)
- * @param {{yok?: string[], yolBasan?: string[], source8?: boolean, androidPlayer?: boolean}} secenekler
+ * @param {{yok?: string[], yolBasan?: string[], source8?: boolean, androidPlayer?: boolean,
+ *   davranisli?: boolean}} secenekler
  *   yok: kurulmayacak araç adları (`android.jar` da bir ad) ·
  *   yolBasan: sürüm yerine kendi tam yolunu basan araç adları ·
  *   source8: javac `-source 8` destekliyor mu ·
- *   androidPlayer: Android Build Support modülü kurulu mu
+ *   androidPlayer: Android Build Support modülü kurulu mu ·
+ *   davranisli: aapt2/aapt/javac/d8/zipalign/apksigner sürüm basmakla kalmayıp işini de yapsın
+ *   (tasokey#56; `android-sahte-arac.js`)
  */
 export function sahteUnityKur(kok, secenekler = {}) {
-  const { yok = [], yolBasan = [], source8 = true, androidPlayer = true } = secenekler;
+  const {
+    yok = [], yolBasan = [], source8 = true, androidPlayer = true, davranisli = false,
+  } = secenekler;
   mkdirSync(kok, { recursive: true });
   if (!androidPlayer) {
     mkdirSync(join(kok, 'Editor', 'Data'), { recursive: true });
@@ -114,6 +156,7 @@ export function sahteUnityKur(kok, secenekler = {}) {
   for (const [arac, dizin] of Object.entries(hedefler)) {
     if (yok.includes(arac)) continue;
     let satirlar = arac === 'javac' ? javacTaslagi(source8) : TASLAKLAR[arac];
+    if (davranisli && DAVRANISLI_ARACLAR.includes(arac)) satirlar = dagiticiTaslagi(arac);
     if (yolBasan.includes(arac)) satirlar = YOL_BASAN_TASLAK;
     cmdYaz(join(dizin, `${arac}.cmd`), satirlar);
   }

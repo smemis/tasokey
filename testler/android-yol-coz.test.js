@@ -5,7 +5,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  sahteUnityKur, BUILD_TOOLS, API, JDK_SURUM, BUNDLETOOL_SURUM, EK_API_SEVIYESI,
+  sahteUnityKur, kabukBul, BUILD_TOOLS, API, JDK_SURUM, BUNDLETOOL_SURUM, EK_API_SEVIYESI,
 } from './yardimci/android-sahte-unity.js';
 
 // tasokey#53 (üst iş tasokey#52) — `android/yol-coz.ps1` APK üreten bütün betiklerin TEK yol
@@ -25,16 +25,8 @@ const BETIK = join(KOK, 'android', 'yol-coz.ps1');
 // (bir aracın bastığı YOL içindeki sürüm dizesi sürüm sanılmamalı — aşağıdaki ilgili test).
 const UNITY_SURUM_KLASORU = '6000.3.9f1';
 
-/** Kabuk: kabul ölçütündeki `pwsh` varsa o, yoksa Windows PowerShell (hangisi varsa, ölçülür). */
-function kabukBul() {
-  if (process.platform !== 'win32') return null;
-  for (const aday of ['pwsh.exe', 'powershell.exe']) {
-    const deneme = spawnSync(aday, ['-NoProfile', '-Command', 'exit 7'], { encoding: 'utf8' });
-    if (!deneme.error && deneme.status === 7) return aday;
-  }
-  return null;
-}
-
+// Kabuk seçimi (pwsh varsa o, yoksa Windows PowerShell) `yardimci/android-sahte-unity.js`te
+// tek yerde durur: aynı seçimi `android-derle.test.js` de yapıyor (tasokey#56).
 const KABUK = kabukBul();
 const ATLA = KABUK ? false : 'PowerShell bulunamadı (betik yalnız Windows kabuğunda çalışır)';
 
