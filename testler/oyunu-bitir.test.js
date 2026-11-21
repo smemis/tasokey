@@ -4,9 +4,10 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   EKRAN, OLAY, kabukBaslat, gecis, onayBekliyorMu, oyunuBitirilebilirMi, botTurunuOynat,
+  botSirasiMi, bekleyenBotTuruGecerliMi,
 } from '../docs/arayuz/kabuk.js';
 import { KADEME } from '../docs/bot/bot.js';
-import { elBaslat } from '../docs/cekirdek/el.js';
+import { elBaslat, EL_SONUCU } from '../docs/cekirdek/el.js';
 
 // tasokey#43 — üst çubuktaki "Oyunu bitir" düğmesi (ADR-016 durum makinesinin genişlemesi; R-010).
 // İstek: düğme el sürerken ONAY ister; onaylanınca kabuk `baslangic` durumuna döner; iptal edilince
@@ -32,6 +33,9 @@ function kuralGovdesi(secici) {
   const eslesme = STIL_CSS.match(new RegExp(`${kacisli}[^{}]*\\{([^}]*)\\}`));
   return eslesme ? eslesme[1] : null;
 }
+
+/** İnsan oyuncunun sıra numarası (ekran.js INSAN_OYUNCUSU ile aynı değer). */
+const INSAN = 0;
 
 /** Masa ekranında (el sürerken) duran kabuk. */
 function masadakiKabuk(zorluk = KADEME.ORTA) {
@@ -195,16 +199,80 @@ test('kabul-c: ekran.js düğmeyi ve onay penceresini kabuk durum makinesinden o
   }
 });
 
-test('ASIL KABUL (kaynak): oyun bitirilince bekleyen bot turu uygulanmaz', () => {
-  // Bot turu zamanlayıcıyla (setTimeout) sıraya girer; oyuncu o sırada oyunu bitirirse bekleyen tur
-  // masa ekranından çıkıldıktan SONRA işlenirdi (bitirilen elin taşları başlangıç ekranının
-  // arkasında oynamaya devam ederdi). Adım, oynamadan önce kabuğun hâlâ masada olduğunu sorar.
-  const govde = EKRAN_JS.match(/function botAdimiOyna\(\)\s*\{([\s\S]*?)\n\}/);
+// --- ASIL KABUL: bekleyen bot turu oyun bitince düşer (denetçi turu 1 düzeltmesi) ---
+
+/** `botAdimiOyna`nın ateşlendiği andaki defter bilgisi (ekran.js durumKutu alanları). */
+function bekleyen({ nesil = 1, elNesli = 1, botCalisiyor = true } = {}) {
+  return { nesil, elNesli, botCalisiyor };
+}
+
+test('botSirasiMi: botlar yalnız masa ekranında, el sürerken ve sıra kendilerindeyken oynar', () => {
+  const masa = masadakiKabuk();
+  const durum = elBaslat(4343);
+  const botSirasi = { ...durum, sira: 1 };
+
+  assert.equal(botSirasiMi(masa, botSirasi, INSAN), true);
+  assert.equal(botSirasiMi(kabukBaslat(), botSirasi, INSAN), false, 'başlangıç ekranında bot oynadı');
+  assert.equal(
+    botSirasiMi(gecis(masa, OLAY.EL_BITTI), botSirasi, INSAN), false,
+    'sonuç ekranında bot oynamayı sürdürüyor',
+  );
+  assert.equal(botSirasiMi(masa, durum, INSAN), false, 'insanın sırasında bot oynuyor');
+  assert.equal(
+    botSirasiMi(masa, { ...botSirasi, sonuc: EL_SONUCU.BITTI }, INSAN), false,
+    'el bitmişken bot oynamayı sürdürüyor',
+  );
+  assert.equal(botSirasiMi(masa, null, INSAN), false, 'el kurulmadan bot oynuyor');
+});
+
+test('ASIL KABUL: "oyunu bitir → evet → yeni oyun" sırasında bekleyen tur yeni elin üstüne düşmez', () => {
+  // Bot turu zamanlayıcıyla (setTimeout) sıraya girer. Oyuncu gecikmenin ortasında oyunu bitirip
+  // hemen "Yeni oyun"a basarsa ekran yine `masa` olur: yalnız ekrana bakan bir denetim bekleyen
+  // turu geçirir ve tur, YENİ elin üstünde işlenir (yeni el `sira = 0`, yani insanla başlar →
+  // bot insanın elinden taş atardı). Çözüm: her yeni el bir "nesil"dir; bekleyen tur kendi
+  // neslini doğrular.
+  const masa = masadakiKabuk();
+  const durum = elBaslat(4343);
+  const botSirasi = { ...durum, sira: 1 };
+
+  assert.equal(
+    bekleyenBotTuruGecerliMi(masa, botSirasi, INSAN, bekleyen({ nesil: 1, elNesli: 1 })), true,
+    'kendi elinin turu da reddediliyor',
+  );
+  assert.equal(
+    bekleyenBotTuruGecerliMi(masa, botSirasi, INSAN, bekleyen({ nesil: 1, elNesli: 2 })), false,
+    'eski elin bekleyen turu yeni elde (nesil değişmiş) hâlâ işleniyor',
+  );
+  // Yeni el gerçekten insanla başlıyor: bu yüzden nesil denetimi olmasa bot insanın yerine oynardı.
+  assert.equal(durum.sira, INSAN, 'yeni el insanın sırasıyla başlamıyor — ölçüm varsayımı bozuldu');
+  assert.equal(
+    bekleyenBotTuruGecerliMi(masa, durum, INSAN, bekleyen()), false,
+    'bekleyen tur insanın sırasında da oynuyor',
+  );
+  assert.equal(
+    bekleyenBotTuruGecerliMi(masa, botSirasi, INSAN, bekleyen({ botCalisiyor: false })), false,
+    'bot sırası durdurulduktan sonra bekleyen tur hâlâ işleniyor',
+  );
+  // Onaylı çıkışın kendisi de (yeni oyun açılmadan) bekleyen turu reddeder.
+  const bitti = gecis(gecis(masa, OLAY.OYUNU_BITIR), OLAY.ONAY_EVET);
+  assert.equal(bekleyenBotTuruGecerliMi(bitti, botSirasi, INSAN, bekleyen()), false);
+});
+
+test('ASIL KABUL (kaynak): ekran.js bekleyen turu iptal ediyor ve nesli defterde tutuyor', () => {
+  const govde = EKRAN_JS.match(/function botAdimiOyna\(([^)]*)\)\s*\{([\s\S]*?)\n\}/);
   assert.ok(govde, 'ekran.js içinde botAdimiOyna bulunamadı');
+  assert.match(govde[1], /nesil/, 'bot adımı hangi elin turu olduğunu (nesil) almıyor');
   assert.match(
-    govde[1],
-    /kabuk\.ekran !== EKRAN\.MASA/,
-    'bot adımı masa ekranında olup olmadığını sormuyor',
+    govde[2],
+    /bekleyenBotTuruGecerliMi\(/,
+    'bot adımı oynamadan önce turun hâlâ geçerli olduğunu kabuğa sormuyor',
+  );
+  assert.match(EKRAN_JS, /clearTimeout\(/, 'ekran.js bekleyen bot zamanlayıcısını hiç iptal etmiyor');
+  assert.match(EKRAN_JS, /elNesli(\s*\+=\s*1|\+\+)/, 'yeni el kurulurken nesil artırılmıyor');
+  // Zamanlayıcı tek kapıdan kurulur: çıplak `setTimeout(botAdimiOyna…)` kalırsa iptal edilemez.
+  assert.ok(
+    !/setTimeout\(\s*botAdimiOyna/.test(EKRAN_JS),
+    'bot adımı zamanlayıcısı tek kapıdan (iptal edilebilir biçimde) kurulmuyor',
   );
 });
 

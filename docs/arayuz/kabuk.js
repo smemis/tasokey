@@ -13,6 +13,7 @@
 // geçerli olup olmadığına burada karar verilir (bozuk/eski kayıtta `VARSAYILAN_KADEME`'ye düşülür).
 
 import { KADEME, VARSAYILAN_KADEME, botTurOyna } from '../bot/bot.js';
+import { EL_SONUCU } from '../cekirdek/el.js';
 
 export const EKRAN = Object.freeze({
   BASLANGIC: 'baslangic',
@@ -110,6 +111,27 @@ export function gecis(kabuk, olay, veri = {}) {
   // açıkken oynamayı sürdürür ve el biterse `masa → sonuc` geçişi soruyu kapatır — iki pencere
   // birden açılmaz).
   return Object.freeze({ ...kabuk, ekran: hedef, onay: null });
+}
+
+// Botun sırası mı? (ADR-016) Üç koşul birlikte sorulur: masa ekranı açık, el hâlâ sürüyor ve sıra
+// insanda değil. Tek kapı: `ekran.js` hem bot sırasını başlatırken hem bekleyen bir tur
+// ateşlendiğinde buradan geçer — koşul iki yerde ayrı ayrı yazılmaz (ADR-016/1).
+export function botSirasiMi(kabuk, elDurumu, insanOyuncusu) {
+  if (kabuk.ekran !== EKRAN.MASA) return false;
+  if (!elDurumu || elDurumu.sonuc !== EL_SONUCU.SUREN) return false;
+  return elDurumu.sira !== insanOyuncusu;
+}
+
+// Zamanlayıcıyla sıraya girmiş bir bot turu ateşlendiğinde hâlâ geçerli mi? (tasokey#43)
+// `bekleyen.nesil` turun sıraya girdiği elin kimliği, `bekleyen.elNesli` o anda masada olan elin
+// kimliğidir: "oyunu bitir → evet → yeni oyun" sırası bekleyen tur ateşlenmeden tamamlanırsa ekran
+// yine `masa` olur, bu yüzden ekrana bakmak yetmez — eski el için hesaplanmış tur YENİ elin üstünde
+// işlenir ve yeni el insanın sırasıyla başladığından bot oyuncunun yerine oynardı.
+// `bekleyen.botCalisiyor` bot sırasının hâlâ sürdüğünü söyler (durdurulmuş sıra yeniden başlamaz).
+export function bekleyenBotTuruGecerliMi(kabuk, elDurumu, insanOyuncusu, bekleyen) {
+  if (!bekleyen.botCalisiyor) return false;
+  if (bekleyen.nesil !== bekleyen.elNesli) return false;
+  return botSirasiMi(kabuk, elDurumu, insanOyuncusu);
 }
 
 // Kayda yazılacak alan (ADR-006 şema sürüm 2): kabuk neyi sakladığını kendisi söyler, ekran.js

@@ -12,7 +12,7 @@ import { surukleBagla, cekmeSurukleBagla } from './surukle.js';
 import { HEDEF_TURU, EYLEM, eylemKararVer, cekmeKararVer, rakipEliAcikMi } from './etkilesim.js';
 import {
   EKRAN, OLAY, ZORLUKLAR, kabukBaslat, gecis, kayitAlanlari, botTurunuOynat,
-  oyunuBitirilebilirMi, onayBekliyorMu,
+  oyunuBitirilebilirMi, onayBekliyorMu, botSirasiMi, bekleyenBotTuruGecerliMi,
 } from './kabuk.js';
 import { kayitOku, kayitYaz } from '../kayit/depo.js';
 import { gorselOlustur, gorselleriOnYukle } from './gorseller.js';
@@ -83,6 +83,11 @@ const durumKutu = {
   secilenTasId: null,
   mesajAnahtari: null,
   botCalisiyor: false,
+  // Her kurulan el bir "nesil"dir (tasokey#43): zamanlayıcıyla sıraya girmiş bot turu ateşlendiğinde
+  // hangi elin turu olduğunu bu sayıyla doğrular. Sayı yalnız `elDurumunuSifirla`da artar.
+  elNesli: 0,
+  // Bekleyen bot turunun zamanlayıcı kimliği (iptal edilebilmesi için); bekleyen tur yoksa null.
+  botZamanlayici: null,
 };
 
 const eleman = {};
@@ -529,12 +534,32 @@ function kaynaktanCekUygula(kaynakTuru, kaynak) {
   eylemiUygula(cekmeKararVer(kaynakTuru, durumKutu.durum, INSAN_OYUNCUSU, kaynak));
 }
 
-function botAdimiOyna() {
+// Bekleyen bot turunu düşürür: zamanlayıcıyı iptal eder ve bot sırasını kapatır. Masadan çıkan ya
+// da yeni el kuran her yol buradan geçer (tasokey#43) — ateşlenmeyi bekleyen tur kalmaz.
+function botSirasiniDurdur() {
+  if (durumKutu.botZamanlayici !== null) {
+    clearTimeout(durumKutu.botZamanlayici);
+    durumKutu.botZamanlayici = null;
+  }
+  durumKutu.botCalisiyor = false;
+}
+
+// Bot turunu sıraya alan tek kapı: hangi elin (neslin) turu olduğunu zamanlayıcıya birlikte verir.
+function botAdiminiSiraya(nesil) {
+  durumKutu.botZamanlayici = setTimeout(() => botAdimiOyna(nesil), BOT_GECIKME_MS);
+}
+
+function botAdimiOyna(nesil) {
+  // Başka bir nesle (kapanmış bir ele) ait bekleyen tur: yeni elin defterine HİÇ dokunmadan düşer.
+  if (nesil !== durumKutu.elNesli) return;
+  durumKutu.botZamanlayici = null;
   const { durum, kabuk } = durumKutu;
-  // Bekleyen tur masa ekranından çıkıldıktan sonra işlenmez (tasokey#43): oyuncu gecikmenin
-  // ortasında "Oyunu bitir"i onaylamışsa kabuk `baslangic`e dönmüştür ve bitirilen elin taşları
-  // pencerenin arkasında oynamayı sürdüremez — botlar yalnız masa ekranında oynar (ADR-016).
-  if (kabuk.ekran !== EKRAN.MASA) {
+  // Tur, oynamadan önce hâlâ geçerli olduğunu kabuğa sorar (tasokey#43): oyuncu gecikmenin
+  // ortasında "Oyunu bitir"i onaylamış (ekran `baslangic`), hemen yeni oyun açmış (nesil değişti)
+  // ya da sıra insana geçmiş olabilir. Koşulun tek kaynağı `kabuk.js`tir (ADR-016).
+  if (!bekleyenBotTuruGecerliMi(kabuk, durum, INSAN_OYUNCUSU, {
+    nesil, elNesli: durumKutu.elNesli, botCalisiyor: durumKutu.botCalisiyor,
+  })) {
     durumKutu.botCalisiyor = false;
     return;
   }
@@ -554,16 +579,16 @@ function botAdimiOyna() {
     durumKutu.botCalisiyor = false;
     return;
   }
-  setTimeout(botAdimiOyna, BOT_GECIKME_MS);
+  botAdiminiSiraya(nesil);
 }
 
-// Botlar yalnız masa ekranında oynar (ADR-016): başlangıç ekranı açıkken hiçbir tur işlenmez.
+// Botlar yalnız masa ekranında, el sürerken ve sıra kendilerindeyken oynar (ADR-016); koşulun tek
+// kaynağı `kabuk.js` → `botSirasiMi`.
 function botSirasiniBaslat() {
   const { durum, kabuk } = durumKutu;
-  if (kabuk.ekran !== EKRAN.MASA) return;
-  if (durum.sonuc !== EL_SONUCU.SUREN || durum.sira === INSAN_OYUNCUSU) return;
+  if (!botSirasiMi(kabuk, durum, INSAN_OYUNCUSU)) return;
   durumKutu.botCalisiyor = true;
-  setTimeout(botAdimiOyna, BOT_GECIKME_MS);
+  botAdiminiSiraya(durumKutu.elNesli);
 }
 
 function dilDegistir() {
@@ -576,6 +601,10 @@ function dilDegistir() {
 // (dagitim.js `dagit` her çağrıda yeniden karar, elBaslat çağrısından gelir); dil/kayıt tercihi
 // (durumKutu.dilKodu) bu sıfırlamadan etkilenmez.
 function elDurumunuSifirla(tohum) {
+  // Yeni el = yeni nesil (tasokey#43): bekleyen bir bot turu varsa iptal edilir, iptalin
+  // kaçırıldığı durumda (zamanlayıcı tam o anda ateşlenmişse) nesil denetimi onu yine düşürür.
+  botSirasiniDurdur();
+  durumKutu.elNesli += 1;
   durumKutu.durum = elBaslat(tohum);
   durumKutu.rafYerlesimi = new Array(RAF_SLOT_SAYISI).fill(null);
   durumKutu.durum.eller[INSAN_OYUNCUSU].forEach((tas, index) => {
@@ -583,7 +612,6 @@ function elDurumunuSifirla(tohum) {
   });
   durumKutu.secilenTasId = null;
   durumKutu.mesajAnahtari = null;
-  durumKutu.botCalisiyor = false;
 }
 
 // Sonuç ekranındaki "Yeni el": aynı zorlukla hemen yeni el (R-010, kabuk `sonuc → masa`).
@@ -607,6 +635,7 @@ function yeniOyunBaslat() {
 // değiştirebilir. Masadaki el olduğu gibi kalır; "Yeni oyun"a basılınca yenisi dağıtılır.
 function baslangicaDon() {
   durumKutu.kabuk = gecis(durumKutu.kabuk, OLAY.BASLANGICA_DON);
+  botSirasiniDurdur();
   ciz();
 }
 
@@ -620,6 +649,8 @@ function oyunuBitirIste() {
 // basıp yenisi dağıtılana kadar olduğu gibi kalır (sonuç ekranından dönüşle aynı davranış).
 function oyunuBitirOnayla() {
   durumKutu.kabuk = gecis(durumKutu.kabuk, OLAY.ONAY_EVET);
+  // Masadan çıkıldı: bekleyen bot turu burada iptal edilir, "Yeni oyun"u beklemez.
+  botSirasiniDurdur();
   ciz();
 }
 
