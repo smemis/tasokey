@@ -26,13 +26,18 @@ bu yüzden kural seti `PRD.md` §9 Soru 1'dir.
 | 3 | Bir taş açılır ("gösterge"); göstergenin aynı renkte bir üst sayısı o elin "okey" (joker) taşıdır | [app.oyunmu.com](https://app.oyunmu.com/blog/okey-nasil-oynanir) | doğrulandı |
 | 4 | Sahte okey taşı, okey taşının (gösterge+1) yerini tutar; o elde her yerde okey gibi kullanılır | [app.oyunmu.com](https://app.oyunmu.com/blog/okey-nasil-oynanir) | doğrulandı |
 | 5 | Sıradaki oyuncu yerden ya da atılan taştan çeker, elinden bir taş atar | genel kurallar (çoklu kaynak) | doğrulandı |
-| 6 | Per: aynı renkte ardışık ≥3 sayı; Çift: aynı sayı farklı renkte ikili | [101okeyy.blogspot.com](http://101okeyy.blogspot.com/p/genel-kurallar.html) | doğrulandı |
+| 6 | Per: aynı renkte ardışık ≥3 sayı; Çift: aynı sayı farklı renkte ikili | [101okeyy.blogspot.com](http://101okeyy.blogspot.com/p/genel-kurallar.html) | **Sahip kararıyla düzeltildi (tasokey#35); tek kaynak, ikinci kaynakla doğrulanmadı.** Bu satır eksik ve yanlıştı: per'in ikinci biçimi (sayı peri — aynı sayının 3-4 farklı renkteki taşı) hiç yazılmamış, çift ise "aynı sayı farklı renk" diye tanımlanmıştı; doğrusu iki birebir aynı taştır. Geçerli metin `GDD.md` §1 kural 6 ve 7 |
 | 7 | Klasik Okey'de per/çift elin **sonunda** açılır; 101 Okey'de per toplamı ≥101 ya da ≥5 çift olunca **önceden** masaya açılabilir | [okeysitesi.net](https://www.okeysitesi.net/blog/klasik-okey-ile-101-okey-arasindaki-farklar) | doğrulandı (ana fark) |
-| 8 | Elini tamamlayan (tek taş atarak bitiren) oyuncu "okey/bitti" der, eli kazanır | [101okeyy.blogspot.com](http://101okeyy.blogspot.com/p/genel-kurallar.html) | doğrulandı |
+| 8 | Elini tamamlayan (tek taş atarak bitiren) oyuncu "okey/bitti" der, eli kazanır | [101okeyy.blogspot.com](http://101okeyy.blogspot.com/p/genel-kurallar.html) | **Sahip kararıyla düzeltildi (tasokey#35); tek kaynak, ikinci kaynakla doğrulanmadı.** Satırın kendisi doğru ama eksikti: "tamamlanmış el"in ne olduğu yazılmamış, bu yüzden per ile çift karışık dizilime izin verilmişti. Doğrusu: bitiş ya tamamen per ya da tam 7 çifttir, karışık olmaz (`GDD.md` §1 kural 13) |
 | 9 | Gösterge taşı kendisi çift olarak kullanılamaz | arama özeti | doğrulandı (tekrarlanan kaynak) |
 | 10 | Okey (joker) taşı atmak kurala aykırıdır; atılırsa diğer oyunculara 2 kat, elden okey atılırsa 4 kat ceza | [101buddy.com](https://101buddy.com/rehber/101-okey-kurallari-ve-cezalar) | doğrulanmadı — kaynaklar birbiriyle çelişiyor (bazı sitelerde 2x/4x, bazısında sabit 101/202/404/808 puan tablosu); kesin sayılar GDD'de "doğrulanmadı" işaretli, K1'de teyit sorulacak |
 | 11 | Puanlama örneği (bir kaynakta): normal bitiş 101/202, okey ile bitiş 404, "kafa+okey" 808 | [101buddy.com](https://101buddy.com/rehber/101-okey-kurallari-ve-cezalar) | doğrulanmadı — tek kaynak, resmî/standart bir kurul yok |
 | 12 | 2-3 kişilik okey varyantları var olduğu iddia ediliyor | arama özeti, ayrıntı bulunamadı | doğrulanmadı |
+
+> **Düzeltme notu (`tasokey#36`, karar `tasokey#35`, 2026-11-20).** Yukarıdaki 6 ve 8 numaralı satırlar tek bir blog kaynağına
+> dayanıp "doğrulandı" işaretliydi; oyunda bitirilemeyecek bir el "bitirilebilir" göründüğü için Sahip bu iki satırı düzeltti.
+> Bu iş **ağ erişimsiz** yapıldı: düzeltme Sahip'in kararına dayanır, ikinci bir kaynakla karşılaştırılmadı, bu yüzden satırlara
+> "doğrulandı" damgası vurulmadı. Geçerli kural metni artık bu dosyada değil `GDD.md` §1 (kural 6, 7, 13) ve `PRD.md` R-004/R-005'tedir.
 
 ### Kural farkları tablosu (Klasik Okey ↔ 101 Okey)
 

@@ -23,7 +23,19 @@
   --tas-rakam-ust: 11.43%;
   --tas-rakam-genislik: 64%;
   --tas-rakam-yukseklik: 55.71%;
-  --tas-rakam-font-boyutu: calc(var(--tas-yukseklik) * 0.42);
+  /* Rakam/gövde oranı tek kaynak: küçültülmüş taşlar (rakip ıstakası açıkken) da bunu kullanır. */
+  --tas-rakam-oran: 0.42;
+  --tas-rakam-font-boyutu: calc(var(--tas-yukseklik) * var(--tas-rakam-oran));
+  /* El bittiğinde açılan rakip ıstakası (Sahip ek bilgisi, 2026-11-20): taşlar kendi ölçüsünün
+     bu oranında çizilir ki 14-15 taş kenara sığsın; sütun sayıları yatay (üst) ve dikey
+     (sol/sağ) kenar için ayrı. Ölçek her duyarlı kademede kendiliğinden küçülür, çünkü taban
+     --tas-genislik/--tas-yukseklik'ten türer (tek kaynak). */
+  --rakip-acik-olcek: 0.6;
+  --rakip-acik-tas-genislik: calc(var(--tas-genislik) * var(--rakip-acik-olcek));
+  --rakip-acik-tas-yukseklik: calc(var(--tas-yukseklik) * var(--rakip-acik-olcek));
+  --rakip-acik-bosluk: 2px;
+  --rakip-acik-sutun-yatay: 8;
+  --rakip-acik-sutun-dikey: 2;
   /* Taşlar ıstakada bitişik durur (Sahip ek bilgisi, 2026-11-20): yuva arası boşluk her kademede
      sıfır, sütun sayısı 12 (ekran.js RAF_SUTUN_SAYISI). Kademe geçişlerinde yalnız --tas-genislik
      küçülür; boşluk değişkeni tek yerde kalır ki "bitişik" kuralı bir kademede kaçmasın.
@@ -50,13 +62,38 @@
   --masa-doku-olcu: 240px;
   --kose-kaydirma: 5px;
   --masa-bosluk: 24px;
+  /* Bırakma/tıklama hedef payı — TEK KAYNAK (ADR-014, tasokey#39). Köşe yığınının ve yer destesinin
+     hedef alanı, taşın görünen ölçüsünden BAĞIMSIZ olarak her yanından bu kadar genişler (aşağıda
+     .kose::after / #yerDestesi::after; taşın kendi width/height'ı değişmez). Değer masa ızgarasının
+     hücre boşluğunun YARISIDIR: komşu hücre (yandaki ıstaka paneli, kenar çubuğu, öbür köşe) o
+     boşluğun ötesinde durduğu için halka hiçbir kademede komşunun kutusuna girmez, kademe
+     değişince (--masa-bosluk küçülünce) kendiliğinden küçülür — kuralların içine sayı yazılmaz. */
+  --hedef-pay: calc(var(--masa-bosluk) / 2);
   --masa-dolgu: 16px;
   --masa-cerceve-kalinlik: 14px;
   --panel-dolgu: 16px;
   --baslik-font-boyutu: 1.1rem;
+  /* Üst çubuk düğmelerinin (dil + oyunu bitir) yazı ölçüsü — TEK KAYNAK (tasokey#43): iki düğme de
+     buradan okur, dar kademelerde yalnız bu değer küçülür, kuralların içine sayı yazılmaz. */
+  --ust-dugme-font-boyutu: 0.95rem;
   --durum-font-boyutu: 0.95rem;
   --durum-dolgu-dikey: 6px;
   --durum-dolgu-yatay: 16px;
+
+  /* Yığılma kademeleri — TEK KAYNAK (ADR-015, tasokey#38). Hiçbir kuralda çıplak z-index sayısı
+     yazılmaz; her kural buradan okur (testler/yigilma-kademeleri.test.js tarar). Sıra:
+     masa < seçili/sürüklenen taş < kalıcı pencere (sonuç, başlangıç, onay).
+     Belirti (is/tasokey-35/ekler/image-2.png): deste taşı JS'te z-index 10 alıyordu, "El bitti!"
+     penceresinin (sabit konumlu, z-index'i `auto`) üstüne boyanıp metnini örtüyordu — konumlanmış
+     ve pozitif z-index'li eleman, aynı yığılma bağlamındaki `auto` elemandan sonra boyanır.
+     --kademe-masa-pay: masa yığınlarının (köşe/deste) kendi içindeki sıra payı; yığın katmanı
+     kademe + sıra olarak hesaplanır (--yigin-sira, ekran.js), bu yüzden bir sonraki kademe paydan
+     uzakta durur. Aradaki boşluk ileride araya kademe eklenebilsin diye geniş bırakıldı. */
+  --kademe-masa: 0;
+  --kademe-masa-pay: 20;
+  --kademe-tas-secili: 100;
+  --kademe-tas-surukleniyor: 110;
+  --kademe-pencere: 300;
 }
 
 * { box-sizing: border-box; }
@@ -84,14 +121,36 @@ html, body {
   flex: 0 0 auto;
 }
 
-#ustCubuk h1 { font-size: var(--baslik-font-boyutu); margin: 0; }
+/* Başlık esnek kutuda KÜÇÜLEBİLİR olmalı (tasokey#43): üst çubukta artık iki düğme var; dar
+   kademede başlık kendi genişliğini dayatırsa (flex öğesinin varsayılan min-width'i `auto`'dur)
+   çubuğu taşırır ya da düğmeleri ekran dışına iter. min-width: 0 + tek satır + üç nokta ile başlık
+   kısalır, düğmeler her kademede yerinde kalır. */
+#ustCubuk h1 {
+  font-size: var(--baslik-font-boyutu);
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-#dilDugmesi {
+/* Düğmeler kendi ölçülerini korur (küçülmez), başlıkla aralarında sabit boşluk kalır. */
+#ustCubukEylemler {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  margin-left: 12px;
+}
+
+.ust-cubuk-dugmesi {
   background: transparent;
   color: var(--metin);
   border: 1px solid var(--metin);
   border-radius: 4px;
   padding: 4px 10px;
+  font-size: var(--ust-dugme-font-boyutu);
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -173,6 +232,9 @@ html, body {
   left: 50%;
   margin-top: calc(var(--tas-arka-yukseklik) / -2);
   margin-left: calc(var(--tas-arka-genislik) / -2);
+  /* Yığın içi sıra JS'ten yalnız --yigin-sira olarak gelir (1…DESTE_GORUNEN_MAKSIMUM); kademe
+     buradan okunur, böylece deste masa kademesinin dışına çıkamaz (ADR-015). */
+  z-index: calc(var(--kademe-masa) + var(--yigin-sira, 0));
 }
 
 .yigin-sayac {
@@ -258,6 +320,58 @@ html, body {
   background-size: 100% 100%;
 }
 
+/* El bittiğinde rakiplerin ıstakası açılır (Sahip ek bilgisi, 2026-11-20; ekran.js rakipTaslariCiz
+   + etkilesim.js rakipEliAcikMi). Taşlar AKIŞA GİRMEDEN (mutlak konum) çubuğun masa tarafına
+   serilir: el sürerken kutu boş kalır (`:empty` → gizli) ve düzen hiç kaymaz, el bitince de kenar
+   kutusu büyüyüp ızgarayı bozmaz. Kademe verilmez → masa kademesinde kalır, yani sonuç penceresinin
+   ALTINDA (ADR-015). Taşlar yalnız gösterilir: tıklanmaz (pointer-events: none). */
+.kenar-taslar {
+  position: absolute;
+  display: grid;
+  gap: var(--rakip-acik-bosluk);
+  justify-content: center;
+  pointer-events: none;
+}
+
+.kenar-taslar:empty { display: none; }
+
+/* Çubuktan uzaklık `calc(100% + boşluk)` yerine konum + kenar boşluğu olarak yazılır: calc()
+   içinde yüzde ile px toplamak tarayıcıda geçerli olsa da projenin birim denetimi (denetci-4,
+   masa-duzeni-cubuk-deste-kose.test.js) bunu riskli sayıyor — aynı sonucu veren güvenli biçim. */
+.kenar-ust .kenar-taslar {
+  top: 100%;
+  margin-top: var(--rakip-acik-bosluk);
+  left: 50%;
+  transform: translateX(-50%);
+  grid-template-columns: repeat(var(--rakip-acik-sutun-yatay), auto);
+}
+
+.kenar-sol .kenar-taslar {
+  left: 100%;
+  margin-left: var(--rakip-acik-bosluk);
+  top: 50%;
+  transform: translateY(-50%);
+  grid-template-columns: repeat(var(--rakip-acik-sutun-dikey), auto);
+}
+
+.kenar-sag .kenar-taslar {
+  right: 100%;
+  margin-right: var(--rakip-acik-bosluk);
+  top: 50%;
+  transform: translateY(-50%);
+  grid-template-columns: repeat(var(--rakip-acik-sutun-dikey), auto);
+}
+
+.kenar-taslar .tas {
+  width: var(--rakip-acik-tas-genislik);
+  height: var(--rakip-acik-tas-yukseklik);
+  cursor: default;
+}
+
+/* Rakam oranı --tas-rakam-font-boyutu'yla aynı kaynaktan (--tas-rakam-oran), yalnız taban ölçü
+   küçültülmüş taşınki. */
+.kenar-taslar .tas-rakam { font-size: calc(var(--rakip-acik-tas-yukseklik) * var(--tas-rakam-oran)); }
+
 /* Köşeler: her oyuncunun attığı taş kendi köşe yığınında durur (R-011); en üstteki taş tam
    görünür, alttakiler `arayuz/ekran.js`de satır/sütun kaydırmasıyla (translate) kısmi görünür.
    Erişilebilir adet etiketi görünen sayaçtan ayrı, köşenin aria-label'ında tutulur (ekran.js). */
@@ -278,7 +392,14 @@ html, body {
   height: var(--tas-yukseklik);
 }
 
-.kose-yigin .tas { position: absolute; left: 0; top: 0; cursor: default; }
+.kose-yigin .tas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  cursor: default;
+  /* Deste ile aynı dil: sıra JS'ten (--yigin-sira), kademe tek kaynaktan (ADR-015). */
+  z-index: calc(var(--kademe-masa) + var(--yigin-sira, 0));
+}
 
 .kose.cekilebilir .kose-yigin .tas:last-child {
   cursor: pointer;
@@ -294,6 +415,20 @@ html, body {
   width: 100%;
   height: 100%;
   opacity: 0.6;
+}
+
+/* Hedef halkası (ADR-014, tasokey#39; R-012/R-013): köşe yığını ve yer destesi, taş boyundan
+   bağımsız olarak --hedef-pay kadar daha geniş bir bırakma/tıklama hedefi taşır. Görünmezdir
+   (arka planı/çerçevesi yok) ve mutlak konumlu olduğundan düzeni kaydırmaz, taşın görünen ölçüsünü
+   değiştirmez. Sözde öğeye yapılan isabet SAHİBİNİ hedef verir: tıklama olayı yine .kose /
+   #yerDestesi'nde doğar, `document.elementFromPoint` (surukle.js) yine onları döndürür — bu yüzden
+   ne ekran.js'in olay bağlaması ne de sürükleme yolu değişir. Kademe yoktur → masa kademesinde
+   kalır (ADR-015), sonuç penceresinin altında. */
+.kose::after,
+#yerDestesi::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--hedef-pay));
 }
 
 /* Klavye yolu: odaklanabilir hedefler (köşe, yer destesi, raftaki taş — tasokey#30 R-012/R-013). */
@@ -354,7 +489,13 @@ html, body {
 .tas.mavi { color: var(--renk-mavi); }
 .tas.sari { color: var(--renk-sari); }
 
-.tas.secili { transform: translateY(-10px); box-shadow: 0 4px 10px #00000055; }
+/* Seçili taş yukarı kalkar; komşu taşların üstünde kalsın diye masa kademesinin üstüne çıkar,
+   ama kalıcı pencerenin altında kalır (ADR-015). */
+.tas.secili {
+  transform: translateY(-10px);
+  box-shadow: 0 4px 10px #00000055;
+  z-index: var(--kademe-tas-secili);
+}
 
 .tas-arka {
   width: var(--tas-arka-genislik);
@@ -413,10 +554,33 @@ html, body {
 .tas.surukleniyor {
   opacity: 0.7;
   position: relative;
-  z-index: 5;
+  z-index: var(--kademe-tas-surukleniyor);
   pointer-events: none;
 }
 
+/* Sürükleyerek çekme (tasokey#40, R-012): destenin en üst taşı kapalıdır (.tas-arka), köşeninki
+   açık taştır (.tas, yukarıdaki kural). İkisi de aynı sürükleme dilini kullanır — soluklaşır,
+   sürüklenen taş kademesine çıkar (ADR-015) ve isabet testinden çekilir ki altındaki ıstaka
+   görünsün. Konumu burada değiştirilmez: deste taşı `#yerDestesi .tas-arka` ile ortalanmış durur. */
+.tas-arka.surukleniyor {
+  opacity: 0.7;
+  z-index: var(--kademe-tas-surukleniyor);
+  pointer-events: none;
+}
+
+/* Deste ve köşe yığını artık sürükleme KAYNAĞIDIR (tasokey#40): dokunmada hareketin sayfa kaydırma
+   (pan) sayılmaması için taşla aynı davranışı alırlar (.tas touch-action: none). */
+.kose,
+#yerDestesi {
+  touch-action: none;
+}
+
+/* Kalıcı pencereler (başlangıç + sonuç + oyunu bitirme onayı — ADR-015; başlangıç ekranı ADR-016,
+   tasokey#42; onay tasokey#43): hepsi aynı pencere kademesini kullanır, masadaki hiçbir taş
+   üstlerine çıkamaz. Hangisinin görünür olduğuna `arayuz/kabuk.js` durum makinesi karar verir
+   (ekran.js yalnız `gorunur` sınıfını koyar). */
+#baslangicPaneli,
+#onayPaneli,
 #sonucPaneli {
   position: fixed;
   inset: 0;
@@ -424,11 +588,16 @@ html, body {
   display: none;
   align-items: center;
   justify-content: center;
+  z-index: var(--kademe-pencere);
 }
 
-#sonucPaneli.gorunur { display: flex; }
+#baslangicPaneli.gorunur,
+#sonucPaneli.gorunur,
+#onayPaneli.gorunur { display: flex; }
 
-#sonucKutusu {
+#baslangicKutusu,
+#sonucKutusu,
+#onayKutusu {
   background: var(--panel);
   padding: 24px 32px;
   border-radius: 10px;
@@ -436,8 +605,63 @@ html, body {
   font-size: 1.2rem;
 }
 
-#yeniElButonu {
+/* Başlangıç kutusu: başlık, zorluk seçimi (üç düğme), Yeni oyun düğmesi — dar ekranda da
+   sığsın diye dikey akar ve ölçüler panel dolgusu değişkeninden gelir. */
+#baslangicKutusu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 90vw;
+}
+
+#baslangicKutusu h2 { margin: 0; font-size: 1.3rem; }
+
+#zorlukBaslik { font-size: 0.9rem; opacity: 0.85; }
+
+#zorlukSecimi {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.zorluk-dugmesi {
+  padding: 8px 16px;
+  font-size: 0.95rem;
+  border-radius: 6px;
+  border: 1px solid var(--metin);
+  background: transparent;
+  color: var(--metin);
+  cursor: pointer;
+}
+
+/* Seçili kademe (aria-checked ile aynı bilgi, görsel karşılığı): taşın `.secili` sınıfından ayrı
+   bir ad — orası taşın kalkma animasyonudur. */
+.zorluk-dugmesi.etkin {
+  background: #e8c547;
+  color: #1a1a1a;
+  border-color: #e8c547;
+  font-weight: 700;
+}
+
+/* Onay kutusu: tek soru satırı + iki düğme; dar ekranda da sığsın diye genişliği sınırlı. */
+#onayKutusu { max-width: min(28rem, 90vw); }
+
+#sonucDugmeleri,
+#onayDugmeleri {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
   margin-top: 16px;
+}
+
+#yeniOyunButonu,
+#yeniElButonu,
+#baslangicaDonButonu,
+#onayEvetButonu,
+#onayHayirButonu {
   padding: 8px 20px;
   font-size: 1rem;
   border-radius: 6px;
@@ -445,6 +669,14 @@ html, body {
   background: #e8c547;
   color: #1a1a1a;
   cursor: pointer;
+}
+
+/* İkincil eylem (başlangıca dön, vazgeç) birincil düğmeden ayrışsın: aynı ölçü, soluk görünüm. */
+#baslangicaDonButonu,
+#onayHayirButonu {
+  background: transparent;
+  color: var(--metin);
+  border: 1px solid var(--metin);
 }
 
 /* Duyarlı kademeler (tasokey#13, R-009) — ölçüm boyutları: 1920x1080, 1280x800,
@@ -501,6 +733,7 @@ html, body {
     --rakip-raf-uzunluk: 110px;
     --rakip-raf-kalinlik: 14px;
     --baslik-font-boyutu: 1rem;
+    --ust-dugme-font-boyutu: 0.8rem;
     --durum-font-boyutu: 0.85rem;
     --durum-dolgu-dikey: 4px;
     --durum-dolgu-yatay: 10px;
@@ -523,6 +756,7 @@ html, body {
     --rakip-raf-uzunluk: 90px;
     --rakip-raf-kalinlik: 10px;
     --baslik-font-boyutu: 0.9rem;
+    --ust-dugme-font-boyutu: 0.75rem;
     --durum-font-boyutu: 0.8rem;
     --durum-dolgu-dikey: 3px;
     --durum-dolgu-yatay: 8px;
@@ -581,6 +815,12 @@ html, body {
 @media (orientation: portrait) and (max-width: 600px) {
   #durumSatiri, #masa { display: none; }
   #telefonUyarisi { display: flex; flex: 1 1 auto; }
+  /* Başlangıç ekranı ve oyunu bitirme onayı da oyun alanının parçasıdır (ADR-016): dikeyde
+     gizlenirler, yoksa "telefonu yan çevir" uyarısının üstünü örterlerdi (R-014). Telefon yatay
+     çevrilince geri gelirler — kabuğun durumu değişmediği için soru da olduğu gibi durur.
+     (İki kural ayrı yazılır: panel taramaları her pencereyi kendi seçicisiyle arar.) */
+  #baslangicPaneli.gorunur { display: none; }
+  #onayPaneli.gorunur { display: none; }
 }
 
 #sonucKalanTaslar {
@@ -590,4 +830,13 @@ html, body {
   font-size: 0.9rem;
   opacity: 0.9;
   text-align: left;
+}
+
+/* El sonu dökümü (Sahip ek bilgisi, 2026-11-20): oyuncunun kalan taş satırının altında per /
+   çift / per olmayan / okey sayıları. Metnin tamamı dil anahtarlarından gelir (ekran.js
+   dokumMetni); burada yalnız ikincil satır görünümü tanımlanır. */
+.sonuc-dokum {
+  font-size: 0.8rem;
+  opacity: 0.75;
+  margin: 0 0 6px 12px;
 }

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  HEDEF_TURU, EYLEM, ETKILESIM_RET_SEBEBI, eylemKararVer,
+  HEDEF_TURU, CEKME_KAYNAGI, EYLEM, ETKILESIM_RET_SEBEBI, eylemKararVer, cekmeKararVer,
 } from '../docs/arayuz/etkilesim.js';
 import { KOSE, oyuncununAtilanKosesi } from '../docs/arayuz/yerlesim.js';
 import { EL_SONUCU, sonrakiOyuncu, oncekiOyuncu } from '../docs/cekirdek/el.js';
@@ -94,6 +94,88 @@ test('(b) ret: zaten çekilmişken yeniden çekme (deste) denenirse zatenCekildi
   assert.equal(karar.sebep, ETKILESIM_RET_SEBEBI.ZATEN_CEKILDI);
 });
 
+// --- (e) sürükleme KAYNAĞI deste/köşe: sürükleyerek çekme (tasokey#40, R-012) ---
+// Buraya kadarki kararlar "seçili taş + HEDEF" içindi (dokunma/klavye yolu). Sürükleyerek çekmede
+// hareketin yönü terstir: kaynak deste ya da köşe yığınıdır, bırakma hedefi ıstakadır. Kural tekrar
+// yazılmadı; aynı çekme kararı tek yerde durur (bkz. aşağıdaki "tek kaynak" testi).
+
+test('(e) kabul: sürükleme kaynağı deste olduğunda cekDeste kararı çıkar', () => {
+  const durum = temelElDurumu({ cekildiMi: false });
+  const karar = cekmeKararVer(CEKME_KAYNAGI.YER_DESTESI, durum, OYUNCU);
+  assert.deepEqual(karar, { eylem: EYLEM.CEK_DESTE });
+});
+
+test('(e) kabul: sürükleme kaynağı önceki oyuncunun köşesi olduğunda cekKose kararı çıkar', () => {
+  const durum = temelElDurumu({ cekildiMi: false });
+  const karar = cekmeKararVer(CEKME_KAYNAGI.KOSE, durum, OYUNCU, { kose: CEKILEBILIR_KOSE });
+  assert.deepEqual(karar, { eylem: EYLEM.CEK_KOSE });
+});
+
+test('(e) ret: yanlış köşeden sürüklemede yanlisKose döner', () => {
+  const durum = temelElDurumu({ cekildiMi: false });
+  const karar = cekmeKararVer(CEKME_KAYNAGI.KOSE, durum, OYUNCU, { kose: YANLIS_KOSE });
+  assert.equal(karar.eylem, EYLEM.GECERSIZ);
+  assert.equal(karar.sebep, ETKILESIM_RET_SEBEBI.YANLIS_KOSE);
+});
+
+test('(e) ret: kendi atılan köşemden sürüklemede de yanlisKose döner', () => {
+  const durum = temelElDurumu({ cekildiMi: false });
+  const karar = cekmeKararVer(CEKME_KAYNAGI.KOSE, durum, OYUNCU, { kose: KENDI_ATILAN_KOSESI });
+  assert.equal(karar.eylem, EYLEM.GECERSIZ);
+  assert.equal(karar.sebep, ETKILESIM_RET_SEBEBI.YANLIS_KOSE);
+});
+
+test('(e) ret: zaten çekilmişken desteden sürüklemede zatenCekildi döner', () => {
+  const durum = temelElDurumu({ cekildiMi: true });
+  const karar = cekmeKararVer(CEKME_KAYNAGI.YER_DESTESI, durum, OYUNCU);
+  assert.equal(karar.eylem, EYLEM.GECERSIZ);
+  assert.equal(karar.sebep, ETKILESIM_RET_SEBEBI.ZATEN_CEKILDI);
+});
+
+test('(e) ret: sıra başka oyuncudayken sürükleyerek çekmede siraDegil döner', () => {
+  const durum = temelElDurumu({ cekildiMi: false, sira: sonrakiOyuncu(OYUNCU) });
+  const karar = cekmeKararVer(CEKME_KAYNAGI.YER_DESTESI, durum, OYUNCU);
+  assert.equal(karar.eylem, EYLEM.GECERSIZ);
+  assert.equal(karar.sebep, ETKILESIM_RET_SEBEBI.SIRA_DEGIL);
+});
+
+test('(e) ret: el bittiyse sürükleyerek çekmede elBitti döner', () => {
+  const durum = temelElDurumu({ cekildiMi: false, sonuc: EL_SONUCU.BITTI });
+  const karar = cekmeKararVer(CEKME_KAYNAGI.YER_DESTESI, durum, OYUNCU);
+  assert.equal(karar.eylem, EYLEM.GECERSIZ);
+  assert.equal(karar.sebep, ETKILESIM_RET_SEBEBI.EL_BITTI);
+});
+
+test('(e) ret: çekme kaynağı olmayan bir yerden (ör. ıstaka) sürüklemede çekme kararı çıkmaz', () => {
+  const durum = temelElDurumu({ cekildiMi: false });
+  const karar = cekmeKararVer('raf', durum, OYUNCU);
+  assert.equal(karar.eylem, EYLEM.GECERSIZ);
+});
+
+test('(e) tek kaynak: sürükleme yolu ile dokunma yolu her durumda AYNI çekme kararını verir', () => {
+  const durumlar = [
+    temelElDurumu({ cekildiMi: false }),
+    temelElDurumu({ cekildiMi: true }),
+    temelElDurumu({ cekildiMi: false, sira: sonrakiOyuncu(OYUNCU) }),
+    temelElDurumu({ cekildiMi: false, sonuc: EL_SONUCU.BITTI }),
+  ];
+  const koseler = [CEKILEBILIR_KOSE, KENDI_ATILAN_KOSESI, YANLIS_KOSE];
+  for (const durum of durumlar) {
+    assert.deepEqual(
+      cekmeKararVer(CEKME_KAYNAGI.YER_DESTESI, durum, OYUNCU),
+      eylemKararVer(null, HEDEF_TURU.YER_DESTESI, durum, OYUNCU),
+      'deste: sürükleme ve dokunma kararı ayrıştı',
+    );
+    for (const kose of koseler) {
+      assert.deepEqual(
+        cekmeKararVer(CEKME_KAYNAGI.KOSE, durum, OYUNCU, { kose }),
+        eylemKararVer(null, HEDEF_TURU.KOSE, durum, OYUNCU, { kose }),
+        `köşe ${kose}: sürükleme ve dokunma kararı ayrıştı`,
+      );
+    }
+  }
+});
+
 // --- (c) bitirilemez elde desteye bırakma ret ---
 
 test('(c) ret: bitirilemez elde seçili taşı desteye bırakınca "bitirilemez" döner', () => {
@@ -109,10 +191,13 @@ test('(c) ret: bitirilemez elde seçili taşı desteye bırakınca "bitirilemez"
 // --- (d) bitirilebilirde kabul ---
 
 test('(d) kabul: bitirilebilir elde doğru taşı desteye bırakınca "bitir" eylemi döner', () => {
-  // per(4) kirmizi 1-2-3-4 + çift mavi-8/sari-8: uçtaki taş (1) atılırsa kalan geçerli
-  // (el-bitiren-taslar.test.js (a) ile aynı desen).
+  // seri(4) kirmizi 1-2-3-4 + sayı peri 8 (siyah/mavi/sari): uçtaki taş (1) atılırsa kalan
+  // tamamen per olur (ADR-017; el-bitiren-taslar.test.js (a) ile aynı desen).
   const kirmizi1 = t('kirmizi', 1);
-  const el = [kirmizi1, t('kirmizi', 2), t('kirmizi', 3), t('kirmizi', 4), t('mavi', 8), t('sari', 8)];
+  const el = [
+    kirmizi1, t('kirmizi', 2), t('kirmizi', 3), t('kirmizi', 4),
+    t('siyah', 8), t('mavi', 8), t('sari', 8),
+  ];
   const durum = temelElDurumu({ cekildiMi: true, eller: [el, [], [], []] });
   const karar = eylemKararVer(kirmizi1.id, HEDEF_TURU.YER_DESTESI, durum, OYUNCU);
   assert.deepEqual(karar, { eylem: EYLEM.BITIR, tasId: kirmizi1.id });
@@ -120,7 +205,10 @@ test('(d) kabul: bitirilebilir elde doğru taşı desteye bırakınca "bitir" ey
 
 test('(d) ret: aynı bitirilebilir elde ortadaki (yanlış) taş bırakılırsa bitirilemez döner', () => {
   const kirmizi2 = t('kirmizi', 2);
-  const el = [t('kirmizi', 1), kirmizi2, t('kirmizi', 3), t('kirmizi', 4), t('mavi', 8), t('sari', 8)];
+  const el = [
+    t('kirmizi', 1), kirmizi2, t('kirmizi', 3), t('kirmizi', 4),
+    t('siyah', 8), t('mavi', 8), t('sari', 8),
+  ];
   const durum = temelElDurumu({ cekildiMi: true, eller: [el, [], [], []] });
   const karar = eylemKararVer(kirmizi2.id, HEDEF_TURU.YER_DESTESI, durum, OYUNCU);
   assert.equal(karar.eylem, EYLEM.GECERSIZ);

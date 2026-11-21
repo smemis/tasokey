@@ -32,7 +32,7 @@ export const EL_SONUCU = Object.freeze({
 export const VARSAYILAN_MAKSIMUM_TUR = 500;
 
 // Sıra her zaman bu iki fonksiyondan geçer (ADR-010): el.js içindeki ileri/geri sıra hesabı
-// ve bot/kolay.js'in "önceki oyuncunun yığını" seçimi aynı tek kaynağı kullanır.
+// ve bot/bot.js'in "önceki oyuncunun yığını" seçimi aynı tek kaynağı kullanır.
 export function sonrakiOyuncu(oyuncu) {
   return (oyuncu + 1) % OYUNCU_SAYISI;
 }

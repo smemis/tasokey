@@ -8,9 +8,15 @@
   </head>
   <body>
     <div id="uygulama">
+      <!-- Üst çubuk: başlık + eylem düğmeleri (tasokey#43). Düğmeler ayrı bir kutuda durur ki
+           başlık dar kademede kısalsın, düğmeleri itmesin (stil.css #ustCubuk h1 / #ustCubukEylemler).
+           "Oyunu bitir" yalnız el sürerken görünür; kararı `arayuz/kabuk.js` verir (ADR-016). -->
       <div id="ustCubuk">
         <h1 id="baslikMetni"></h1>
-        <button id="dilDugmesi" type="button"></button>
+        <div id="ustCubukEylemler">
+          <button id="oyunuBitirButonu" class="ust-cubuk-dugmesi" type="button" hidden></button>
+          <button id="dilDugmesi" class="ust-cubuk-dugmesi" type="button"></button>
+        </div>
       </div>
       <div id="durumSatiri"></div>
       <div id="masa">
@@ -21,6 +27,7 @@
         <div id="kenarUst" class="kenar kenar-ust">
           <div class="kenar-ad" id="kenarUstAd"></div>
           <div class="kenar-raf-yatay" aria-hidden="true"></div>
+          <div class="kenar-taslar" id="kenarUstTaslar"></div>
         </div>
         <div id="koseSagUst" class="kose" data-kose="sagUst" tabindex="0" role="button">
           <div class="kose-yigin" id="koseSagUstYigin"></div>
@@ -30,6 +37,7 @@
         <div id="kenarSol" class="kenar kenar-sol">
           <div class="kenar-ad" id="kenarSolAd"></div>
           <div class="kenar-raf-dikey" aria-hidden="true"></div>
+          <div class="kenar-taslar" id="kenarSolTaslar"></div>
         </div>
         <div id="merkez">
           <div class="yigin">
@@ -46,6 +54,7 @@
         <div id="kenarSag" class="kenar kenar-sag">
           <div class="kenar-ad" id="kenarSagAd"></div>
           <div class="kenar-raf-dikey" aria-hidden="true"></div>
+          <div class="kenar-taslar" id="kenarSagTaslar"></div>
         </div>
 
         <div id="koseSolAlt" class="kose" data-kose="solAlt" tabindex="0" role="button">
@@ -66,11 +75,40 @@
         <div id="telefonUyarisiMetni"></div>
       </div>
     </div>
+    <!-- Başlangıç ekranı (ADR-016, tasokey#42): kalıcı pencere, ilk açılışta görünür; hangi panelin
+         açık olduğuna `arayuz/kabuk.js` durum makinesi karar verir. Metinler dil anahtarından. -->
+    <div id="baslangicPaneli">
+      <div id="baslangicKutusu">
+        <h2 id="baslangicBaslik"></h2>
+        <div id="zorlukBaslik"></div>
+        <div id="zorlukSecimi" role="radiogroup" aria-labelledby="zorlukBaslik">
+          <button id="zorlukKolay" class="zorluk-dugmesi" type="button" role="radio" data-zorluk="kolay"></button>
+          <button id="zorlukOrta" class="zorluk-dugmesi" type="button" role="radio" data-zorluk="orta"></button>
+          <button id="zorlukZor" class="zorluk-dugmesi" type="button" role="radio" data-zorluk="zor"></button>
+        </div>
+        <button id="yeniOyunButonu" type="button"></button>
+      </div>
+    </div>
     <div id="sonucPaneli">
       <div id="sonucKutusu">
         <div id="sonucMetni"></div>
         <ul id="sonucKalanTaslar"></ul>
-        <button id="yeniElButonu" type="button"></button>
+        <div id="sonucDugmeleri">
+          <button id="yeniElButonu" type="button"></button>
+          <button id="baslangicaDonButonu" type="button"></button>
+        </div>
+      </div>
+    </div>
+    <!-- Oyunu bitirme onayı (tasokey#43): üst çubuktaki düğme el sürerken bu pencereyi açar; hangi
+         pencerenin açık olduğuna yine `arayuz/kabuk.js` karar verir (kabuk.onay). Metinler dil
+         anahtarından; vazgeçilince kabuk masada kalır ve el bozulmaz. -->
+    <div id="onayPaneli" role="dialog" aria-modal="true" aria-labelledby="onayMetni">
+      <div id="onayKutusu">
+        <div id="onayMetni"></div>
+        <div id="onayDugmeleri">
+          <button id="onayEvetButonu" type="button"></button>
+          <button id="onayHayirButonu" type="button"></button>
+        </div>
       </div>
     </div>
     <script type="module" src="arayuz/ekran.js"></script>

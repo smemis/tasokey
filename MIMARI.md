@@ -12,12 +12,65 @@
 > Kaynak: `GDD.md` §6 "Bulgu" (tasokey#22), `PRD.md` R-011/R-012/R-014/R-015, `STIL.md` §4-5, `docs/gorsel/tas-01.svg`
 > (ölçüldü: rakam şu an sabit SVG `<path>`, gerçek yazı tipi glifi değil). Bu iş yalnız belge; `arayuz/`, `cekirdek/` kodu
 > değişmedi.
+>
+> **Sürüm 4** (`tasokey#37`, Geliştirici, 2026-11-20): ADR-017 (bitiş iki ayrı denetimin VEYA'sı; per = seri + sayı peri,
+> çift = birebir aynı taş) eklendi; karar Sahip'in (`tasokey#35`), bu iş kodu yazdı. Kaynak: `GDD.md` v3 §1 kural 6, 7, 13.
+> ADR-016 numarası o gün boş bırakıldı — 017 numarası GDD/PRD v3'te bu karara verilmişti
+> (ADR-013 o gün boştu, `tasokey#41`'de bot zorluk kademeleri kararına verildi; ADR-016 `tasokey#42`'de
+> arayüz kabuğuna verildi — ikisi de aşağıda §5).
+> ADR-014 ve ADR-015 boş kalan numaralardandı: ADR-015 `tasokey#38`'de (Mimar hakemliği),
+> ADR-014 `tasokey#39`'da (Sahip'in isteği bu numarayı adlandırarak geldi) yazıldı — aşağıda §5.
+>
+> **Sürüm 5** (`tasokey#37`, Mimar kararı + Geliştirici uygulaması, 2026-11-20): ADR-018 (bot kuralı kopyalamaz,
+> `cekirdek`'e sorar; el sonlanması sezgisele bağlı değildir) eklendi; durumu **kabul** (karar veren Mimar-K2).
+> Kaynak: ADR-017'nin ölçülen yan etkisi (200 elin 20'si sonlanmıyordu) ve `GDD.md` §4 "Karar yöntemi"nin
+> Mimar/Geliştirici'ye bıraktığı algoritma ayrıntısı. `GDD.md`, `PRD.md` gereksinim metinleri ve `kural.js` değişmedi.
+>
+> **Sürüm 6** (`tasokey#38`, Mimar kararı + Geliştirici uygulaması, 2026-11-20): ADR-015 (yığılma kademeleri tek
+> kaynak, kalıcı pencere her zaman en üstte) eklendi; durumu **kabul** (karar veren Mimar-K2). Kaynak: Sahip'in
+> `tasokey#38` isteği ("sonuç penceresi her zaman en üstte") ve belirti görüntüsü `is/tasokey-35/ekler/image-2.png`.
+> Karar `tasokey#38`'de uygulanmıştı ama belgeye yazılmamıştı (Denetçi "güncel mimari karara uyuyor mu" maddesini
+> bu yüzden ölçemedi); bu sürüm yalnız belge + yeni ADR atıf taraması testidir, `docs/` kodu değişmedi.
+>
+> **Sürüm 7** (`tasokey#39`, Sahip'in isteği + Geliştirici uygulaması, 2026-11-20): ADR-014 (bırakma/tıklama
+> hedef alanı taş ölçüsünden bağımsız, tek değişkenden) eklendi; durumu **kabul**. Kaynak: Sahip'in `tasokey#39`
+> isteği ("Taş atma ve çekme hedef alanları büyütülsün (ADR-014)") — numara istekte verildi.
+> Aynı işin ek bilgileri (el bitince rakip ıstakasının **dizili** açılması, sonuç penceresinde per / çift /
+> per olmayan / okey sayılarının **ayrı** yazılması) arayüz-sunum ayrıntısıdır, ADR gerektirmedi; karşılığı
+> `cekirdek/cozucu.js` `elDokumu` saf işlevidir (§3).
+>
+> **Sürüm 8** (`tasokey#41`, Mimar/Geliştirici kararı + uygulama, 2026-11-21): ADR-013 (bot zorluk
+> kademeleri aynı sezgiselin üç ayarıdır; `bot/` tek girişten oynar) eklendi; durumu **kabul**.
+> Kaynak: `GDD.md` §7 Soru 3'ün kararı açıkça Mimar/Geliştirici'ye bırakması ve `tasokey#41`
+> isteği. `GDD.md` §4 "Zorluk kademeleri" satırı ile §7 Soru 3 ("kapandı — B") bu işte güncellendi;
+> `kural.js`, `PRD.md` gereksinim metinleri ve kayıt şeması değişmedi.
+> Düzeltme (Denetçi bulgusu, aynı iş): §7 risk 1'e kanıtsız yazılan çözücü süreleri (0,47 / 0,49 ms)
+> deponun ölçüm betikleriyle yeniden ölçülüp üreten komutla birlikte yazıldı.
+> Düzeltme 2 (Denetçi bulgusu tur 2, aynı iş): ADR-013 "Seçenekler" E maddesindeki geri çekilmiş
+> "~0,5 ms" rakamı da aynı ölçümlerle (üreten komut + günlük yolu) değiştirildi; artık §7 risk 1 ile
+> aynı sayıları söylüyor.
+>
+> **Sürüm 9** (`tasokey#42`, Geliştirici uygulaması, 2026-11-21): ADR-016 (arayüz tek durum makinesine
+> bağlanır: `baslangic` → `masa` → `sonuc`; zorluk seçimi kayıt şemasında, sürüm 1 → 2) eklendi;
+> durumu **kabul**. Kaynak: Sahip'in `tasokey#42` isteği ("Başlangıç ekranı: Yeni oyun düğmesi ve
+> Kolay/Orta/Zor seçimi (ADR-016)" — numara istekte verildi) ve §7 risk 11 ("bot kademe seçimi
+> arayüzde yok"). `cekirdek/` ve `bot/` kodu değişmedi; `kural.js` ve PRD gereksinim metinleri
+> değişmedi, kayıt şeması değişti (§4).
+>
+> **Sürüm 10** (`tasokey#43`, Geliştirici uygulaması, 2026-11-21): ADR-016 **genişletildi** (madde 7):
+> üst çubuktaki "Oyunu bitir" düğmesinin onay sorusu ayrı bir ekran değil, aynı durum makinesinin
+> `onay` alanıdır. Yeni ADR numarası açılmadı — ADR-016 madde 6 zaten "ileride başlangıç/onay
+> pencereleri" diyordu. Kaynak: Sahip'in `tasokey#43` isteği ("Üst çubukta Oyunu bitir / Çık
+> düğmesi"). Masadan yeni bir çıkış yolu açıldığı için bot sırasının koşulu da aynı makineye
+> alındı (`botSirasiMi`) ve zamanlayıcıyla bekleyen bot turu artık **el neslini** doğrular
+> (Denetçi bulgusu, tur 1). `cekirdek/` ve `bot/` kodu, kural metinleri ve **kayıt şeması değişmedi** (bekleyen onay
+> kaydedilmez; sürüm 2 olduğu gibi kaldı).
 
 | Alan | Değer |
 |---|---|
 | Proje | `tasokey` |
-| Mimari karar sürümü | `3` (ADR-010/011/012 eklendi, Mimar-K2, 2026-11-20, tasokey#24; önceki: ADR-004 sürüm 2, 2026-11-19, tasokey#3) |
-| Bağlı PRD sürümü | `2` (`tasokey#22`, R-011…R-015 eki) |
+| Mimari karar sürümü | `10` (ADR-016 madde 7 eklendi, Geliştirici uygulaması, 2026-11-21, tasokey#43; önceki: ADR-016 sürüm 9, 2026-11-21, tasokey#42) |
+| Bağlı PRD sürümü | `3` (`tasokey#36`, R-004/R-005 kural düzeltmesi) |
 | Profil | `kit\profiller\` içinde yok → `profil-oyun-web-taslak.md` (bu klasör; kit'e girmesi Sahip onayı ister, D-26) |
 | Hazırlayan | Mimar, 2026-11-19 |
 
@@ -61,24 +114,27 @@ Değerlendirilen ama önerilmeyen yollar ADR-001'in "Seçenekler" satırında.
 | `cekirdek/karma.js` | Tohumlu (deterministik) karıştırıcı | — | evet |
 | `cekirdek/kural.js` | K1 kural varsayılanları (ADR-008) tek nesnede; motorun okuduğu tek kural kaynağı | — | evet |
 | `cekirdek/dagitim.js` | 15/14/14/14 dağıtım, gösterge açma, o elin okey taşını belirleme | tas, karma, kural | evet |
-| `cekirdek/dizilim.js` | Per ve çift geçerliliği; okey/sahte okey yerine geçme | tas, kural | evet |
-| `cekirdek/cozucu.js` | "Bu el bitirilebilir mi?" — elin tamamını geçerli gruplara tam bölme araması | dizilim | evet |
+| `cekirdek/dizilim.js` (ADR-017) | Per (seri + sayı peri) ve çift (birebir aynı taş) geçerliliği; okey/sahte okey yerine geçme | tas, kural | evet |
+| `cekirdek/cozucu.js` (ADR-017) | "Bu el bitirilebilir mi?" — iki ayrı arama: elin tamamen per gruplarına bölünmesi **ya da** tam 7 birebir çift olması. Ayrıca **el dökümü** (`elDokumu` + `dokumSirasi`, `tasokey#39`): elin en çok taşı kapsayan per bölümü + kalanın birebir çiftleri + per dışı taşlar; el sonu gösteriminin (dizilim ve sayılar) tek kaynağı. Bitiş kararından ayrıdır — döküm bitmemiş eli de böler | dizilim | evet |
 | `cekirdek/el.js` | El durumu, sıra, hamle doğrulama (çek/at), el sonu koşulları | dagitim, cozucu, kural | evet |
-| `cekirdek/puan.js` | El sonucu ve puan | el | evet |
-| `bot/kolay.js` | Hangi taşı çeker / atar (sezgisel); hamleyi `el.js`'e onaylatır | cekirdek | evet |
-| `arayuz/ekran.js` | Masa, raf, atılan taş yığını; olay bağlama | cekirdek, dil, yerlesim | hayır (DOM) |
-| `arayuz/surukle.js` | Taş seçme ve rafta sürükleyerek dizme | ekran, etkilesim | hayır (DOM) |
+| `cekirdek/puan.js` | El sonucu ve puan: kalan taş sayıları + oyuncu başına döküm (`dokumler`: per / çift / per olmayan / okey sayıları — `tasokey#39` ek bilgisi) | el, cozucu, kural | evet |
+| `bot/bot.js` (ADR-018 + ADR-013) | `bot/` katmanının **tek girişi**: `botTurOyna(durum, oyuncu, kademe, secenekler)`. Hangi taşı çeker / atar (sezgisel): bitiş yolunu seçer, en izole taşı atar, atılandan yalnız gerçek tamamlamada çeker. Üç zorluk kademesi (kolay/orta/zor) aynı sezgiselin üç ayarıdır (`KADEME_AYARI` tek kaynak); kolay kademenin zayıflatma zarı `karma.js`'in tohumlu üretecinden gelir, tohum durumdan türetilir. Kural sorularını `dizilim.js`/`cozucu.js`'in saf işlevlerine sorar, kendi per/çift tanımını yazmaz; hamleyi `el.js`'e onaylatır | cekirdek (dizilim, cozucu, el, kural, tas, dagitim, karma) | evet |
+| `arayuz/ekran.js` | Masa, raf, atılan taş yığını; olay bağlama. Hangi panelin görünür olduğunu ve botların hangi kademeyle oynadığını kendisi karar vermez: `kabuk.js`'e sorar (ADR-016) | cekirdek, dil, yerlesim, kabuk | hayır (DOM) |
+| `arayuz/kabuk.js` (ADR-016) | Arayüz kabuğunun **tek durum makinesi**: hangi ekran açık (`baslangic` → `masa` → `sonuc` → `baslangic`), hangi zorluk kademesi oynanıyor ve bekleyen bir onay sorusu (`onay`: "Oyunu bitir", `tasokey#43`) var mı. Geçişler yalnız burada tanımlı; kayıttan gelen bozuk/eski zorluk değeri burada varsayılana düşer; bot turu kabuğun zorluğuyla `bot/bot.js`'in tek girişine iletilir (`botTurunuOynat`); bot sırasının koşulu ve zamanlayıcıyla bekleyen bir bot turunun hâlâ geçerli olup olmadığı da burada (`botSirasiMi`, `bekleyenBotTuruGecerliMi`, `tasokey#43`) | bot (kademe adları), cekirdek (`EL_SONUCU`) | evet |
+| `arayuz/surukle.js` | Sürükleme hareketi (Pointer Events): raftan sürükleyip rafa dizme ya da raf dışı hedefe bırakma; **desteden/köşe yığınından ıstakaya sürükleyerek çekme** (`tasokey#40`). Hangi hareketin hangi eyleme karşılık geldiğini `etkilesim.js`e sorar | ekran, etkilesim | hayır (DOM) |
 | `arayuz/yerlesim.js` (ADR-012) | Dört kenar/köşe ızgarası: sıra yönüne göre hangi oyuncunun hangi kenarda, hangi köşe yığınının hangi oyuncuya ait olduğunu hesaplar; sonucu grid-area adı olarak döner | cekirdek (kural — sıra yönü) | evet |
-| `arayuz/etkilesim.js` (ADR-010/012) | Sürükleme/dokunma hedefinin (deste, köşe yığını, raf konumu) hangi oyun eylemine (çek/at/bitir) karşılık geldiğini saf mantıkla çözer; hamleyi yine `cekirdek/el.js` onaylar | cekirdek, yerlesim | evet |
+| `arayuz/etkilesim.js` (ADR-010/012) | Sürükleme/dokunma **hedefinin** (deste, köşe yığını, raf konumu) ve sürüklemenin **kaynağının** (deste, köşe yığını — `cekmeKararVer`, `tasokey#40`) hangi oyun eylemine (çek/at/bitir) karşılık geldiğini saf mantıkla çözer; çekme kuralı tek yerde durur (dokunma ve sürükleme yolu aynı işlevi çağırır), hamleyi yine `cekirdek/el.js` onaylar | cekirdek, yerlesim | evet |
 | `dil/cevir.js` | Anahtar → metin; eksik anahtarda görünür hata | — | evet |
-| `kayit/depo.js` | `localStorage` sarmalayıcı + şema sürümü kontrolü | — | hayır (tarayıcı API) |
+| `kayit/depo.js` | `localStorage` sarmalayıcı + şema sürümü kontrolü (sürüm **2**, ADR-016); kayıtta duran alanların tek listesi (`ALANLAR`: dil + zorluk), şema dışı alanı okurken de yazarken de düşürür. Zorluğu **opak dize** olarak saklar — geçerliliğine `arayuz/kabuk.js` karar verir | — | hayır (tarayıcı API) |
 
 Sınır kuralı: `cekirdek/` ve `bot/` altında `document`, `window`, `localStorage`, `Math.random` **geçmez**. Bu bir öz-test ile
 ölçülür (kaynak taraması), tahminle değil (iş 1'in kabul ölçütü).
 
 ## 4. Veri ve kayıt
 
-- Tek anahtar: `tasokey.kayit` (JSON) + içinde `surum` alanı. İçerik: dil seçimi, ses açık/kapalı, (varsa) yarım kalmış el.
+- Tek anahtar: `tasokey.kayit` (JSON) + içinde `surum` alanı. İçerik (şema **sürüm 2**, ADR-016/`tasokey#42`):
+  **yalnız** `dilKodu` ve `zorluk`. Şema dışı alan (eski şemadan kalan ya da elle eklenmiş) okunmaz ve yazılmaz;
+  ses açık/kapalı ve yarım kalmış el bugün saklanmıyor (gerektiğinde şema sürümü yine yükselir).
 - Şema sürümü uyuşmazsa M1-M3'te **kayıt atılır ve yeniden başlatılır** (taşıma kodu yazılmaz; oyun yayınlanmadığı için
   taşınacak kullanıcı verisi yok). Yayından sonra kayıt şeması **donmuş alandır**: değişikliği R sınıfıdır, Masa'da yapılır.
 - Kişisel veri, çerez, sayaç, analitik **yok** (PRD §8). Dışarıya ağ isteği yok (üçüncü taraf yazı tipi/CDN dahil → ADR-007).
@@ -223,6 +279,80 @@ Sınır kuralı: `cekirdek/` ve `bot/` altında `document`, `window`, `localStor
 | Sonuçlar | §7 risk 4 **kapanır** (R-014 ile: sığdırma denenmez, uyarı gösterilir). Yeni saf modüller (`yerlesim.js`, `etkilesim.js`) DOM'suz test edilebilir hâle gelir. Kolaylaştırır: düzen mantığı tek yerde, öz-testle doğrulanır. Zorlaştırır: `ekran.js` artık bu iki modüle bağımlı olur; gerçek CSS Grid ve modül dosyaları bu işte **yazılmadı** (belge güncellemesi, kod değişmedi) — ayrı Geliştirici işi |
 | Etkilenen gereksinimler | R-011, R-012, R-013, R-014 |
 
+### ADR-013: Bot zorluk kademeleri aynı sezgiselin üç ayarıdır; `bot/` tek girişten oynar
+
+| Alan | Değer |
+|---|---|
+| Tarih | 2026-11-21 · Durum: **kabul** (K2 — Mimar/Geliştirici; `GDD.md` §7 Soru 3 bu kararı açıkça Mimar/Geliştirici'ye bırakmıştı) |
+| Karar veren | Mimar/Geliştirici (kademe sayısı ve algoritma) · uygulama Geliştirici (`tasokey#41`) |
+| Bağlam | `GDD.md` §7 Soru 3 ("M1'de kaç kademe?") açıktı; §4 "Zorluk kademeleri" tek kademeyi M1'e, orta/zor'u M2/M3'e bırakıyordu. ADR-018'den sonra elde tek bir sezgisel vardı (`bot/kolay.js`) ve arayüz onu doğrudan çağırıyordu; kademe eklemenin yolu ya kopya dosyalar ya da çağrı yerine dağılmış koşullardı. Ayrıca kademe farkının "hissedilir" olduğu ölçülmemişti — kazanma oranı hiç ölçülmüyordu |
+| Karar | (1) `bot/` katmanının **tek girişi** `bot/bot.js` `botTurOyna(durum, oyuncu, kademe, secenekler)`; kademe adı dışarıdan verilir (`KADEME.KOLAY/ORTA/ZOR`), arayüz hangi kademeyi oynattığını söylemek dışında bot mantığı bilmez. (2) Üç kademe **aynı** sezgiselin üç ayarıdır (`KADEME_AYARI` tek kaynak): orta = ADR-018 sezgiselinin birebir kendisi; kolay üç yerden zayıflatılır (bitirme fırsatını her turda aramaz, köşeden çekmeyi çoğunlukla kullanmaz, en izole taşı her zaman seçmez); zor iki yerde güçlendirilir (köşedeki taşı alınca el biter mi sorusunu `cozucu.js` `elBitirenTaslar`'a sorar, atacağı taşı ikili bağlantı puanı yerine `elDokumu`'nun gerçek bölümüne göre seçer). Kademeler **kuralı değiştirmez**, `kural.js`'e ayar olarak girmez (ADR-018/5 ile aynı gerekçe). (3) Kolay kademenin zayıflatma zarı tohumlu üreteçten (`cekirdek/karma.js`) gelir ve tohum **durumdan türetilir**: karar durumun saf işlevi kalır (aynı el + aynı tur = aynı karar), koşu tekrar üretilebilir olur, testler `secenekler.rastgele` ile zarı sabitleyebilir (ADR-003). Taş kimliği karmada **opak** kullanılır, ayrıştırılmaz. (4) ADR-018/3'ün sonlanma değişmezi üç kademede de korunur: atılandan çekme ya kuralla doğrulanmış gerçek tamamlamada ya (zor) kuralla doğrulanmış bir bitiriş fırsatında yapılır, kalan her durumda yerden çekilir |
+| Seçenekler | B) Kademe başına ayrı dosya (`kolay.js`/`orta.js`/`zor.js`) — reddedildi: üç dosya aynı sezgiselin %90'ını kopyalardı, ADR-018'in "kural tek kaynaktan" kazancı kopya sayısıyla çarpılarak geri giderdi. C) Kademeyi `kural.js`'e ayar yapmak — reddedildi: kademe kural değil, botun kendi önerisinin kalitesidir; kural ayarı insan oyuncuyu da etkilerdi. D) Kademeyi arayüzde "bot hamlesini bazen bozarak" uygulamak — reddedildi: `arayuz/` kural/karar bilgisi taşımaz (ADR-002), ayrıca motorca reddedilen hamle üretme riski doğar. E) Zor kademeyi derin arama (iki hamle ileri) ile yapmak — reddedildi: tek hamle ileri bakmanın bedeli bile ölçülebilir büyüklükte. Ölçüm (günlük `is/tasokey-41/cozucu-maliyet.log`): `node testler/el-bitiren-taslar.olcum.js` → `elBitirenTaslar` ort. **1,2306 ms**, `node testler/el-dokumu.olcum.js` → `elDokumu` ort. **0,3492 ms**, yani zor kademenin tur başına eklediği iki çağrı ~**1,6 ms**; uçtan uca `node --test testler/bot-dayaniklilik.test.js` ile zor el başına **~157 ms** (15727,6 ms / 100 el), orta **~86 ms** (17143,7 ms / 200 el) → el başına ~72 ms fark, ortalama tur 27,8-32,7 olduğundan tur başına ~2,2-2,6 ms. İki hamle ileri aramak bu maliyeti dal sayısıyla çarpar → dayanıklılık koşusu dakikalara çıkar, kazanım ölçülmedi (ayrı iş olabilir). Aynı sayılar §7 risk 1'de de bu kaynaklarla yazılıdır |
+| Sonuçlar | Ölçüldü (`testler/bot-zorluk.olcum.js`, kademe başına **200 el**, tohum 91000-91199, koltuk 0 ölçülen kademe + koltuk 1-3 orta, bütün kademeler aynı dağıtımları oynar): koltuk 0'ın kazanma oranı **kolay %5,5 · orta %26,5 · zor %34,5**; berabere **%6,5 / %2,5 / %1,0**; ortalama tur **38,3 / 32,0 / 31,0**; `turSiniri` **0**, motorun reddettiği öneri **0** (her kademede). Dört koltuk da aynı kademedeyken ortalama tur **47,7 / 32,0 / 29,6**, berabere **%71 / %2,5 / %0,5** — kolay kademe elleri çoğunlukla beraberliğe sürüklüyor (deste tükeniyor), zor kademe neredeyse her eli bitiriyor. Kolaylaştırır: kademe eklemek/ayarlamak tek tabloyu değiştirmek olur; arayüz tek işlev çağırır. **Zorlaştırır:** dayanıklılık koşusu artık üç kademe koşuyor → ölçüldü **41,4 s** (bütçe 60 s); bu yüzden koşu varsayılan kademede 200, diğer ikisinde 100 el oynar, 200×3 tam ölçüm elle çalıştırılan `bot-zorluk.olcum.js`'tedir. Oyuncuya kademe **seçtirmek** bu işin kapsamında değildi: arayüz sabit `VARSAYILAN_KADEME` (orta) oynatır, seçici ayrı iştir (dil anahtarı + ayar kaydı gerekir; §7 risk 11) |
+| Etkilenen gereksinimler | R-006 (karşılandı; "en az bir kademe" ölçütü gevşetilmedi, üç kademeye çıktı) · `GDD.md` §7 Soru 3 **kapandı — B** (3 kademe M1'de) |
+
+### ADR-014: Bırakma/tıklama hedef alanı taş ölçüsünden bağımsız, tek değişkenden
+
+| Alan | Değer |
+|---|---|
+| Tarih | 2026-11-20 · Durum: **kabul** (karar Sahip, `tasokey#39`; numara istekte verildi) |
+| Karar veren | Sahip (ürün: "hedef alanları büyütülsün") · teknik karşılık + uygulama Geliştirici |
+| Bağlam | Köşe yığınının ve yer destesinin bırakma/tıklama hedefi, o öğenin **görünen** kutusuydu: köşede taş ölçüsü + `--kose-kaydirma`, destede `.yigin-tas-alani`ın `min-width/min-height`ı (ikisi de `--tas-genislik`/`--tas-yukseklik`ten). Hedef taş boyuna bağlı olduğu için dar kademelerde (telefon yatay: taş 25×36 px) isabet alanı da küçülüyordu; taşı köşenin birkaç piksel dışına bırakmak hamleyi düşürüyor (`surukle.js` `elementFromPoint` ile hedefi bulamıyor), R-012/R-013'ün dokunma yolu zorlaşıyordu. Hedefi taşı büyüterek açmak **yasak**: görünüm `STIL.md`/R-015'e bağlı (K4, Sahip kapısı) |
+| Karar | (1) Hedef alanının payı `stil.css` `:root` içindeki **tek** değişkendir: `--hedef-pay`. (2) Köşe (`.kose`) ve yer destesi (`#yerDestesi`) bu payı görünmez bir sözde öğeyle (`::after`, `position: absolute`, `inset: calc(-1 * var(--hedef-pay))`) kazanır — taşın ve kutunun `width/height`ı **değişmez**, düzen kaymaz. (3) Değer `calc(var(--masa-bosluk) / 2)`: masa ızgarasının hücre boşluğunun yarısı. Komşu hücre (ıstaka paneli, kenar çubuğu, öbür köşe) o boşluğun ötesinde durduğundan halka hiçbir kademede komşunun kutusuna **girmez**, kademe değişince (`--masa-bosluk` küçülünce) kendiliğinden küçülür; kuralların içine sayı yazılmaz (ADR-015'in "tek kaynak" dili). (4) `arayuz/` JS'i değişmez: sözde öğeye yapılan isabet **sahibini** hedef verir, yani tıklama yine `.kose`/`#yerDestesi`'nde doğar ve `document.elementFromPoint(...).closest(...)` (`surukle.js`) yine onları döndürür. (5) Halkanın kendi yığılma kademesi yoktur → masa kademesinde kalır (ADR-015), kalıcı pencerenin altında |
+| Seçenekler | B) Köşe/destenin kendi `min-width/min-height`ını ya da dolgusunu büyütmek — reddedildi: ızgara hücresini büyütür, dört kenar düzenini (ADR-012) ve `844×390`da zar zor sığan yerleşimi (R-014, `tasokey#32`) bozar. C) Taşı büyütmek — reddedildi: görünüm kararı Sahip'te (K4), istek açıkça "taşın görünen ölçüsü değişmez" diyor. D) `surukle.js`'te bırakma noktasına en yakın hedefi mesafeyle seçmek (JS tarafı tolerans) — reddedildi: aynı kuralı ikinci bir yerde (JS'te) tanımlar, dokunma/klavye yolunda karşılığı olmaz ve "ne kadar yakın" sayısı yine kodun içine yazılır. E) Payı her kademede elle px olarak yazmak — reddedildi: beş yerde tutulan bir sayı, `--masa-bosluk` değişince sessizce komşuya girer |
+| Sonuçlar | Kolaylaştırır: isabet alanı masaüstünde ~%71 büyür (köşe 68×92 → 92×116 px: pay 12 px, alan 6256 → 10672 px²) ve hedef ölçüsü tek satırdan okunur; `testler/hedef-alani.test.js` (a) ölçünün o değişkenden geldiğini, (b) her duyarlı kademede çözümlenebilir pozitif bir uzunluk olduğunu, (c) boşluğun yarısını geçmediğini (komşuyu örtmediğini), (d) taş ölçüsünün değişmediğini gerçek `calc()` hesabıyla ölçer. **Zorlaştırır / bilinen sınır:** pay boşluğa bağlı olduğundan en dar kademede (`844×390`, `--masa-bosluk: 6px`) yalnız **3 px** olur — parmakla oynanan en küçük ekranda kazanç en az; orada boşluğu büyütmek ayrı bir düzen işidir (§7 risk 10). Hedef halkası destenin başlık/sayaç/ipucu metinlerinin bir kısmını da kapsar (hepsi etkileşimsiz, görünüm değişmez): o metinlere tıklamak artık desteye tıklamak sayılır |
+| Etkilenen gereksinimler | R-012, R-013 (dokunma/sürükleme yolu kolaylaştı) · R-009/R-015 (görünüm değişmedi: taş ölçüsü aynı) |
+
+### ADR-015: Yığılma kademeleri tek kaynak; kalıcı pencere her zaman en üstte
+
+| Alan | Değer |
+|---|---|
+| Tarih | 2026-11-20 · Durum: **kabul** (K2 — Mimar; uygulama `tasokey#38`, karar belgeye `tasokey#38` hakemliğinde yazıldı) |
+| Karar veren | Mimar (K2; arayüz katmanının iç düzeni, Sahip'in "sonuç penceresi her zaman en üstte" isteğinin teknik karşılığı) · uygulama Geliştirici |
+| Bağlam | Belirti `is/tasokey-35/ekler/image-2.png`: "El bitti!" penceresi açıkken deste taşı pencerenin metnini örtüyordu. Sebep (ölçüldü): deste taşı `ekran.js`'te JS'ten `z-index: 10` alıyordu, pencerenin z-index'i `auto` idi; aynı yığılma bağlamında konumlanmış ve pozitif z-index'li eleman `auto` elemandan sonra boyanır. `stil.css`'te ayrıca çıplak `z-index: 5` gibi sayılar vardı → aynı kural iki yerde (CSS + JS), hangi şeyin hangi şeyin üstünde olduğu hiçbir yerde okunamıyordu |
+| Karar | (1) Yığılma kademelerinin **tek kaynağı** `stil.css` `:root` içindeki `--kademe-*` değişkenleridir: `--kademe-masa: 0`, `--kademe-masa-pay: 20`, `--kademe-tas-secili: 100`, `--kademe-tas-surukleniyor: 110`, `--kademe-pencere: 300`. Sıra **masa < seçili taş < sürüklenen taş < kalıcı pencere**. (2) Hiçbir CSS kuralında çıplak z-index sayısı yazılmaz; her kural `var(--kademe-*)` okur, yığın içi sıra gerekiyorsa `calc(var(--kademe-masa) + var(--yigin-sira, 0))` biçiminde hesaplanır. (3) `arayuz/ekran.js` **z-index yazmaz**; JS yalnız yığın İÇİ sırayı `--yigin-sira` özel değişkeni olarak verir — kademe kararı CSS'te kalır. (4) Kalıcı pencereler (sonuç, ileride başlangıç/onay) `--kademe-pencere` kullanır ve açıkken masadaki ya da sürüklenen hiçbir taş bunların üstüne boyanmaz. (5) Kademeler arasındaki boşluk (20/100/110/300) araya yeni kademe eklenebilsin diye bilerek geniştir; yeni kademe eklemek bu ADR'yi günceller, kuralın içine sayı yazmak değil |
+| Seçenekler | B) Pencereye tek seferlik büyük bir z-index vermek (ör. `z-index: 9999`) — reddedildi: belirtiyi kapatır, sebebi (iki kaynak) kapatmaz; bir sonraki yeni katmanda aynı hata tekrarlar. C) Kademeleri JS'te bir sabit tabloda tutup DOM'a yazmak — reddedildi: sunum kararını `arayuz/ekran.js`'e taşır, kaynak CSS'ten okunamaz hâle gelir ve her çizimde yeniden yazılır. D) Pencereyi ayrı bir yığılma bağlamına/`dialog` üstüne almak — reddedildi (şimdilik): sıfır bağımlılık kısıtıyla uyumlu olsa da kademe sorununu ortadan kaldırmaz, yalnız bir örneğini gizler |
+| Sonuçlar | Kolaylaştırır: "ne neyin üstünde" tek dosyadan okunur; `testler/yigilma-kademeleri.test.js` kaynak taramasıyla (a) kademelerin tek kaynaktan geldiğini, (b) pencere kademesinin sürüklenen taşınkinden büyük olduğunu, (c) JS'in z-index yazmadığını, (d) `stil.css`'te çıplak z-index kalmadığını doğrular → kural bir daha sessizce bozulamaz (ADR-002'nin kaynak taraması dilinin aynısı). Ölçüldü: `npm test` 264/264; 4 yatay boyutta (1920×1080, 1280×800, 1180×820, 844×390) ekran görüntüsü — `image-2.png`'deki belirti tekrar etmedi. **Zorlaştırır / bilinen sınır:** kural "pencere her zaman en üstte" olduğu için **844×390**'da sonuç penceresi, el bitince açılan üst rakibin ıstakasını tamamen örtüyor (ölçüldü, `is/tasokey-38/ekran/el-bitti-pencere-telefon-yatay.png`); o el pencere kapanmadan okunamaz. Küçük ekranda pencerenin konumu/kapatılabilirliği **ayrı iş** ve ürün kararıdır (Sahip), kademe sırası bu yüzden değiştirilmez (§7 risk 9) |
+| Etkilenen gereksinimler | — (arayüz hatası + Sahip'in ek bilgisi: el bitince rakip ıstakaları açılır). İlgili: R-011, R-015 (okunurluk) |
+
+### ADR-016: Arayüz tek durum makinesine bağlanır; zorluk seçimi kayıt şemasında
+
+| Alan | Değer |
+|---|---|
+| Tarih | 2026-11-21 · Durum: **kabul** (karar Sahip, `tasokey#42`; numara istekte verildi) |
+| Karar veren | Sahip (ürün: "Başlangıç ekranı: Yeni oyun düğmesi ve Kolay/Orta/Zor seçimi") · teknik karşılık + uygulama Geliştirici |
+| Bağlam | §7 risk 11: motor üç kademeyi (ADR-013) oynatıyordu ama `arayuz/ekran.js` sabit `VARSAYILAN_KADEME` (orta) çağırıyordu — oyuncu kolay/zor seçemiyordu. Arayüzde ayrıca "hangi ekran açık" diye bir kavram yoktu: sonuç penceresinin görünürlüğü her çizimde `elSonucunuHesapla(durum) !== null` sorusundan türetiliyordu, yani ekran kararı el durumuna gömülüydü ve üçüncü bir ekran (başlangıç) eklemenin yolu her çizim işlevine koşul dağıtmaktı. Kayıt şeması (ADR-006) yalnız dili tutuyordu; seçimin açılışlar arasında kalması için şemaya alan gerekiyordu |
+| Karar | (1) Arayüzün kabuğu **tek saf durum makinesidir**: `arayuz/kabuk.js` → `{ ekran, zorluk }`. Üç ekran: `baslangic` (Yeni oyun + zorluk seçimi), `masa` (el sürüyor), `sonuc` (el bitti). Geçişler tek kapıdan (`gecis(kabuk, olay)`): `baslangic --yeniOyun--> masa --elBitti--> sonuc --baslangicaDon--> baslangic`, ek olarak `sonuc --yeniEl--> masa` (R-010'un eski davranışı). O ekranda tanımlı olmayan olay kabuğu **değiştirmez**. (2) İlk açılış her zaman `baslangic`tır; `ekran.js` panel görünürlüğünü yalnız `kabuk.ekran`dan okur, "el bitti mi" sorusunu çizim sırasında ikinci kez sormaz (geçiş `durumuIlerlet`te bir kez yapılır). (3) Botların oynadığı kademe **oyuncunun seçimidir**: `ekran.js` kademe adı yazmaz, `kabuk.js` `botTurunuOynat(kabuk, …)` ile `bot/bot.js`'in tek girişini kabuğun zorluğuyla çağırır (ADR-013'ün "kademe adı dışarıdan verilir" kuralı korunur). Botlar yalnız `masa` ekranında oynar. (4) Zorluk kademelerinin adlarının tek kaynağı `bot/bot.js` `KADEME`'dir; `kabuk.js` kendi listesini yazmaz, `ZORLUKLAR` oradan türer ve arayüz düğme kimlikleri de bu listeden üretilir. (5) Kayıt şeması (ADR-006) **sürüm 1 → 2**: kayıtta **yalnız** `dilKodu` ve `zorluk` durur (`ALANLAR` tek liste; şema dışı alan okunmaz, yazılmaz), sürüm 1 kaydı **taşınmadan atılır** (yayın öncesi, taşınacak kullanıcı verisi yok). `kayit/depo.js` zorluğu opak dize olarak saklar — hangi değerin geçerli olduğuna `kabuk.js` `zorlukCozumle` karar verir, bozuk/eski/eksik değerde `VARSAYILAN_KADEME`'ye düşülür. (6) Başlangıç penceresi ADR-015'in `--kademe-pencere` kademesini kullanır ("ileride başlangıç/onay pencereleri" maddesinin karşılığı) ve telefon dikeyde gizlenir, yoksa R-014'ün "telefonu yan çevir" uyarısını örterdi. (7) **Onay sorusu ayrı ekran değildir** (`tasokey#43`, sürüm 10): kabuk `{ ekran, zorluk, onay }` tutar; üst çubuktaki "Oyunu bitir" yalnız `masa` ekranında `onay` alanını açar, bitirme ikinci bir olayla (`onayEvet` → `baslangic`) olur, `onayHayir` yalnız soruyu kapatır ve el durumuna hiç dokunulmaz. Ekran değiştiren her geçiş bekleyen soruyu düşürür (el soru açıkken biterse sonuç penceresiyle onay penceresi üst üste binmez); `onay` kayda **yazılmaz** (oturum içi soru, şema sürüm 2 değişmedi). Onay penceresi de `--kademe-pencere` kademesini kullanır ve telefon dikeyde gizlenir. Masadan çıkış yolu açıldığı için **bot sırasının koşulu da tek kapıya** alındı: `botSirasiMi(kabuk, elDurumu, insanOyuncusu)` (masa ekranı + el sürüyor + sıra insanda değil) ve `bekleyenBotTuruGecerliMi(…, { nesil, elNesli, botCalisiyor })`. Zamanlayıcıyla sıraya girmiş bot turu ateşlendiğinde **hangi elin turu olduğunu** (el nesli) doğrular: "Oyunu bitir → Evet → Yeni oyun" sırası tur ateşlenmeden tamamlanırsa ekran yine `masa` olacağından yalnız ekrana bakmak yetmezdi (yeni el insanın sırasıyla başlar; tur oyuncunun yerine oynardı). `ekran.js` ayrıca çıkışta ve yeni el kurarken bekleyen zamanlayıcıyı iptal eder |
+| Seçenekler | **B) Zorluk seçimini üst çubuğa bir açılır listeye koyup başlangıç ekranı yazmamak** — reddedildi: istek açıkça başlangıç ekranı istiyor, ayrıca el sürerken kademe değiştirilebilir olurdu (botların o eli hangi kademeyle oynadığı belirsizleşir). **C) Ekran kararını durum makinesi olmadan, panel başına koşulla çözmek** (`sonuc` paneli bugün olduğu gibi `elSonucunuHesapla`dan, başlangıç paneli ayrı bir bayraktan) — reddedildi: aynı karar iki-üç yere dağılır, "baslangic → masa → sonuc" çevrimi hiçbir yerde okunamaz ve DOM'suz ölçülemez. **D) Durum makinesini `cekirdek/el.js`'e eklemek** — reddedildi: hangi ekranın açık olduğu kural değil sunum bilgisidir, `cekirdek/` DOM/arayüz kavramı taşımaz (ADR-002). **E) Kademeyi kayıt yerine URL parametresinden okumak** — reddedildi: seçim açılışlar arasında kalmaz, kayıt şemasının sürümlenmesi (ADR-006) zaten bu iş için var. **F) Eski sürüm 1 kaydını taşımak (dili korumak)** — reddedildi: ADR-006 yayın öncesi taşıma kodu yazmamayı kararlaştırdı; tek kaybı dil tercihinin bir kez sıfırlanması |
+| Sonuçlar | Kolaylaştırır: ekran geçişleri tek dosyadan okunur ve DOM açmadan ölçülür (`testler/kabuk.test.js` — çevrim, geçersiz olay, zorluk kalıcılığı, seçilen kademenin botun tek girişine geçtiği casus ve gerçek bot karşılaştırmasıyla); yeni ekran (onay, ayarlar) eklemek tabloya bir satırdır. Arayüz artık kademe adı taşımadığından ADR-013'e yeni kademe eklemek arayüz değişikliği istemez. **Zorlaştırır / bilinen sınır:** (a) sürüm 1 kaydı atıldığı için oyuncunun daha önce seçtiği dil bir kez `tr`ye döner (yayın öncesi kabul); (b) el, başlangıç ekranı açıkken de dağıtılır (masa pencerenin arkasında çizilir, çizim işlevleri boş durumla uğraşmaz) — "Yeni oyun"a basılınca yeni tohumla yeniden dağıtılır, yani ilk dağıtım oynanmaz; (c) `ekran.js`in kabuğu gerçekten kullandığı (kademe adı yazmadığı, paneli kabuk ekranından okuduğu) kaynak taramasıyla ölçülür (`testler/baslangic-ekrani.test.js`), çünkü `ekran.js` DOM'suz import edilemez |
+| Etkilenen gereksinimler | R-006 (oyuncu artık kademeyi **seçiyor**; motor tarafı ADR-013'te karşılanmıştı) · R-010 (yeni el/yeni oyun) · R-008 (yeni metinler TR+EN anahtarı) · ADR-006 şema sürümü 2 · §7 risk 11 **kapandı** |
+
+### ADR-017: Bitiş iki ayrı denetimin VEYA'sı; per = seri + sayı peri, çift = birebir aynı taş
+> Numara `GDD.md` v3 ve `PRD.md` v3'te (tasokey#36) bu kararı gösteriyordu; ADR-013 ve ADR-016 o gün boştu
+> (ADR-015 `tasokey#38`'de, ADR-014 `tasokey#39`'da, ADR-013 `tasokey#41`'de, ADR-016 `tasokey#42`'de yazıldı).
+
+| Alan | Değer |
+|---|---|
+| Tarih | 2026-11-20 · Durum: **kabul** (karar Sahip, `tasokey#35`; motor karşılığı `tasokey#37`) |
+| Karar veren | Sahip (kural kararı) · uygulama Geliştirici |
+| Bağlam | Motor `tasokey#6/#7`'den beri eski (yanlış) tanımla çalışıyordu: "çift = aynı sayı, 2 farklı renk" ve "bitiş = elin per/çift gruplarına herhangi bir bölünüşü". Sahip'in ekran görüntüsünde (`is/tasokey-35/ekler/image.png`) bu yüzden bitmeyen bir el "Elini bitirebilirsin" diye vurgulandı. `GDD.md` v3 kural 6, 7, 13 gerçek Klasik Okey tanımını yazdı; kod karşılığı yoktu |
+| Karar | (1) `cekirdek/dizilim.js` `perGecerliMi` iki biçimi birden kabul eder: **seri** (aynı renk, ardışık ≥3) **veya sayı peri** (aynı sayının 3-4 farklı renkteki taşı; aynı renk bir perde iki kez bulunamaz). (2) `ciftGecerliMi` yalnız **birebir aynı** iki taşı kabul eder (aynı sayı **ve** aynı renk); okey/sahte okey çiftte de yerine geçer, gösterge taşının kendisi çift sayılmaz (kural 9). (3) `cekirdek/cozucu.js` `elBitirilebilirMi` **iki ayrı aramanın VEYA'sıdır**: (a) el tamamen per gruplarına bölünüyor mu, (b) el tam 7 birebir çift mi (14 taş). İki arama ayrı yürür; tek bir "grup" aramasında birleştirilmez, böylece karışık dizilim yapı gereği reddedilir. (4) Bu üçü `kural.js`'e ayar olarak **girmez** — ADR-008'in dört ayarı kaynak çelişkisiydi, bunlar kuralın kendisi |
+| Seçenekler | B) Tek geri izlemeli aramaya "grup = per ya da çift" diye devam edip sonunda karışımı elemek — reddedildi: karışık çözümü önce bulup sonra atmak hem daha pahalı hem de "neden bitmedi" sorusunu kodda okunmaz kılar. C) Çifti `kural.js`'e ayar yapmak (eski/yeni tanım arasında anahtar) — reddedildi: iş metninde açıkça yasaklandı ve iki tanım aynı anda doğru olamaz; eski tanım yanlıştı, ayar değil |
+| Sonuçlar | Kolaylaştırır: bitiş kuralı GDD kural 13'le birebir okunur; ekran görüntüsündeki el regresyon testi oldu (`el-bitiren-taslar.test.js` (e)). Ölçüm: tek el kontrolü ort. **0,0295 ms**, `elBitirenTaslar` ort. **1,2777 ms** (20 ms bütçesinin altında). **Zorlaştırır:** bitirmek gerçekten zorlaştı — `bot/kolay.js`'in sezgiseli hâlâ eski tanıma göre puanlıyor (aynı sayı/farklı renk = "çift adayı") ve 200 ellik dayanıklılık koşusunda 20 el tur sınırına çarpıyor (ölçüldü; 10 000 turda da bitmiyor, deste hiç boşalmıyor çünkü botlar sürekli atılandan çekiyor). Bot sezgiselinin ADR-017'ye göre yenilenmesi **ayrı iş**tir (R-006, `GDD.md` §4 "Karar yöntemi") → **ADR-018 ile kapandı** (aynı iş, Mimar hakemliğinden sonra) |
+| Etkilenen gereksinimler | R-004, R-005 (karşılandı) · R-006 (ADR-018 ile karşılandı) |
+
+### ADR-018: Bot kuralı kopyalamaz, `cekirdek`'e sorar; el sonlanması sezgisele bağlı değildir
+
+| Alan | Değer |
+|---|---|
+| Tarih | 2026-11-20 · Durum: **kabul** (K2 — Mimar) |
+| Karar veren | Mimar (K2; `GDD.md` §4 "Karar yöntemi" algoritma ayrıntısını Mimar/Geliştirici'ye bırakır) · uygulama Geliştirici (`tasokey#37`) |
+| Bağlam | ADR-017 kuralı daralttı. `bot/kolay.js` kuralın **eski** tanımını sezgiseline kopyalamıştı ("aynı sayı, farklı renk = çift adayı, +4 puan"), bu yüzden kural değişince sessizce hizasız kaldı — ADR-002'nin kaynak taraması bu kopyayı göremiyordu. Aynı puan skalası çekim kaynağını da seçtiğinden (`puan >= 3` ise atılandan çek) 14 taşlı elde eşik pratikte hep aşılıyor, dört bot da sürekli atılandan çekiyor, **yer destesi hiç azalmıyordu**; `el.js`'in berabere çıkışı (GDD kural 12) yalnız deste boşalınca tetiklendiği için elin sonlanması için hiçbir mekanizma kalmıyordu. Ölçüldü: 200 elin **20'si** `TUR_SINIRI`'ne çarpıyor (tıkanan ellerde deste 19-42 taşta donuyor), 10 000 turda da bitmiyor |
+| Karar | (1) `bot/` kural sorularını (`bu taşlar geçerli per mi / birebir çift mi / hangi taşı atarsam el biter`) `cekirdek/dizilim.js` ve `cekirdek/cozucu.js`'in **saf işlevlerine sorar**, kendi geçerlilik mantığını yazmaz. "İki taş aynı perde buluşabilir mi?" sorusu araya bir joker konup `perGecerliMi`'ye sorulur — cevabı kural verir, bot renk/sayı karşılaştırması yapmaz. (2) Bot el başına **tek bitiş yoluna** yönelir (`bitisYolunuSec`: elde en az 5 birebir çift varsa çift yolu, yoksa per yolu), karışık el toplamaz — ADR-017 karışık bitişi yasakladığı için karışık toplama yapısal olarak bitmeyen el üretir. (3) **Atılandan çekme yalnız kuralla doğrulanmış gerçek tamamlamada** yapılır (üst taş elin gerçek taşlarıyla tamamlanmış bir per ya da birebir çift kuruyorsa); jokerle kurulan tamamlama saymaz (joker saklanır), başka her durumda **yerden** çekilir. Böylece yer destesi monoton azalır ve el ya biter ya kural 12 ile berabere olur — sonlanma sezgisel kalibrasyonuna değil kurala bağlanır. (4) Geçerliliğe son kararı hâlâ `cekirdek/el.js` verir; bot yalnız öneri üretir (ADR-002 korunur). (5) Bu üçü `kural.js`'e **ayar olarak girmez**; bot sezgiselinin eşikleri (`CIFT_YOLU_EN_AZ_CIFT`) kural değil öneri ayrıntısıdır |
+| Seçenekler | B) Puanlamayı yeniden kalibre edip eşiği elde tutmak — reddedildi: ölçüldü, tıkalı el 20 → **29** kötüleşti; sonlanma yine tek bir sihirli eşiğe bağlı kalır. C) `VARSAYILAN_MAKSIMUM_TUR`'u yükseltmek — reddedildi: ölçüldü, 500/2000/10 000'de **aynı 20 el** bitmiyor, süre 4,5 s → 88 s. D) R-006'nın "0 sonlanmayan el" ölçütünü gevşetmek — reddedildi: ürün ölçütünü düşürür (Sahip kapısı) ve kusuru gizler |
+| Sonuçlar | Kolaylaştırır: kural bir daha değiştiğinde bot kendiliğinden hizalanır (tek kaynak); el sonlanması ölçülebilir hâle gelir; `bot-kolay.test.js`'in kaynak kontrolü artık **doğru şeyi** ölçer (kuralı yeniden yazmak yasak, `cekirdek`'in saf işlevini çağırmak serbest). Ölçüldü (200 el, sabit tohum 90000+): `turSiniri` **20 → 0**, ihlal 0, bitti **194**, berabere **6**, ortalama tur **103,1 → 32,7**, yer destesi tükenen el %3,5, çekim kaynağı ATILAN %33,4 / YER %66,6, çift yolu seçilen tur oranı %2,6. **Zorlaştırır:** tur başına `cekirdek` çağrısı arttı → dayanıklılık koşusu **4,5 s → 17,6 s** (bütçe 60 s; ağır çözücü çağrısı tur başına en çok bir kez, taş puanlaması ucuz `dizilim.js` çağrılarıyla). Teorik sonlanma garantisi yoktur (tamamlanan grubu bozan bir atış döngü kurabilir — **tahmin**, ölçümde görülmedi); görülürse yedek yol botun kendi içinde el başına atılandan çekme sınırıdır, kurala dokunmaz |
+| Etkilenen gereksinimler | R-003, R-004, R-006 (karşılandı) |
+
 ## 6. Test yaklaşımı
 
 | Tür | Ne ile | Tek komut |
@@ -230,7 +360,8 @@ Sınır kuralı: `cekirdek/` ve `bot/` altında `document`, `window`, `localStor
 | Öz-test / birim (`cekirdek/`, `bot/`, `dil/`) | Node yerleşik koşucu | `npm test` |
 | Katman sınırı denetimi (DOM/`Math.random` sızıntısı) | Kaynak taraması, aynı koşucu içinde | aynı komut |
 | Dil anahtarı taraması (anahtarsız metin = 0) | Kaynak taraması, aynı koşucu içinde | aynı komut |
-| Bot dayanıklılığı | 200 el × sabit tohumlarla tam el koşusu | aynı komut (uzun test etiketiyle) |
+| Bot dayanıklılığı | Sabit tohumlarla tam el koşusu, **üç kademe** (orta 200 el, kolay/zor 100 el — ADR-013 süre gerekçesi) | aynı komut (uzun test etiketiyle) |
+| Bot zorluk kademesi gücü (kazanma oranı) | Kademe başına 200 el, koltuk 0 ölçülen kademe + koltuk 1-3 orta | `node testler/bot-zorluk.olcum.js` (elle; `npm test` kapsamında değil) |
 | Arayüz / kilometre taşı denemesi | `python -m http.server 8777` + başsız Edge/CDP ekran görüntüsü | işin raporunda komut + görüntü |
 
 Ekran görüntüsü kanıtı — sabit 4 boyut + 1 uyarı kanıtı (profilin "3 oran + tablet" karşılığı; ADR-012'den sonra set
@@ -243,7 +374,7 @@ uyarısı görünür, R-014).
 
 | # | Konu | Durum | Nasıl ölçülecek |
 |---|---|---|---|
-| 1 | **Bitirilebilirlik çözücüsü** (eli per/çift gruplarına tam bölme, 2 okey + 2 sahte okey joker olarak) işin en zor parçası; geri izlemeli arama yanlış ya da yavaş olabilir. Bot her turda çağırdığı için maliyet çarpılır | **tahmin**: tek el kontrolü ≤ 20 ms, 200 el koşusu ≤ 60 s | İş 5 ve iş 7 kabul ölçütü: ölçülen süre rapora yazılır; tahmin tutmazsa önbellek/budama ayrı iş olur |
+| 1 | **Bitirilebilirlik çözücüsü** (eli per/çift gruplarına tam bölme, 2 okey + 2 sahte okey joker olarak) işin en zor parçası; geri izlemeli arama yanlış ya da yavaş olabilir. Bot her turda çağırdığı için maliyet çarpılır | **ölçüldü** (tasokey#37): tek el kontrolü ort. 0,0295 ms, `elBitirenTaslar` ort. 1,2777 ms (bütçe 20 ms); 200 ellik bot koşusu 17,6 s (bütçe 60 s, ADR-018 sonrası). tasokey#41 (yeniden ölçüldü; günlük `is/tasokey-41/cozucu-maliyet.log`): `node testler/el-bitiren-taslar.olcum.js` → `elBitirenTaslar` ort. **1,2306 ms** (en yavaş tek çağrı 13,74 ms), `node testler/el-dokumu.olcum.js` → `elDokumu` ort. **0,3492 ms** (en yavaş 3,94 ms) — ikisi de 20 ms bütçesinin altında. Zor kademe tur başına bir çözücü + bir döküm çağrısı daha ekliyor; bedeli el başına ölçüldü (`node --test testler/bot-dayaniklilik.test.js`): orta 200 el 17,1 s (**~86 ms/el**), zor 100 el 15,7 s (**~157 ms/el**, orta'nın ~1,8 katı), kolay 100 el 7,3 s (~73 ms/el); üç kademe toplam **40,7 s** (bütçe 60 s; ADR-013'teki 41,4 s aynı koşunun önceki çalıştırmasıdır) | İş 5 ve iş 7 kabul ölçütü: ölçülen süre rapora yazılır; tahmin tutmazsa önbellek/budama ayrı iş olur |
 | 2 | Deste tükenmesi (kural boşluğu) | **kapandı** (ADR-008/4: el berabere) | İş 6'nın öz-testi bu durumu kapsar; bot koşusunda "0 sonlanmayan el" ölçülür |
 | 3 | `12-13-1` geçişi, gösterge sahte okey çıkması, okey atma | **kapandı** (ADR-008/1-3) | İş 3, 4, 6 tablo testleri |
 | 4 | Mobil dikeyde 15 taşlık raf + masa + atılan yığın sığmayabilir | **kapandı** (R-014 ile: dikeyde sığdırma denenmez, oyun alanı yerine dil anahtarlı uyarı gösterilir; bkz. ADR-012) | 390×844 ekran görüntüsü: oyun alanı değil, uyarı görünür; 844×390 (yatay): dört kenar düzeni sığdırılmış görünür |
@@ -251,3 +382,6 @@ uyarısı görünür, R-014).
 | 6 | Arayüz işlerinin manifesti: 8777 portu ve tarayıcı sürücüsü yazılı değilse iş `izin_gerek` döner | **bilinen eksik** | Çekirdek iş 8'i açarken manifeste port + sürücü yazar |
 | 7 | `kraftdcm/tasokey` uzak deposu ve Pages ayarı ofisten görülemez; `git remote` boş (**ölçüldü**) | **Masa'da** | Sahip depoyu açar/Pages'i açar; ofis yalnız `docs/` üretir |
 | 8 | Kit'te "web oyunu" profili yok (D-26) | **eksik** | `profil-oyun-web-taslak.md` yazıldı; kit'e girmesi Sahip onayı ister (kit değişikliği) |
+| 10 | ADR-014'ün hedef payı ızgara boşluğunun yarısı olduğundan en dar kademede (`844×390`) yalnız 3 px: parmakla oynanan en küçük ekranda kazanç en az | **bilinen sınır** (ölçüldü: `--masa-bosluk: 6px`) | Masa boşluğunu/kenar paylarını telefon yatayda büyütmek ayrı düzen işidir; ölçüt gerçek dokunmayla denemedir (Sahip) |
+| 11 | Bot **kademe seçimi arayüzde yok** (ADR-013): motor üç kademeyi oynatıyor, arayüz sabit `VARSAYILAN_KADEME` (orta) çağırıyor. Oyuncu kolay/zor seçemiyor | **kapandı** (ADR-016, `tasokey#42`: başlangıç ekranında Kolay/Orta/Zor seçimi, kayıt şeması sürüm 2) | Öz-test: `testler/kabuk.test.js` (seçilen kademe botun tek girişine geçiyor; zor/orta aynı durumda farklı çekiyor), `testler/kayit.test.js` (seçim kayıttan geri okunuyor), `testler/baslangic-ekrani.test.js` (arayüz kademe adı yazmıyor); ekran görüntüsü `tasokey#42` raporunda |
+| 9 | 844×390'da (telefon yatay) sonuç penceresi, el bitince açılan üst rakibin ıstakasını örtüyor; o el pencere kapanmadan okunamaz. İki istek (pencere her zaman en üstte + el bitince rakip ıstakaları açılsın) bu ölçüde çakışıyor | **Masa'da / Sahip kararı** (pencere konumu ya da kapatılabilirlik ürün kararı; ADR-015 kademe sırası değişmez) | 844×390 ekran görüntüsü: pencere açıkken üst kenar ıstakası görünür mü (bugün görünmüyor — `is/tasokey-38/ekran/el-bitti-pencere-telefon-yatay.png`) |

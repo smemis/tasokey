@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import {
+  BirimHatasi, calcIfadeleri, degiskenleriTopla, ifadeHesapla, varCoz, yorumlariAt,
+} from './yardimci/css-olcu.js';
+
 // tasokey#33 (sınıf K) — Sahip'in 4 maddelik masa düzeni düzeltmesi:
 // 1) rakip ıstakaları gri kutu yerine gerçek kenar boyu çubuk, ad çubuğun üstünde
 // 2) deste tek taş yerine üst üste kaydırılmış katmanlar
@@ -20,123 +24,19 @@ const ISTAKA_DIKEY_SVG = readFileSync(join(DOCS_KOK, 'gorsel', 'istaka-dikey.svg
 const ISTAKA_YATAY_SVG = readFileSync(join(DOCS_KOK, 'gorsel', 'istaka-yatay.svg'), 'utf8');
 const ISTAKA_SVG = readFileSync(join(DOCS_KOK, 'gorsel', 'istaka.svg'), 'utf8');
 
-// ---------------------------------------------------------------------------
-// Birim farkındalı calc() çözümleyicisi (denetçi bulgusu, tur 2).
-// CSS'te calc() içinde uzunlukla birimsiz sayı TOPLANAMAZ: `12 * 58px + 11 * 0`
-// geçersizdir ("invalid at computed-value time") ve değişkeni kullanan bildirim
-// tamamen düşer — formül metinde doğru dursa bile özellik hiç çizilmez. Metin
-// eşleştiren testler bunu göremez, bu yüzden ifade burada gerçekten hesaplanır.
-// ---------------------------------------------------------------------------
+// Birim farkındalı calc() çözümleyicisi `testler/yardimci/css-olcu.js`e taşındı (tasokey#39):
+// hedef alanı testi (ADR-014) aynı çözümleyiciyi kademe kademe kullanıyor, aynı iş iki yerde
+// yazılmasın. Buradaki testlerin anlamı değişmedi.
 
-class BirimHatasi extends Error {}
-
-const YORUMSUZ_STIL = STIL_CSS.replace(/\/\*[\s\S]*?\*\//g, '');
+const YORUMSUZ_STIL = yorumlariAt(STIL_CSS);
 
 /** Dosyadaki bütün özel değişken bildirimleri: ad → [değer, …] (kademeler dahil). */
 function degiskenSozlugu() {
-  const sozluk = new Map();
-  for (const [, ad, deger] of YORUMSUZ_STIL.matchAll(/(--[\w-]+)\s*:\s*([^;{}]+);/g)) {
-    if (!sozluk.has(ad)) sozluk.set(ad, []);
-    sozluk.get(ad).push(deger.trim().replace(/\s+/g, ' '));
-  }
+  const sozluk = degiskenleriTopla(YORUMSUZ_STIL);
   // --raf-sutun-sayisi CSS'te değil, ekran.js'te tanımlanır (tek kaynak, baslat()).
   const sutun = EKRAN_JS.match(/const RAF_SUTUN_SAYISI = (\d+);/);
   if (sutun) sozluk.set('--raf-sutun-sayisi', [sutun[1]]);
   return sozluk;
-}
-
-function varCoz(ifade, sozluk, derinlik = 0) {
-  if (derinlik > 12) throw new Error('var() döngüsü');
-  return ifade.replace(/var\((--[\w-]+)(?:\s*,[^)]*)?\)/g, (_, ad) => {
-    const degerler = sozluk.get(ad);
-    if (!degerler) throw new Error(`${ad} hiçbir yerde tanımlı değil`);
-    return `(${varCoz(degerler[0], sozluk, derinlik + 1)})`;
-  });
-}
-
-/** `{sayi, birim}` döndürür; birim '' (saf sayı), 'px', '%', 'rem'… */
-function ifadeHesapla(ham) {
-  const metin = ham.replace(/\bcalc\(/g, '(');
-  let i = 0;
-  const bosluk = () => { while (i < metin.length && /\s/.test(metin[i])) i += 1; };
-
-  function etiket(birim) { return birim === '' ? 'birimsiz sayı' : birim; }
-
-  function birimselDeger() {
-    bosluk();
-    if (metin[i] === '(') {
-      i += 1;
-      const ic = toplam();
-      bosluk();
-      if (metin[i] !== ')') throw new Error('kapanmayan parantez');
-      i += 1;
-      return ic;
-    }
-    const eslesme = /^[-+]?(?:\d+\.?\d*|\.\d+)([a-z%]*)/i.exec(metin.slice(i));
-    if (!eslesme) throw new Error(`sayısal olmayan belirteç: ${metin.slice(i, i + 16)}`);
-    i += eslesme[0].length;
-    return { sayi: Number.parseFloat(eslesme[0]), birim: eslesme[1] || '' };
-  }
-
-  function carpim() {
-    let sol = birimselDeger();
-    for (;;) {
-      bosluk();
-      const op = metin[i];
-      if (op !== '*' && op !== '/') return sol;
-      i += 1;
-      const sag = birimselDeger();
-      if (op === '*') {
-        if (sol.birim !== '' && sag.birim !== '') {
-          throw new BirimHatasi(`calc() içinde ${sol.birim} ile ${sag.birim} çarpılıyor`);
-        }
-        sol = { sayi: sol.sayi * sag.sayi, birim: sol.birim || sag.birim };
-      } else {
-        if (sag.birim !== '') throw new BirimHatasi(`calc() içinde ${sag.birim} ile bölünüyor`);
-        sol = { sayi: sol.sayi / sag.sayi, birim: sol.birim };
-      }
-    }
-  }
-
-  function toplam() {
-    let sol = carpim();
-    for (;;) {
-      bosluk();
-      const op = metin[i];
-      if (op !== '+' && op !== '-') return sol;
-      i += 1;
-      const sag = carpim();
-      if (sol.birim !== sag.birim) {
-        throw new BirimHatasi(
-          `calc() içinde ${etiket(sol.birim)} ile ${etiket(sag.birim)} toplanıyor — tarayıcı bildirimi düşürür`,
-        );
-      }
-      sol = { sayi: op === '+' ? sol.sayi + sag.sayi : sol.sayi - sag.sayi, birim: sol.birim };
-    }
-  }
-
-  const sonuc = toplam();
-  bosluk();
-  if (i < metin.length) throw new Error(`çözümlenemeyen artık: ${metin.slice(i, i + 16)}`);
-  return sonuc;
-}
-
-/** Dosyadaki her `calc(...)` ifadesini parantez dengesiyle çıkarır. */
-function calcIfadeleri(css) {
-  const liste = [];
-  for (let bas = css.indexOf('calc('); bas !== -1; bas = css.indexOf('calc(', bas + 1)) {
-    let derinlik = 0;
-    let son = bas + 4;
-    for (; son < css.length; son += 1) {
-      if (css[son] === '(') derinlik += 1;
-      else if (css[son] === ')') {
-        derinlik -= 1;
-        if (derinlik === 0) break;
-      }
-    }
-    liste.push(css.slice(bas, son + 1));
-  }
-  return liste;
 }
 
 function onalticiRenk(metin) {
