@@ -106,8 +106,8 @@ function sahneKur(t) {
   const rafTasi = cocukYap(rafYuva, ['.tas'], { tasId: 'kirmizi-7-a' });
   rafTasi.siniflar.add('tas');
   rafTasi.setAttribute('tabindex', '0');
-  const deste = cocukYap(masa, ['[data-hedef="yerDestesi"]'], { hedef: 'yerDestesi' });
-  const desteTasi = cocukYap(deste, [], {}, { left: 300, top: 150, width: 40, height: 60 });
+  const deste = cocukYap(masa, ['[data-hedef="yerDestesi"]'], { hedef: 'yerDestesi' }, { left: 300, top: 150, width: 40, height: 60 });
+  const desteTasi = cocukYap(deste, [], { tasId: 'deste-arka' }, { left: 300, top: 150, width: 40, height: 60 });
   desteTasi.siniflar.add('tas-arka');
   deste.taslar = [desteTasi];
 
@@ -165,8 +165,19 @@ function sahneKur(t) {
     return { yuva, tas };
   }
 
+  // `ekran.js` → `yerDestesiYiginiCiz()` (ekran.js:254; köşede `koseYiginiCiz()`, ekran.js:230):
+  // yığın alanı da `innerHTML = ''` ile boşaltılıp yeniden kurulur — her hamlede, yani çekme
+  // SÜRERKEN de olabilir. Sürüklenen üst taş belgeden düşer (tasokey#59, Denetçi turu 2).
+  function desteyiYenidenCiz() {
+    for (const cocuk of [...deste.cocuklar]) deste.removeChild(cocuk);
+    const tas = cocukYap(deste, [], { tasId: 'yeni-arka' }, { left: 600, top: 150, width: 40, height: 60 });
+    tas.siniflar.add('tas-arka');
+    deste.taslar = [tas];
+    return tas;
+  }
+
   return { govde, masa, raf, rafYuva, rafTasi, deste, desteTasi, birakmalar, cekmeler, isaretci, kopyalar,
-    rafiYenidenCiz, noktaya: (oge) => { noktadaki = oge; } };
+    rafiYenidenCiz, desteyiYenidenCiz, noktaya: (oge) => { noktadaki = oge; } };
 }
 
 test('ASIL KABUL: ıstakada sürüklenen asıl taş yerinde kalır — kendisine transform yazılmaz', (t) => {
@@ -332,6 +343,64 @@ test('ASIL KABUL: desteden sürüklemede üst taşın kopyası taşınır, asıl
   s.isaretci(s.masa, 'pointerup', s.deste, 380, 240);
   assert.deepEqual(s.kopyalar(), [], 'çekme bitince kopya kaldırılmalı');
   assert.equal(s.cekmeler.length, 1, 'davranış değişmedi: çekme yine bildirilir');
+});
+
+// --- Bayat kopya, ÇEKME yolu (tasokey#59, Denetçi turu 2) -------------------------------------
+// Denetçi bulgusu: turu 1'in ağı yalnız `surukleBagla`ya (ıstaka) kuruldu. Aynı tek kapıyı
+// kullanan `cekmeSurukleBagla` (deste/köşe çekmesi) için soru aynı ve cevabı da aynıydı: yığın
+// alanı yeniden çizilince (`innerHTML = ''`) üst taş belgeden düşer, yakalama kopar; parmak
+// masanın DIŞINDA kalkarsa `pointerup` masaya ulaşmaz → `sifirla()` hiç çalışmaz, kopya gövdede
+// asılı kalır ve sonraki çekmede parmağı eski taşın kopyası eski çapasıyla izler.
+
+test('ASIL KABUL: çekme sürerken yığın yeniden çizilir, parmak masa dışında kalkar — kopya kalmaz', (t) => {
+  const s = sahneKur(t);
+  s.isaretci(s.masa, 'pointerdown', s.deste, 320, 180);
+  s.isaretci(s.masa, 'pointermove', s.deste, 380, 240);
+  assert.equal(s.kopyalar().length, 1, 'ön koşul: çekme kopyası doğdu');
+
+  s.desteyiYenidenCiz();
+  // Yakalama koptuğu için bırakma masaya değil masanın dışına (gövdeye) gider.
+  s.isaretci(s.govde, 'pointerup', s.govde, 900, 900);
+
+  assert.deepEqual(
+    s.kopyalar(),
+    [],
+    'ASIL KABUL: çekme kopyası gövdede asılı kalıyor → masada parmağı izlemeyen hayalet taş',
+  );
+  assert.equal(s.desteTasi.classList.contains('surukleniyor'), false, 'eski üst taşın sürükleme sınıfı da düşmeli');
+  assert.equal(s.cekmeler.length, 0, 'masa dışında biten bırakma çekme değildir (davranış değişmez)');
+});
+
+test('ASIL KABUL: bayat çekme kopyası sonraki çekmeyi bozmaz — kopya yeni üst taşa çapalanır', (t) => {
+  const s = sahneKur(t);
+  s.isaretci(s.masa, 'pointerdown', s.deste, 320, 180);
+  s.isaretci(s.masa, 'pointermove', s.deste, 380, 240);
+  // Bırakma hiç gelmiyor (parmak pencerenin/masanın dışında kalktı).
+  const yeniUstTas = s.desteyiYenidenCiz();
+
+  s.isaretci(s.masa, 'pointerdown', s.deste, 620, 180);
+  s.isaretci(s.masa, 'pointermove', s.deste, 660, 210);
+
+  const kopyalar = s.kopyalar();
+  assert.equal(kopyalar.length, 1, 'ASIL KABUL: eski kopya kalınca gövdede iki kopya oluyor');
+  assert.equal(kopyalar[0].dataset.tasId, 'yeni-arka', 'ASIL KABUL: parmağı eski üst taşın kopyası izliyor');
+  assert.equal(kopyalar[0].style.left, '600px', 'kopya yeni üst taşın kutusuna çapalanmalı (eski çapa 300px)');
+  assert.equal(kopyalar[0].style.transform, 'translate3d(40px, 30px, 0)', 'kopya yeni parmağı izlemeli');
+  assert.equal(yeniUstTas.classList.contains('surukleniyor'), true, 'yeni üst taş yerinde beklerken sınıfını taşır');
+});
+
+test('başka parmağın masa dışında bıraktığı işaretçi süren çekmeyi düşürmez', (t) => {
+  const s = sahneKur(t);
+  s.isaretci(s.masa, 'pointerdown', s.deste, 320, 180);
+  s.isaretci(s.masa, 'pointermove', s.deste, 380, 240);
+
+  s.isaretci(s.govde, 'pointerup', s.govde, 900, 900, 9);
+  assert.equal(s.kopyalar().length, 1, 'ikinci parmağın bırakması süren çekmeyi bozmamalı');
+
+  s.noktaya(s.rafYuva);
+  s.isaretci(s.masa, 'pointerup', s.deste, 380, 240);
+  assert.equal(s.cekmeler.length, 1, 'çekme kendi parmağıyla bitince yine bildirilir');
+  assert.deepEqual(s.kopyalar(), [], 'bırakmada kopya kaldırılır');
 });
 
 test('eşiğin altında kalan deste dokunuşunda kopya yaratılmaz', (t) => {

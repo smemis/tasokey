@@ -261,6 +261,12 @@ export function cekmeSurukleBagla(masaElemani, rafElemani, kaynaktanCekCallback)
       if (aktifIsaretciId !== null && e.pointerId === aktifIsaretciId) sifirla();
       return;
     }
+    // Basış bir kaynağın üstünde: aşağıdaki atamalar durumun DEĞERLERİNİ zaten eziyor, ama bayat
+    // durumun ARTIKLARINI (gövdede asılı kopya, eski üst taşın `surukleniyor` sınıfı) ezmiyordu —
+    // `ac()` açık bir kopya görünce erken döner, o zaman parmağı YENİ üst taş değil eskisinin
+    // kopyası eski çapasıyla izlerdi (tasokey#59, Denetçi turu 2). Istaka yolundaki `durumuDusur()`
+    // ile aynı yer, aynı amaç; `sifirla()` bırakma kararı vermediği için çekme davranışı değişmez.
+    sifirla();
     kaynakTuru = yerDestesi ? CEKME_KAYNAGI.YER_DESTESI : CEKME_KAYNAGI.KOSE;
     kaynak = yerDestesi ? {} : { kose: kose.dataset.kose };
     kaynakOgesi = kaynakElemani;
@@ -328,4 +334,24 @@ export function cekmeSurukleBagla(masaElemani, rafElemani, kaynaktanCekCallback)
     if (aktifIsaretciId !== null && e.pointerId !== aktifIsaretciId) return;
     sifirla();
   });
+
+  // Masanın DIŞINDA biten bırakmanın ağı (tasokey#59, Denetçi turu 2) — ıstaka yolundaki
+  // `istakaDisindaBirakildi` ile aynı dil. Deste ve köşe yığınları da sürükleme sürerken yeniden
+  // çizilebilir (`ekran.js` `yerDestesiYiginiCiz`/`koseYiginiCiz`, ikisi de `innerHTML = ''`):
+  // sürüklenen üst taş belgeden düşer ve işaretçi yakalaması kopar. Parmak o anda masanın dışında
+  // kalkarsa `pointerup` yukarıdaki dinleyicilere ulaşmaz, `sifirla()` hiç çalışmaz ve kopya
+  // gövdede asılı kalırdı.
+  // Yalnız masa dışında biteni temizler: masanın içinde biten bırakmayı (yakalama varken olayın
+  // hedefi de kaynak öğedir, o da masanın içindedir) yine masa dinleyicisi görür ve çekme kararını
+  // o verir. Istaka masanın içindedir, bu yüzden masa dışında biten bırakma zaten çekme değildir —
+  // ağ hiçbir zaman karar üretmez/yutmaz. Başka parmağın bırakması süren çekmeyi düşürmez.
+  function masaDisindaBirakildi(e) {
+    if (!kaynakTuru) return;
+    if (aktifIsaretciId !== null && e.pointerId !== aktifIsaretciId) return;
+    if (e.target && masaElemani.contains(e.target)) return;
+    sifirla();
+  }
+
+  document.addEventListener('pointerup', masaDisindaBirakildi);
+  document.addEventListener('pointercancel', masaDisindaBirakildi);
 }
