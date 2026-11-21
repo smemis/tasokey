@@ -14,11 +14,17 @@
 > kolay/orta/zor) ve §4 "Botlar" tablosunun "Zorluk kademeleri", "Karar yöntemi", "Ölçüm" satırları buna göre güncellendi.
 > Bu soruyu belge zaten Mimar/Geliştirici'ye bırakmıştı; kural (§1) ve bitiş koşulu değişmedi, yeni gereksinim yok.
 > Karşılığı `MIMARI.md` ADR-013 ve `docs/bot/bot.js`.
+> **v5** (`tasokey#50`, Sahip kararı 2026-11-21): §1 **kural 10 değişti** — okey (joker) ve sahte okey
+> taşının atılması artık **serbesttir**; motor hamleyi engellemez, ceza da yoktur. Karar
+> `MIMARI.md` ADR-008 **sürüm 2**'dir; kural `cekirdek/kural.js`'teki aynı ayarda duruyor ve
+> kapatma anahtarı olarak çalışmayı sürdürüyor. Arayüz karşılığı: insan oyuncu joker attığında
+> bilgilendirme penceresi açılır (ADR-016 madde 8) — hamle engellenmez, pencere yalnız anlatır.
+> Başka kural (6-9, 11-13) ve bitiş koşulu değişmedi; yeni gereksinim yok.
 
 | Alan | Değer |
 |---|---|
 | Proje | `tasokey` |
-| GDD sürümü | `4` (v4: bot zorluk kademeleri — §7 Soru 3 kapandı, `tasokey#41`) |
+| GDD sürümü | `5` (v5: okey/sahte okey atmak serbest — §1 kural 10, `tasokey#50`; önceki v4: bot zorluk kademeleri, `tasokey#41`) |
 | Bağlı PRD sürümü | `3` (`tasokey#36` ile birlikte) |
 | Son onay | Sahip onayı 2026-11-20, tasokey#35 |
 
@@ -40,7 +46,7 @@
 | 7 | Çift: iki **birebir aynı** taş (aynı sayı **ve** aynı renk). Okey/sahte okey bir çiftin yerini tutabilir. Eski "aynı sayı, 2 farklı renk" tanımı yanlıştı; o dizilim artık sayı perinin parçasıdır (kural 6b) | R-004 | Sahip kararı 2026-11-20 (`tasokey#35`); `ARASTIRMA.md` §2 satır 6 düzeltildi | doğrulandı (Sahip, 2026-11-20) |
 | 8 | Klasik Okey'de per/çift masaya yalnız el biterken (son taşı atarken) açılır; ara aşamada masaya taş konmaz | R-005 | `ARASTIRMA.md` §2.7 | doğrulandı |
 | 9 | Gösterge taşı kendisi çift sayılamaz | R-004 | `ARASTIRMA.md` §2, satır 9 | doğrulandı |
-| 10 | Okey (joker) ve sahte okey taşının atılması **yasaktır**; motor bu hamleyi baştan engeller. Ceza puanı yoktur — tek elde ceza tablosunun yeri yok | R-003, R-007 | `MIMARI.md` ADR-008/2 (K1 kararı) | doğrulandı (K1, 2026-11-19) |
+| 10 | Okey (joker) ve sahte okey taşı **atılabilir**: hamle engellenmez, ceza puanı da yoktur (tek elde ceza tablosunun yeri yok). İnsan oyuncu joker attığında arayüz bir bilgilendirme penceresi gösterir (ADR-016/8) — pencere yalnız anlatır, hamleyi geri almaz. Yasak, `cekirdek/kural.js`'teki ayarda **kapatma anahtarı** olarak duruyor: açılırsa motor hamleyi yine baştan engeller. *(v4'e kadar yasaktı — K1, 2026-11-19.)* | R-003, R-007 | `MIMARI.md` ADR-008/2 **sürüm 2** (Sahip kararı, `tasokey#50`) | doğrulandı (Sahip, 2026-11-21; önceki varsayılan K1, 2026-11-19) |
 | 11 | Gösterge taşı sahte okey çıkarsa taş desteye karışır ve gösterge yeniden açılır (yeni gösterge, yeni okey taşı belirler) | R-002 | `MIMARI.md` ADR-008/3 (K1 kararı) | doğrulandı (K1, 2026-11-19) |
 | 12 | Yerdeki (desteki) taşlar kimse elini bitirmeden tükenirse el **berabere** sayılır ve yeni el başlar | R-006, R-007 | `MIMARI.md` ADR-008/4 (K1 kararı) | doğrulandı (K1, 2026-11-19) |
 | 13 | Bitiş: el ya **tamamen per** gruplarına bölünür (her grup seri ya da sayı peri, her biri en az 3 taş), ya da **tam 7 çift**tir; per ile çift **karışık kullanılamaz** | R-004, R-005 | Sahip kararı 2026-11-20 (`tasokey#35`); motor karşılığı ADR-017, `MIMARI.md`'ye motor işinde yazılır | doğrulandı (Sahip, 2026-11-20) |
@@ -91,7 +97,7 @@ değildir.
 | Zorluk kademeleri | **Üç kademe M1'de: kolay / orta / zor** (§7 Soru 3 kapandı — B; karar Mimar/Geliştirici, `MIMARI.md` ADR-013, `tasokey#41`). Üçü aynı sezgiselin üç ayarıdır, kuralı değiştirmez: orta ADR-018 sezgiselinin kendisi, kolay zayıflatılmış (bitirme fırsatını kaçırabilir, köşeden çekmeyi çoğunlukla kullanmaz, en izole taşı her zaman seçmez), zor güçlendirilmiş (bitiren taşı çözücüyle görür, atacağı taşı elin gerçek bölümüne göre seçer). Oyuncu kademeyi **başlangıç ekranından seçer** (ADR-016, `tasokey#42`); seçim kayıtta durur, kayıt yoksa/bozuksa varsayılan (orta) oynanır |
 | Karar yöntemi | Kural tabanlı basit sezgisel (hangi taşı çekeceği/atacağı per-çift tamamlama olasılığına göre); ayrıntılı algoritma bu v0'da tanımlı değil, Mimar/Geliştirici tamamlar → `MIMARI.md` ADR-018 (sezgisel) + ADR-013 (kademeler) |
 | Oyunla aynı kural sınıfını kullanır mı | Evet — bot ve insan oyuncu aynı saf kural motorunu (per/çift geçerlilik, bitiş kontrolü) kullanır |
-| Ölçüm | Örnek hedef: N bot × M el öz-testi hatasız biter (kesin N/M Mimar/Geliştirici belirler); değişmez: botun asla kurala aykırı hamle yapmaması. **Ölçüldü** (`tasokey#41`, kademe başına 200 el, 4 bot, sabit tohum): motorun reddettiği öneri 0 ve sonlanmayan el 0 — üç kademede de. Kademe gücü aynı dağıtımlarda kazanma oranıyla ölçülür: kolay **%5,5** · orta **%26,5** · zor **%34,5** (`testler/bot-zorluk.olcum.js`) |
+| Ölçüm | Örnek hedef: N bot × M el öz-testi hatasız biter (kesin N/M Mimar/Geliştirici belirler); değişmez: botun asla kurala aykırı hamle yapmaması. **Ölçüldü** (kademe başına 200 el, 4 bot, sabit tohum; son ölçüm `tasokey#50`, joker atmak serbestken): motorun reddettiği öneri 0 ve sonlanmayan el 0 — üç kademede de. Kademe gücü aynı dağıtımlarda kazanma oranıyla ölçülür: kolay **%3,5** · orta **%26,5** · zor **%34,5** (`testler/bot-zorluk.olcum.js`; `tasokey#41`'de kolay %5,5 ölçülmüştü — joker atmak serbest olduktan sonra kolay kademe el başına ~1,2 kez joker atıyor) |
 
 ## 5. Kilometre taşı testleri
 | Kilometre taşı | Test (ölçülebilir) |
@@ -153,5 +159,5 @@ Soru 1 ve 2 K1'de kapandı (Sahip, 2026-11-19 — bkz. §1 kural 6 ve 10). Soru 
 | # | Soru | Seçenekler (önerilen ilk sırada) | Durum |
 |---|---|---|---|
 | 1 | 12-13-1 geçişi (sayı sırasının "tur" yapıp yapmaması) per olarak geçerli mi? | A) Geçersiz — çoğu kaynakta per ardışık sayılar 1'den 13'e düz sıradır, tur yapma belirtilmemiş **(önerilen)** · B) Geçerli — bazı yerel kurallarda tur yapabiliyor olabilir (doğrulanmadı) | **kapandı — A** (K1, §1 kural 6) |
-| 2 | Okey atma cezası kesin puan/çarpanı ne olacak? | A) `PRD.md` §9 Soru 4 ile birlikte M2'de Sahip'in bildiği yerel kuralla sabitlensin **(önerilen)** · B) `101buddy.com` tablosu (101/202/404/808) birebir uygulansın | **kapandı — değişti**: okey/sahte okey atmak baştan yasak (motor engelliyor), ceza puanı/tablosu yok (K1, §1 kural 10) |
-| 3 | Bot zorluk kademesi sayısı M1'de kaç olacak? | A) 1 kademe, M2/M3'te artırılsın **(önerilen)** · B) M1'den itibaren 3 kademe (kolay/orta/zor) | **kapandı — B** (Mimar/Geliştirici, 2026-11-21, `tasokey#41`): üç kademe tek sezgiselin üç ayarı olduğu için M1'de karşılanabildi — kademe başına ayrı bot yazılmadı, kural kodu değişmedi (`MIMARI.md` ADR-013). Kademe farkı ölçüldü: kazanma oranı %5,5 / %26,5 / %34,5. Oyuncuya kademe seçtiren **arayüz** ayrı iştir (ADR-013 §7 risk 11) |
+| 2 | Okey atma cezası kesin puan/çarpanı ne olacak? | A) `PRD.md` §9 Soru 4 ile birlikte M2'de Sahip'in bildiği yerel kuralla sabitlensin **(önerilen)** · B) `101buddy.com` tablosu (101/202/404/808) birebir uygulansın | **kapandı — değişti**: ceza puanı/tablosu yok. (K1, 2026-11-19: atmak yasaktı. v5 / `tasokey#50`: atmak serbest, **ceza yine yok** — oyuncu yalnız bilgilendirilir; §1 kural 10) |
+| 3 | Bot zorluk kademesi sayısı M1'de kaç olacak? | A) 1 kademe, M2/M3'te artırılsın **(önerilen)** · B) M1'den itibaren 3 kademe (kolay/orta/zor) | **kapandı — B** (Mimar/Geliştirici, 2026-11-21, `tasokey#41`): üç kademe tek sezgiselin üç ayarı olduğu için M1'de karşılanabildi — kademe başına ayrı bot yazılmadı, kural kodu değişmedi (`MIMARI.md` ADR-013). Kademe farkı ölçüldü (`tasokey#50`'den sonra yeniden): kazanma oranı %3,5 / %26,5 / %34,5. Oyuncuya kademe seçtiren **arayüz** ayrı iştir (ADR-013 §7 risk 11) |
