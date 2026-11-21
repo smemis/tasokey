@@ -132,12 +132,14 @@ for (const kademe of KADEMELER) {
     assert.ok(['mavi-2-1', 'mavi-2-2'].includes(secilen.id), `beklenmeyen taş: ${secilen.id}`);
   });
 
-  test(`atilacakTasiSec (${kademe}): kural okey atmayı yasaklıyorsa joker hiç aday olmaz; kural kapalıyken aday olur`, () => {
+  // tasokey#50: havuz filtresi SİLİNMEDİ, yalnız varsayılanı döndü (ADR-008 sürüm 2). İki yön de
+  // ölçülür: yasak ayarı açıkken joker hiç aday olmaz, varsayılanda (serbest) aday olabilir.
+  test(`atilacakTasiSec (${kademe}): havuz filtresi kurala bağlı — yasak açıkken joker aday olmaz, varsayılanda olur`, () => {
     const okeyTas = t(OKEY_TASI.renk, OKEY_TASI.sayi, 1);
     const el = [okeyTas, t('kirmizi', 1), t('siyah', 1)];
-    const kuralKapali = { ...KURAL_VARSAYILAN, okeyVeSahteOkeyAtmaYasak: false };
-    assert.equal(atilacakTasiSec(el, OKEY_TASI, kademe, secenekler({ kural: kuralKapali })).id, okeyTas.id);
-    assert.notEqual(atilacakTasiSec(el, OKEY_TASI, kademe, secenekler()).id, okeyTas.id);
+    const kuralYasak = { ...KURAL_VARSAYILAN, okeyVeSahteOkeyAtmaYasak: true };
+    assert.equal(atilacakTasiSec(el, OKEY_TASI, kademe, secenekler()).id, okeyTas.id);
+    assert.notEqual(atilacakTasiSec(el, OKEY_TASI, kademe, secenekler({ kural: kuralYasak })).id, okeyTas.id);
   });
 
   test(`atilacakTasiSec (${kademe}): elin tamamı jokerse (aday havuzu boşalır) hâlâ elden bir taş döner`, () => {

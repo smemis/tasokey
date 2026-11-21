@@ -4,8 +4,9 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import {
-  BirimHatasi, calcIfadeleri, degiskenleriTopla, ifadeHesapla, varCoz, yorumlariAt,
+  BirimHatasi, calcIfadeleri, degiskenleriTopla, ifadeHesapla, kuralGovdesi, varCoz, yorumlariAt,
 } from './yardimci/css-olcu.js';
+import { RAF_SUTUN_SAYISI } from '../docs/arayuz/raf.js';
 
 // tasokey#33 (sınıf K) — Sahip'in 4 maddelik masa düzeni düzeltmesi:
 // 1) rakip ıstakaları gri kutu yerine gerçek kenar boyu çubuk, ad çubuğun üstünde
@@ -33,9 +34,9 @@ const YORUMSUZ_STIL = yorumlariAt(STIL_CSS);
 /** Dosyadaki bütün özel değişken bildirimleri: ad → [değer, …] (kademeler dahil). */
 function degiskenSozlugu() {
   const sozluk = degiskenleriTopla(YORUMSUZ_STIL);
-  // --raf-sutun-sayisi CSS'te değil, ekran.js'te tanımlanır (tek kaynak, baslat()).
-  const sutun = EKRAN_JS.match(/const RAF_SUTUN_SAYISI = (\d+);/);
-  if (sutun) sozluk.set('--raf-sutun-sayisi', [sutun[1]]);
+  // --raf-sutun-sayisi CSS'te değil `arayuz/raf.js`te tanımlanır (tek kaynak, ADR-019/tasokey#48);
+  // ekran.js baslat() onu CSS değişkenine yazar.
+  sozluk.set('--raf-sutun-sayisi', [String(RAF_SUTUN_SAYISI)]);
   return sozluk;
 }
 
@@ -230,7 +231,7 @@ test('madde-4-b: erişilebilir adet etiketi (aria-label) boşken de gerçek say�
 // Sahip ek bilgisi (2026-11-20): "Istakanın tek sırası 12 taş alacak genişlikte olsun ve taşlar
 // arasında boşluk olmasın" — gerçek okey ıstakasında taşlar bitişik durur.
 test('madde-ek-a: ıstakanın bir sırası 12 taş alıyor', () => {
-  assert.match(EKRAN_JS, /const RAF_SUTUN_SAYISI = 12;/, 'ekran.js RAF_SUTUN_SAYISI 12 değil');
+  assert.equal(RAF_SUTUN_SAYISI, 12, 'raf.js RAF_SUTUN_SAYISI 12 değil');
 });
 
 // Boşluk sıfır olmalı (bitişik taş), AMA uzunluk birimiyle: aynı değişken
@@ -336,6 +337,99 @@ test('denetci-5: her özel değişken bütün kademelerde aynı birim türünde 
       `${ad} kademeden kademeye birim değiştiriyor (${[...birimler].map((b) => b || 'birimsiz').join(', ')}) — calc() içinde kullanılırsa formül geçersiz olur`,
     );
   }
+});
+
+// tasokey#47 (Sahip isteği): "Atılan taş alanı: köşe iki ıstaka arasındaki boş alanı doldurur, taş
+// ortada". Hücre = o oyuncunun ıstaka satırı ile komşu kenarın ıstaka sütununun kesişimi (#masa
+// ızgarasının solUst/sagUst/solAlt/sagAlt alanları), yani iki ıstakanın arasında kalan boş alan.
+// Kural dört köşe için AYNIDIR (ADR-010 simetrisi); köşe başına ayrı kural yazılmaz, hücreleri
+// birbirinden ayıran tek şey ızgara satır/sütun ölçüsüdür.
+test('kose-47-a: .kose ızgara hücresini iki eksende doldurur', () => {
+  const govde = kuralGovdesi(STIL_CSS, '.kose');
+  assert.ok(govde, 'stil.css içinde .kose kuralı yok');
+  assert.match(
+    govde,
+    /justify-self:\s*stretch/,
+    '.kose yatayda hücreyi doldurmuyor (#masa justify-items: center ile ortalanıp içeriği kadar kalır)',
+  );
+  assert.match(
+    govde,
+    /align-self:\s*stretch/,
+    '.kose dikeyde hücreyi doldurmuyor — iki ıstaka arasındaki boş alan köşe yığınının dışında kalır',
+  );
+});
+
+test('kose-47-b: tek kural dört köşeye uygulanır (köşe başına ayrı kural yok)', () => {
+  const koseKimlikleri = ['#koseSolUst', '#koseSagUst', '#koseSolAlt', '#koseSagAlt'];
+  for (const kimlik of koseKimlikleri) {
+    const govde = kuralGovdesi(STIL_CSS, kimlik);
+    assert.ok(govde, `stil.css ${kimlik} kuralı yok (grid-area ataması orada duruyor)`);
+    const bildirimler = govde.split(';').map((p) => p.trim()).filter(Boolean)
+      .map((p) => p.split(':')[0].trim());
+    assert.deepEqual(
+      bildirimler,
+      ['grid-area'],
+      `${kimlik} grid-area dışında bildirim taşıyor (${bildirimler.join(', ')}) — köşe davranışı `
+      + 'dört köşe için tek `.kose` kuralından gelmeli (ADR-010 simetrisi)',
+    );
+  }
+  // Köşe yığınının adı index.html'de dört kez `.kose` sınıfıyla geçiyor (hedef-alani.test.js
+  // kabul-2 bunu ayrıca ölçer); burada kuralın tekilliği ölçülür.
+  assert.equal(
+    [...YORUMSUZ_STIL.matchAll(/(^|[,}])\s*\.kose\s*\{/g)].length,
+    1,
+    '.kose kuralı birden çok kez tanımlı — hangi köşenin hangi ölçüyü aldığı tek yerden okunamaz',
+  );
+});
+
+test('kose-47-c: atılan taş alanın TAM ORTASINDA: simetrik satırlar, sayaç yığının altında', () => {
+  const kose = kuralGovdesi(STIL_CSS, '.kose');
+  assert.ok(kose, 'stil.css içinde .kose kuralı yok');
+  assert.match(kose, /display:\s*grid/, '.kose ızgara değil; satır simetrisi kurulamaz');
+  const satirEslesme = kose.match(/grid-template-rows:\s*([^;]+);/);
+  assert.ok(satirEslesme, '.kose grid-template-rows tanımlamıyor');
+  const satirlar = satirEslesme[1].trim().split(/\s+/);
+  assert.equal(satirlar.length, 3, `.kose üç satır tanımlamalı (üst esneme, yığın, alt esneme): "${satirEslesme[1].trim()}"`);
+  assert.equal(
+    satirlar[0],
+    satirlar[2],
+    `.kose'nin üst ve alt esneme satırı eşit değil (${satirlar[0]} / ${satirlar[2]}) — yığın `
+    + 'alanın ortasında durmaz',
+  );
+  assert.match(satirlar[0], /^\d+(\.\d+)?fr$/, `esneme satırı fr birimi değil: ${satirlar[0]}`);
+  assert.equal(satirlar[1], 'auto', `yığın satırı içeriği kadar (auto) olmalı: ${satirlar[1]}`);
+
+  const yigin = kuralGovdesi(STIL_CSS, '.kose-yigin');
+  assert.match(yigin, /grid-row:\s*2/, '.kose-yigin ortadaki (2.) satırda değil');
+  const sayac = kuralGovdesi(STIL_CSS, '.kose-sayac');
+  assert.ok(sayac, 'stil.css içinde .kose-sayac kuralı yok');
+  assert.match(sayac, /grid-row:\s*3/, '.kose-sayac yığının altındaki (3.) satırda değil');
+  assert.match(
+    sayac,
+    /align-self:\s*start/,
+    '.kose-sayac kendi satırının başında değil — sayaç yığından uzaklaşır',
+  );
+});
+
+test('kose-47-d: hücre BÜYÜMEDİ: köşenin en küçük ölçüsü hâlâ taş ölçüsünden türer', () => {
+  const kose = kuralGovdesi(STIL_CSS, '.kose');
+  assert.match(
+    kose,
+    /min-width:\s*calc\([^;]*var\(--tas-genislik\)/,
+    '.kose min-width taş genişliğinden türemiyor',
+  );
+  assert.match(
+    kose,
+    /min-height:\s*calc\([^;]*var\(--tas-yukseklik\)/,
+    '.kose min-height taş yüksekliğinden türemiyor',
+  );
+  // Sabit bir width/height, hücreyi doldurmayı (stretch) etkisiz kılar; `auto` ölçülü ızgara
+  // satır/sütununu da büyütebilir → dört kenar düzeni (ADR-012) ve 844x390 sığdırması bozulur.
+  assert.doesNotMatch(
+    kose,
+    /(^|;|\s)(width|height)\s*:/,
+    '.kose sabit width/height tanımlıyor — hücreyi doldurma etkisiz kalır, ızgara izi büyüyebilir',
+  );
 });
 
 // Denetçi ölçümü (tur 2): doku masanın tamamına döşenmiş ama tonlar arasında en çok

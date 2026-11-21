@@ -3,7 +3,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { degiskenOlcusu, kademeSozlukleri, yorumlariAt } from './yardimci/css-olcu.js';
+import {
+  degiskenOlcusu, kademeSozlukleri, kuralGovdesi as kuralGovdesiCoz, yorumlariAt,
+} from './yardimci/css-olcu.js';
+import { RAF_SUTUN_SAYISI } from '../docs/arayuz/raf.js';
 
 // tasokey#39 — ADR-014: taş atma ve çekme hedef alanları büyütülsün.
 // İstek (Sahip): "Köşe yığınlarının ve yer destesinin bırakma/tıklama hedefi taş boyundan
@@ -15,7 +18,6 @@ import { degiskenOlcusu, kademeSozlukleri, yorumlariAt } from './yardimci/css-ol
 
 const DOCS_KOK = join(import.meta.dirname, '..', 'docs');
 const STIL_CSS = readFileSync(join(DOCS_KOK, 'arayuz', 'stil.css'), 'utf8');
-const EKRAN_JS = readFileSync(join(DOCS_KOK, 'arayuz', 'ekran.js'), 'utf8');
 const SURUKLE_JS = readFileSync(join(DOCS_KOK, 'arayuz', 'surukle.js'), 'utf8');
 const INDEX_HTML = readFileSync(join(DOCS_KOK, 'index.html'), 'utf8');
 const YORUMSUZ_STIL = yorumlariAt(STIL_CSS);
@@ -25,21 +27,15 @@ const HEDEF_DEGISKENI = '--hedef-pay';
 // ETKİLEŞİMLİ komşusu (yandaki ıstaka paneli / kenar) bu boşluğun ötesindedir.
 const KOMSU_BOSLUGU = '--masa-bosluk';
 
-/**
- * Bir CSS seçicisinin gövdesi (ilk eşleşen kural). Seçici listesi virgülle yazılmış olabilir
- * (`.kose::after, #yerDestesi::after { … }`) — bu yüzden liste ayrıştırılır, metin eşleştirilmez.
- */
+/** Seçicinin gövdesi; ayrıştırıcı `yardimci/css-olcu.js`te (tek kaynak, tasokey#47). */
 function kuralGovdesi(secici) {
-  for (const [, seciciler, govde] of YORUMSUZ_STIL.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
-    const liste = seciciler.split(',').map((parca) => parca.trim().replace(/\s+/g, ' '));
-    if (liste.includes(secici)) return govde;
-  }
-  return null;
+  return kuralGovdesiCoz(STIL_CSS, secici);
 }
 
 function ekDegiskenler() {
-  const sutun = EKRAN_JS.match(/const RAF_SUTUN_SAYISI = (\d+);/);
-  return new Map(sutun ? [['--raf-sutun-sayisi', [sutun[1]]]] : []);
+  // --raf-sutun-sayisi CSS'te değil `arayuz/raf.js`te tanımlanır (tek kaynak, ADR-019/tasokey#48;
+  // ekran.js baslat() onu CSS değişkenine yazar).
+  return new Map([['--raf-sutun-sayisi', [String(RAF_SUTUN_SAYISI)]]]);
 }
 
 test('kabul-1: hedef payı stil.css :root içinde TEK kez tanımlı (tek kaynak)', () => {
@@ -137,6 +133,42 @@ test('kabul-2: hedef halkası, isabet testinin bulduğu öğenin KENDİSİNDE (�
     (INDEX_HTML.match(/class="kose" data-kose="/g) || []).length,
     4,
     'dört köşenin hepsi .kose + data-kose taşımalı (halka o öğenin sözde öğesi)',
+  );
+});
+
+// tasokey#47: köşe kutusu artık ızgara hücresini doldurduğu için bırakma alanı halkadan bağımsız
+// olarak da büyüdü. ADR-014'ün değişmezi (halka komşunun kutusuna girmez) bu büyümeden sonra da
+// geçerli olmalı: halka `.kose` kutusunun dışına --hedef-pay kadar taşar, kutu da tam olarak
+// hücre kadardır. İki şey bunu bozabilir, ikisi de burada ölçülür.
+test('kabul-4 (tasokey#47): hücreyi dolduran köşe kutusu hedef halkasını kırpmıyor', () => {
+  const kose = kuralGovdesi('.kose');
+  assert.ok(kose, 'stil.css içinde .kose kuralı yok');
+  assert.doesNotMatch(
+    kose,
+    /overflow[\w-]*\s*:/,
+    '.kose overflow tanımlıyor — mutlak konumlu hedef halkası (::after) kutunun dışında kaldığı '
+    + 'için kırpılır ve büyüyen hedef alanı geri gider',
+  );
+});
+
+test('kabul-5 (tasokey#47): köşe kutusu hücreden DIŞARI taşmıyor (halka yine yalnız boşluğa girer)', () => {
+  const kose = kuralGovdesi('.kose');
+  assert.ok(kose, 'stil.css içinde .kose kuralı yok');
+  assert.doesNotMatch(
+    kose,
+    /margin[\w-]*\s*:/,
+    '.kose kenar boşluğu (margin) tanımlıyor — negatif bir değer kutuyu hücrenin dışına taşırır, '
+    + 'halka da onunla birlikte komşu hücrenin kutusuna girer (ADR-014/3 bozulur)',
+  );
+  assert.match(
+    kose,
+    /justify-self:\s*stretch/,
+    '.kose ızgara hücresini yatayda doldurmuyor (tasokey#47 isteği)',
+  );
+  assert.match(
+    kose,
+    /align-self:\s*stretch/,
+    '.kose ızgara hücresini dikeyde doldurmuyor (tasokey#47 isteği)',
   );
 });
 

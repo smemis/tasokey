@@ -14,6 +14,36 @@ export function yorumlariAt(css) {
   return css.replace(/\/\*[\s\S]*?\*\//g, '');
 }
 
+/**
+ * Bir CSS seçicisinin gövdesi (ilk eşleşen kural; yorumlar atılmış metinde aranır). Seçici listesi
+ * virgülle yazılmış olabilir (`.kose::after, #yerDestesi::after { … }`) — bu yüzden liste
+ * ayrıştırılır, metin eşleştirilmez. `hedef-alani.test.js` içinde yazılmıştı (tasokey#39);
+ * tasokey#47'de buraya taşındı: üç test dosyası aynı soruyu soruyor ("bu seçicinin bildirimleri
+ * neler?"), aynı ayrıştırıcı üç yerde yazılmasın.
+ */
+export function kuralGovdesi(css, secici) {
+  for (const [, seciciler, govde] of yorumlariAt(css).matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const liste = seciciler.split(',').map((parca) => parca.trim().replace(/\s+/g, ' '));
+    if (liste.includes(secici)) return govde;
+  }
+  return null;
+}
+
+/** Her `@media` bloğunun `{ sorgu, govde }` listesi (iç içe bloklar parantez dengesiyle). */
+export function medyaBloklari(css) {
+  const metin = yorumlariAt(css);
+  const bloklar = [];
+  for (let bas = metin.indexOf('@media'); bas !== -1; bas = metin.indexOf('@media', bas + 1)) {
+    const acilis = metin.indexOf('{', bas);
+    if (acilis === -1) break;
+    bloklar.push({
+      sorgu: metin.slice(bas, acilis).trim().replace(/\s+/g, ' '),
+      govde: blokGovdesi(metin, acilis).govde,
+    });
+  }
+  return bloklar;
+}
+
 /** Metindeki bütün özel değişken bildirimleri: ad → [değer, …] (geliş sırasıyla). */
 export function degiskenleriTopla(metin) {
   const sozluk = new Map();

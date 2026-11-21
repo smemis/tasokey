@@ -11,12 +11,14 @@ import { cevir } from '../dil/cevir.js';
 import { surukleBagla, cekmeSurukleBagla } from './surukle.js';
 import { HEDEF_TURU, EYLEM, eylemKararVer, cekmeKararVer, rakipEliAcikMi } from './etkilesim.js';
 import {
-  EKRAN, OLAY, ZORLUKLAR, kabukBaslat, gecis, kayitAlanlari, botTurunuOynat,
-  oyunuBitirilebilirMi, onayBekliyorMu, botSirasiMi, bekleyenBotTuruGecerliMi,
+  EKRAN, OLAY, BILGI, ZORLUKLAR, kabukBaslat, gecis, kayitAlanlari, botTurunuOynat,
+  oyunuBitirilebilirMi, onayBekliyorMu, bilgiBekliyorMu, dokumAcikMi,
+  botSirasiMi, bekleyenBotTuruGecerliMi, ustCubukBaslikTarifi,
 } from './kabuk.js';
 import { kayitOku, kayitYaz } from '../kayit/depo.js';
 import { gorselOlustur, gorselleriOnYukle } from './gorseller.js';
 import { oyuncuKenarHaritasi, oyuncununAtilanKosesi } from './yerlesim.js';
+import { RAF_SUTUN_SAYISI, rafYerlesimiGuncelle, tasiYuvayaTasi, yerlesimKur } from './raf.js';
 
 // masa-zemin.svg ve istaka.svg CSS arka planı olarak kullanılır (arayuz/stil.css #masa / #rafAlani
 // — burada önceden yüklenmesi gerekmez). Sayı yüzü artık tek paylaşılan gövde (tas-govde.svg) +
@@ -24,16 +26,15 @@ import { oyuncuKenarHaritasi, oyuncununAtilanKosesi } from './yerlesim.js';
 const GORSEL_DOSYALARI = ['tas-govde.svg', 'tas-sahte-okey.svg', 'tas-okey-cerceve.svg', 'tas-arka.svg', 'yuva-bos.svg'];
 
 const INSAN_OYUNCUSU = 0;
-const BOT_GECIKME_MS = 450;
 
-// Oyuncunun ıstakası gerçek okey ıstakası gibi 2 sıra (tasokey#13 ek bilgi); yuva sayısı en
-// yüksek el boyutundan (15, dagitim.js BASLAYAN_OYUNCU_EL_BOYUTU) fazla tutulur ki oyuncu taşları
-// aralıklı dizerken boş yuva kalsın. Bir sıra 12 taş alır (Sahip ek bilgisi, 2026-11-20 — gerçek
-// ıstaka ölçüsü), taşlar arasında boşluk yoktur (stil.css --raf-yuva-bosluk: 0).
-// Tek kaynak: CSS `--raf-sutun-sayisi` bu sabitten okunur (baslat()).
-const RAF_SATIR_SAYISI = 2;
-const RAF_SUTUN_SAYISI = 12;
-const RAF_SLOT_SAYISI = RAF_SATIR_SAYISI * RAF_SUTUN_SAYISI;
+// Her bırakmadan (atmadan) sonra sıra 1 saniye sonra geçer (Sahip isteği, tasokey#49): oyuncu
+// hamlesinin masaya yansımasını görsün, botlar da birbirinin hamlesini anlaşılır bir ritimle
+// oynasın. TEK KAYNAK: hem insan→bot hem bot→bot geçişi `botAdiminiSiraya` kapısından geçtiği
+// için bu sabit iki yolda da aynı beklemeyi verir (eski ad `BOT_GECIKME_MS` = 450 ms).
+const SIRA_GECIS_GECIKME_MS = 1000;
+
+// Istakanın yuva sayıları ve bütün yerleşim kuralları `arayuz/raf.js`te (ADR-019, tasokey#48);
+// bu dosya yalnız dönen yerleşimi çizer. CSS `--raf-sutun-sayisi` de aynı sabitten okunur (baslat()).
 
 // ADR-012 (tasokey#29): Sahip (oyuncu 0) her zaman alt kenarda; diğer kenarlar/köşeler
 // `arayuz/yerlesim.js`in saf mantığıyla, el.js'in sıra yönüyle (sonrakiOyuncu) hesaplanır.
@@ -119,31 +120,19 @@ function tasAriaEtiketi(tas, okeyTasi) {
   return metinAl(anahtar, [renkMetni, tas.sayi]);
 }
 
-// Yuva içeriğini yeni ele göre günceller: hâlâ elde olan taş kendi yuvasında kalır (oyuncunun
-// dizilimi/aralığı bozulmaz), elden çıkan taşın yuvası boş kalır, yeni çekilen taş ilk boş yuvaya girer.
-function rafYerlesimiGuncelle(yeniEl) {
-  const mevcutIdSeti = new Set(yeniEl.map((tas) => tas.id));
-  const yerlesim = durumKutu.rafYerlesimi.map((id) => (id !== null && mevcutIdSeti.has(id) ? id : null));
-  const yerlesimdekiIdSeti = new Set(yerlesim.filter((id) => id !== null));
-  for (const tas of yeniEl) {
-    if (yerlesimdekiIdSeti.has(tas.id)) continue;
-    const bosIndex = yerlesim.indexOf(null);
-    if (bosIndex === -1) yerlesim.push(tas.id);
-    else yerlesim[bosIndex] = tas.id;
-  }
-  durumKutu.rafYerlesimi = yerlesim;
+// Yuva içeriğini yeni ele göre günceller; kural `raf.js`te (ADR-019). `yeniTasYuvasi` yalnız
+// sürükleyerek çekmede doludur: çekilen taş bırakıldığı yuvada kalır (dokunma/klavye yolunda
+// verilmez, taş ilk boş yuvaya girer).
+function rafYerlesiminiTazele(yeniEl, yeniTasYuvasi) {
+  durumKutu.rafYerlesimi = rafYerlesimiGuncelle(durumKutu.rafYerlesimi, yeniEl, { yeniTasYuvasi });
 }
 
-// Sürükleyip bırakmayla bir taşı hedef yuvaya koyar: hedef boşsa taş oraya geçer ve eski yuvası
-// boş kalır (oyuncu taşları aralıklı dizebilir); hedef doluysa iki taş yer değiştirir.
-function tasiYuvayaTasi(tasId, hedefIndex) {
-  const yerlesim = durumKutu.rafYerlesimi.slice();
-  const kaynakIndex = yerlesim.indexOf(tasId);
-  if (kaynakIndex === -1 || kaynakIndex === hedefIndex || hedefIndex < 0 || hedefIndex >= yerlesim.length) return;
-  const hedefIcerik = yerlesim[hedefIndex];
-  yerlesim[hedefIndex] = tasId;
-  yerlesim[kaynakIndex] = hedefIcerik;
-  durumKutu.rafYerlesimi = yerlesim;
+// Sürükleyip bırakmayla bir taşı hedef yuvaya koyar; bırakma kuralı (yer açma, itme yönü, taşma)
+// `raf.js`te durur — burada yalnız sonucu yerleşime yazıp yeniden çizmek var.
+function rafYuvasinaBirak(tasId, hedefIndex) {
+  const yeniYerlesim = tasiYuvayaTasi(durumKutu.rafYerlesimi, tasId, hedefIndex);
+  if (yeniYerlesim === durumKutu.rafYerlesimi) return;
+  durumKutu.rafYerlesimi = yeniYerlesim;
   rafCiz();
 }
 
@@ -195,10 +184,15 @@ function sonucMetni() {
 
 // Üst çubuk: başlık, dil düğmesi ve "Oyunu bitir" (tasokey#43). Düğmenin görünürlüğü kabuğa
 // sorulur (yalnız el sürerken anlamlı) — burada "şu panel kapalıysa göster" kuralı yazılmaz.
+//
+// Başlık da aynı kapıdan gelir (tasokey#45): hangi anahtarlardan kurulacağına `kabuk.js`
+// (`ustCubukBaslikTarifi`) karar verir — burada kademe adı, ayırıcı ya da sıra yazılmaz, yalnız
+// tarifteki anahtarlar çevrilir. `document.title` (sekme adı) kademeyle DEĞİŞMEZ: sekmede ürün
+// adı durur, oynanan kademe yalnız çubuğun kendisinde okunur.
 function ustCubukCiz() {
-  const baslik = metinAl('baslik');
-  eleman.baslikMetni.textContent = baslik;
-  document.title = baslik;
+  const tarif = ustCubukBaslikTarifi(durumKutu.kabuk);
+  eleman.baslikMetni.textContent = metinAl(tarif.anahtar, tarif.degerAnahtarlari.map((anahtar) => metinAl(anahtar)));
+  document.title = metinAl('baslik');
   eleman.dilDugmesi.textContent = metinAl('dilDegistir');
   eleman.oyunuBitirButonu.textContent = metinAl('oyunuBitir');
   eleman.oyunuBitirButonu.hidden = !oyunuBitirilebilirMi(durumKutu.kabuk);
@@ -395,6 +389,12 @@ function sonucKalanTaslariCiz(sonuc) {
 
 // Panelin görünürlüğü artık yalnız kabuğun ekranından gelir (ADR-016): "el bitti mi" sorusu
 // `elSonucunuHesapla` ile iki kez sorulmaz, geçiş `durumuIlerlet`te bir kez yapılır.
+//
+// Oyuncuların kalan taşları AÇILIR bir bölümdür (Sahip ek bilgisi, tasokey#50) ve pencere her
+// açıldığında KAPALI başlar: bayrağı kabuk tutar (`dokumAcikMi`, ekran değiştiren geçiş kapatır),
+// bu dosya kendi "açık mı" bayrağını açmaz (ADR-016/1). Liste kapalıyken kutu da içeriğiyle
+// birlikte küçülür — pencerenin sabit bir en/boyu yoktur (Sahip ek bilgisi 2, stil.css
+// `#sonucKutusu`).
 function sonucPaneliCiz() {
   const { durum, kabuk } = durumKutu;
   const sonucEkraninda = kabuk.ekran === EKRAN.SONUC;
@@ -403,6 +403,10 @@ function sonucPaneliCiz() {
   const sonuc = elSonucunuHesapla(durum);
   eleman.sonucMetni.textContent = sonucMetni();
   if (sonuc !== null) sonucKalanTaslariCiz(sonuc);
+  const dokumAcik = dokumAcikMi(kabuk);
+  eleman.dokumAcKapaButonu.textContent = metinAl('sonuc.oyuncuTaslari');
+  eleman.dokumAcKapaButonu.setAttribute('aria-expanded', String(dokumAcik));
+  eleman.sonucKalanTaslar.hidden = !dokumAcik;
   eleman.yeniElButonu.textContent = metinAl('yeniEl');
   eleman.baslangicaDonButonu.textContent = metinAl('baslangicaDon');
 }
@@ -435,6 +439,17 @@ function onayPaneliCiz() {
   eleman.onayHayirButonu.textContent = metinAl('onay.hayir');
 }
 
+// Bilgilendirme penceresi (tasokey#50, ADR-016/8): görünürlüğü ve hangi bilginin gösterildiği
+// kabuktan gelir (`kabuk.bilgi`); metnin anahtarı o alandan türer, bu dosya metin yazmaz (R-008).
+// Pencere soru sormaz: tek düğmesi yalnız kapatır, hamle çoktan işlenmiştir.
+function bilgiPaneliCiz() {
+  const acikMi = bilgiBekliyorMu(durumKutu.kabuk);
+  eleman.bilgiPaneli.classList.toggle('gorunur', acikMi);
+  if (!acikMi) return;
+  eleman.bilgiMetni.textContent = metinAl(`bilgi.${durumKutu.kabuk.bilgi}`);
+  eleman.bilgiTamamButonu.textContent = metinAl('bilgi.tamam');
+}
+
 // R-014: dikey/yatay geçişi CSS ortam sorgusu yönetir (stil.css `orientation: portrait`); burada
 // yalnız dil anahtarlı uyarı metni basılır — JS yön tespiti yapmaz, sabit metin yazmaz.
 function telefonUyarisiCiz() {
@@ -450,6 +465,7 @@ function ciz() {
   baslangicPaneliCiz();
   sonucPaneliCiz();
   onayPaneliCiz();
+  bilgiPaneliCiz();
 }
 
 // El durumunu ilerletmenin TEK kapısı (ADR-016): motor eli bitirdiyse kabuk `masa` → `sonuc`
@@ -461,14 +477,16 @@ function durumuIlerlet(yeniDurum) {
   }
 }
 
-function cekSonucunuIsle(sonuc) {
+// `yeniTasYuvasi`: sürükleyerek çekmede taşın bırakıldığı ıstaka yuvası (tasokey#48, ADR-019);
+// dokunma/klavye yolunda verilmez.
+function cekSonucunuIsle(sonuc, yeniTasYuvasi) {
   if (!sonuc.basarili) {
     mesajGoster(sonuc.sebep);
     ciz();
     return;
   }
   durumuIlerlet(sonuc.durum);
-  rafYerlesimiGuncelle(sonuc.durum.eller[INSAN_OYUNCUSU]);
+  rafYerlesiminiTazele(sonuc.durum.eller[INSAN_OYUNCUSU], yeniTasYuvasi);
   mesajGoster(null);
   ciz();
 }
@@ -478,6 +496,11 @@ function cekSonucunuIsle(sonuc) {
 // `elBitirenTaslar`a bakmıştı (etkilesim.js) — burada motor sonucunu uygulamaktan başka bir
 // kural tekrarı yok (ADR-002).
 function atVeyaBitirUygula(tasId) {
+  // Atılan taşın okey/sahte okey olup olmadığı hamleden ÖNCE okunur (taş sonra elde değil);
+  // "okey mi" sorusunun tek kaynağı `cekirdek/dagitim.js` tasOkeyMi'dir, burada renk/sayı
+  // karşılaştırılmaz. Kural artık bu hamleyi engellemiyor (ADR-008 sürüm 2, tasokey#50).
+  const atilanTas = durumKutu.durum.eller[INSAN_OYUNCUSU].find((tas) => tas.id === tasId);
+  const jokerAtiliyor = atilanTas !== undefined && tasOkeyMi(atilanTas, durumKutu.durum.okeyTasi);
   const sonuc = at(durumKutu.durum, INSAN_OYUNCUSU, tasId);
   if (!sonuc.basarili) {
     mesajGoster(sonuc.sebep);
@@ -485,32 +508,41 @@ function atVeyaBitirUygula(tasId) {
     return;
   }
   durumuIlerlet(sonuc.durum);
+  // Bilgilendirme penceresi yalnız insan oyuncunun KENDİ joker atışında açılır (ADR-016/8) ve
+  // hamleyi geri almaz. Hamle eli bitirdiyse ekran `sonuc`a geçmiş olur; o durumda tek kapı
+  // (`gecis`) bilgiyi zaten yok sayar — sonuç penceresiyle üst üste binmez.
+  if (jokerAtiliyor) {
+    durumKutu.kabuk = gecis(durumKutu.kabuk, OLAY.BILGI_GOSTER, { bilgi: BILGI.OKEY_ATILDI });
+  }
   durumKutu.secilenTasId = null;
-  rafYerlesimiGuncelle(sonuc.durum.eller[INSAN_OYUNCUSU]);
+  rafYerlesiminiTazele(sonuc.durum.eller[INSAN_OYUNCUSU]);
   mesajGoster(null);
   ciz();
+  // Bilgilendirme açıkken bot sırası başlamaz (koşul `kabuk.js` botSirasiMi'de): pencere
+  // kapanınca `bilgiyiKapat` sırayı buradan devam ettirir.
   botSirasiniBaslat();
 }
 
 // `etkilesim.js`in döndürdüğü eylem kararını uygular: sürükleme, dokunma (tıklama) ve klavye
 // yolu hepsi buraya varır (tasokey#30). Doğrulama burada yok — yalnız hangi motor çağrısının
 // (`cek`/`at`) yapılacağına ya da rafta taşıma olduğuna göre dağıtır.
-function eylemiUygula(karar) {
+// `yeniTasYuvasi` yalnız sürükleyerek çekme yolundan gelir (bırakılan ıstaka yuvası, tasokey#48).
+function eylemiUygula(karar, yeniTasYuvasi) {
   if (karar.eylem === EYLEM.GECERSIZ) {
     mesajGoster(karar.sebep);
     ciz();
     return;
   }
   if (karar.eylem === EYLEM.RAFTA_TASI) {
-    tasiYuvayaTasi(karar.tasId, karar.slotIndex);
+    rafYuvasinaBirak(karar.tasId, karar.slotIndex);
     return;
   }
   if (karar.eylem === EYLEM.CEK_DESTE) {
-    cekSonucunuIsle(cek(durumKutu.durum, INSAN_OYUNCUSU, KAYNAK.YER));
+    cekSonucunuIsle(cek(durumKutu.durum, INSAN_OYUNCUSU, KAYNAK.YER), yeniTasYuvasi);
     return;
   }
   if (karar.eylem === EYLEM.CEK_KOSE) {
-    cekSonucunuIsle(cek(durumKutu.durum, INSAN_OYUNCUSU, KAYNAK.ATILAN));
+    cekSonucunuIsle(cek(durumKutu.durum, INSAN_OYUNCUSU, KAYNAK.ATILAN), yeniTasYuvasi);
     return;
   }
   atVeyaBitirUygula(karar.tasId);
@@ -530,8 +562,10 @@ function hedefeBirakUygula(tasId, hedefTuru, hedef) {
 
 // Sürükleyerek çekme yolu (tasokey#40, R-012): hareket destede/köşede başlayıp ıstakada bittiğinde
 // kaynağın hangi çekmeye karşılık geldiğine `etkilesim.js` karar verir, motor yine `el.js`.
-function kaynaktanCekUygula(kaynakTuru, kaynak) {
-  eylemiUygula(cekmeKararVer(kaynakTuru, durumKutu.durum, INSAN_OYUNCUSU, kaynak));
+// `birakma.slotIndex` bırakılan ıstaka yuvasıdır (tasokey#48): çekme KARARINA girmez, yalnız
+// motor çekmeyi onayladıktan sonra taşın hangi yuvaya konacağını `raf.js`e söyler (ADR-019).
+function kaynaktanCekUygula(kaynakTuru, kaynak, birakma = {}) {
+  eylemiUygula(cekmeKararVer(kaynakTuru, durumKutu.durum, INSAN_OYUNCUSU, kaynak), birakma.slotIndex);
 }
 
 // Bekleyen bot turunu düşürür: zamanlayıcıyı iptal eder ve bot sırasını kapatır. Masadan çıkan ya
@@ -545,8 +579,10 @@ function botSirasiniDurdur() {
 }
 
 // Bot turunu sıraya alan tek kapı: hangi elin (neslin) turu olduğunu zamanlayıcıya birlikte verir.
+// Gecikmenin tek kaynağı `SIRA_GECIS_GECIKME_MS`; insanın attığı taştan sonraki ilk bot turu
+// (`botSirasiniBaslat`) ve bottan bota geçiş (`botAdimiOyna` sonu) aynı buradan geçer (tasokey#49).
 function botAdiminiSiraya(nesil) {
-  durumKutu.botZamanlayici = setTimeout(() => botAdimiOyna(nesil), BOT_GECIKME_MS);
+  durumKutu.botZamanlayici = setTimeout(() => botAdimiOyna(nesil), SIRA_GECIS_GECIKME_MS);
 }
 
 function botAdimiOyna(nesil) {
@@ -606,10 +642,7 @@ function elDurumunuSifirla(tohum) {
   botSirasiniDurdur();
   durumKutu.elNesli += 1;
   durumKutu.durum = elBaslat(tohum);
-  durumKutu.rafYerlesimi = new Array(RAF_SLOT_SAYISI).fill(null);
-  durumKutu.durum.eller[INSAN_OYUNCUSU].forEach((tas, index) => {
-    durumKutu.rafYerlesimi[index] = tas.id;
-  });
+  durumKutu.rafYerlesimi = yerlesimKur(durumKutu.durum.eller[INSAN_OYUNCUSU]);
   durumKutu.secilenTasId = null;
   durumKutu.mesajAnahtari = null;
 }
@@ -661,6 +694,21 @@ function oyunuBitirVazgec() {
   ciz();
 }
 
+// Bilgilendirme penceresinin tek düğmesi (tasokey#50): yalnız pencereyi kapatır ve duran bot
+// sırasını devam ettirir. El durumuna dokunulmaz — atılan taş masada kalır, ceza yoktur.
+function bilgiyiKapat() {
+  durumKutu.kabuk = gecis(durumKutu.kabuk, OLAY.BILGI_KAPAT);
+  ciz();
+  botSirasiniBaslat();
+}
+
+// Sonuç penceresindeki döküm bölümünü aç/kapat (Sahip ek bilgisi, tasokey#50): kabuk bayrağını
+// çevirir, pencere yeniden çizilir. Kapalıyken kutu içeriğiyle birlikte küçülür.
+function dokumAcKapa() {
+  durumKutu.kabuk = gecis(durumKutu.kabuk, OLAY.DOKUM_AC_KAPA);
+  ciz();
+}
+
 // Zorluk seçimi: karar kabukta (yalnız başlangıç ekranında geçerli), kalıcılığı kayıtta
 // (ADR-006 şema sürüm 2 — seçim bir sonraki açılışta geri okunur).
 function zorlukSec(zorluk) {
@@ -685,9 +733,11 @@ function elemanlariTopla() {
     'koseSolAlt', 'koseSolAltYigin', 'koseSolAltSayac',
     'koseSagAlt', 'koseSagAltYigin', 'koseSagAltSayac',
     'rafBaslik', 'raf',
-    'sonucPaneli', 'sonucMetni', 'sonucKalanTaslar', 'yeniElButonu', 'baslangicaDonButonu',
+    'sonucPaneli', 'sonucMetni', 'dokumAcKapaButonu', 'sonucKalanTaslar',
+    'yeniElButonu', 'baslangicaDonButonu',
     'baslangicPaneli', 'baslangicBaslik', 'zorlukBaslik', 'yeniOyunButonu',
     'onayPaneli', 'onayMetni', 'onayEvetButonu', 'onayHayirButonu',
+    'bilgiPaneli', 'bilgiMetni', 'bilgiTamamButonu',
     ...Object.values(ZORLUK_DUGME_ADLARI),
   ];
   for (const id of idler) eleman[id] = document.getElementById(id);
@@ -705,6 +755,8 @@ function olaylariBagla() {
   eleman.oyunuBitirButonu.addEventListener('click', oyunuBitirIste);
   eleman.onayEvetButonu.addEventListener('click', oyunuBitirOnayla);
   eleman.onayHayirButonu.addEventListener('click', oyunuBitirVazgec);
+  eleman.bilgiTamamButonu.addEventListener('click', bilgiyiKapat);
+  eleman.dokumAcKapaButonu.addEventListener('click', dokumAcKapa);
   eleman.yeniElButonu.addEventListener('click', yeniElBaslat);
   eleman.baslangicaDonButonu.addEventListener('click', baslangicaDon);
   eleman.yeniOyunButonu.addEventListener('click', yeniOyunBaslat);

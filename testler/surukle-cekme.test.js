@@ -59,7 +59,7 @@ function sahneKur(t) {
 
   const masa = ogeYap(['#masa']);
   const raf = cocukYap(masa, ['#raf']);
-  const rafYuva = cocukYap(raf, ['.raf-yuva']);
+  const rafYuva = cocukYap(raf, ['.raf-yuva'], { slotIndex: '7' });
   const rafTasi = cocukYap(rafYuva, ['.tas']);
   const deste = cocukYap(masa, ['[data-hedef="yerDestesi"]'], { hedef: 'yerDestesi' });
   const kose = cocukYap(masa, ['.kose[data-kose]'], { kose: 'solAlt' });
@@ -91,7 +91,7 @@ function sahneKur(t) {
   });
 
   const cagrilar = [];
-  cekmeSurukleBagla(masa, raf, (tur, bilgi) => cagrilar.push({ tur, bilgi }));
+  cekmeSurukleBagla(masa, raf, (tur, bilgi, birakma) => cagrilar.push({ tur, bilgi, birakma }));
 
   function gonder(tip, olay) {
     // Gerçek sıra: belge üstündeki yakalama dinleyicisi hedefin dinleyicilerinden önce çalışır.
@@ -138,13 +138,38 @@ function sahneKur(t) {
 test('desteden ıstakaya sürükleme yer destesi kaynağıyla çekme çağırır', (t) => {
   const s = sahneKur(t);
   s.surukle(s.deste, 40, 40, s.rafYuva);
-  assert.deepEqual(s.cagrilar, [{ tur: CEKME_KAYNAGI.YER_DESTESI, bilgi: {} }]);
+  assert.deepEqual(s.cagrilar, [{ tur: CEKME_KAYNAGI.YER_DESTESI, bilgi: {}, birakma: { slotIndex: 7 } }]);
 });
 
 test('köşeden ıstakaya sürüklemede kaynak bilgisi köşe adını taşır', (t) => {
   const s = sahneKur(t);
   s.surukle(s.kose, 40, 40, s.rafYuva);
-  assert.deepEqual(s.cagrilar, [{ tur: CEKME_KAYNAGI.KOSE, bilgi: { kose: 'solAlt' } }]);
+  assert.deepEqual(s.cagrilar, [
+    { tur: CEKME_KAYNAGI.KOSE, bilgi: { kose: 'solAlt' }, birakma: { slotIndex: 7 } },
+  ]);
+});
+
+// tasokey#48 (ADR-019): çekilen taş bırakıldığı yuvada kalacağı için bu katman yuvayı da bildirir.
+// Yuva kararın parçası değildir (etkilesim.js'in çekme kararı değişmedi), yalnız yerleşim bilgisidir.
+test('ASIL KABUL: ıstakanın bir yuvasına bırakılan çekme, o yuvanın slotIndex\'ini bildirir', (t) => {
+  const s = sahneKur(t);
+  s.rafYuva.dataset.slotIndex = '13';
+  s.surukle(s.deste, 40, 40, s.rafYuva);
+  assert.deepEqual(s.cagrilar.map((c) => c.birakma), [{ slotIndex: 13 }]);
+});
+
+test('ıstakanın yuvasız bir yerine bırakılan çekme hamledir ama yuva bildirmez', (t) => {
+  const s = sahneKur(t);
+  // Bırakma noktası ıstakanın kendisi (yuvaların arası/kenarı): çekme yine denenir, taşın yerini
+  // yerleşim kuralı seçer (ilk boş yuva).
+  s.surukle(s.deste, 40, 40, s.raf);
+  assert.deepEqual(s.cagrilar, [{ tur: CEKME_KAYNAGI.YER_DESTESI, bilgi: {}, birakma: {} }]);
+});
+
+test('taşın üstüne bırakılan çekme, o taşın yuvasını bildirir (yuva taşın sahibidir)', (t) => {
+  const s = sahneKur(t);
+  s.surukle(s.deste, 40, 40, s.rafTasi);
+  assert.deepEqual(s.cagrilar.map((c) => c.birakma), [{ slotIndex: 7 }]);
 });
 
 test('ıstakaya düşen sürüklemenin ardından gelen uyum tıklaması yutulur', (t) => {
