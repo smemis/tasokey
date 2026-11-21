@@ -39,6 +39,7 @@ ES modülleri `file://` üzerinden çalışmadığı için yerel statik sunucu g
 **kopyalayarak** APK'nın içine alır ve `https://appassets.androidplatform.net/` kökünden sunar; oyun kuralı, arayüzü, dili
 ve kaydı web katmanında kalır, `docs/` değiştiğinde kabuk değişmez. Dış kütüphane ve izin **yok** (`androidx` geçmez,
 `uses-permission` 0 satır); derleme Unity kurulumunun içindeki JDK + Android SDK araçlarıyla, **Gradle ve internet
-olmadan** yapılır. Kimlik, imza anahtarı ve parola depoda **durmaz**, her koşuda parametre olarak gelir. Dikkat: Android
+olmadan** yapılır. İmza anahtarı ve parola depoda **durmaz**, her koşuda parametre olarak gelir; paket kimliği manifestte
+**varsayılan** olarak durur ve derlemede zorunlu `-Kimlik` parametresi üzerine yazar. Dikkat: Android
 paketi `PRD.md` §6'da **hâlâ kapsam dışıdır** — PRD farkı ve R-016…R-019 numaraları Sahip onayını bekliyor (`PRD.md`
 §5.1); onay gelmeden yayın derlemesi yapılmaz ve bu kaynaklar `main`'e birleştirilmez. Cihazda deneme ofiste yapılmadı.
