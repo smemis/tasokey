@@ -44,6 +44,10 @@
   "zorluk.zor": "Zor",
   "yeniOyun": "Yeni oyun",
   "baslangicaDon": "Başlangıç ekranı",
+  "oyunuBitir": "Oyunu bitir",
+  "onay.oyunuBitir": "Oyunu bitirmek istediğine emin misin? Süren el kapanır.",
+  "onay.evet": "Evet, bitir",
+  "onay.hayir": "Vazgeç",
   "oyuncu.sen": "Sen",
   "oyuncu.bot": "Bot {0}",
   "telefonuCevir": "Oynamak için telefonunu yatay çevir."

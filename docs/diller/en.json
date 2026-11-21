@@ -44,6 +44,10 @@
   "zorluk.zor": "Hard",
   "yeniOyun": "New game",
   "baslangicaDon": "Start screen",
+  "oyunuBitir": "End game",
+  "onay.oyunuBitir": "Are you sure you want to end the game? The hand in progress will be closed.",
+  "onay.evet": "Yes, end it",
+  "onay.hayir": "Cancel",
   "oyuncu.sen": "You",
   "oyuncu.bot": "Bot {0}",
   "telefonuCevir": "Rotate your phone to landscape to play."

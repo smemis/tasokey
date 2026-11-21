@@ -73,6 +73,9 @@
   --masa-cerceve-kalinlik: 14px;
   --panel-dolgu: 16px;
   --baslik-font-boyutu: 1.1rem;
+  /* Üst çubuk düğmelerinin (dil + oyunu bitir) yazı ölçüsü — TEK KAYNAK (tasokey#43): iki düğme de
+     buradan okur, dar kademelerde yalnız bu değer küçülür, kuralların içine sayı yazılmaz. */
+  --ust-dugme-font-boyutu: 0.95rem;
   --durum-font-boyutu: 0.95rem;
   --durum-dolgu-dikey: 6px;
   --durum-dolgu-yatay: 16px;
@@ -118,14 +121,36 @@ html, body {
   flex: 0 0 auto;
 }
 
-#ustCubuk h1 { font-size: var(--baslik-font-boyutu); margin: 0; }
+/* Başlık esnek kutuda KÜÇÜLEBİLİR olmalı (tasokey#43): üst çubukta artık iki düğme var; dar
+   kademede başlık kendi genişliğini dayatırsa (flex öğesinin varsayılan min-width'i `auto`'dur)
+   çubuğu taşırır ya da düğmeleri ekran dışına iter. min-width: 0 + tek satır + üç nokta ile başlık
+   kısalır, düğmeler her kademede yerinde kalır. */
+#ustCubuk h1 {
+  font-size: var(--baslik-font-boyutu);
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-#dilDugmesi {
+/* Düğmeler kendi ölçülerini korur (küçülmez), başlıkla aralarında sabit boşluk kalır. */
+#ustCubukEylemler {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  margin-left: 12px;
+}
+
+.ust-cubuk-dugmesi {
   background: transparent;
   color: var(--metin);
   border: 1px solid var(--metin);
   border-radius: 4px;
   padding: 4px 10px;
+  font-size: var(--ust-dugme-font-boyutu);
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -550,10 +575,12 @@ html, body {
   touch-action: none;
 }
 
-/* Kalıcı pencereler (başlangıç + sonuç — ADR-015; başlangıç ekranı ADR-016, tasokey#42): ikisi de
-   aynı pencere kademesini kullanır, masadaki hiçbir taş üstlerine çıkamaz. Hangisinin görünür
-   olduğuna `arayuz/kabuk.js` durum makinesi karar verir (ekran.js yalnız `gorunur` sınıfını koyar). */
+/* Kalıcı pencereler (başlangıç + sonuç + oyunu bitirme onayı — ADR-015; başlangıç ekranı ADR-016,
+   tasokey#42; onay tasokey#43): hepsi aynı pencere kademesini kullanır, masadaki hiçbir taş
+   üstlerine çıkamaz. Hangisinin görünür olduğuna `arayuz/kabuk.js` durum makinesi karar verir
+   (ekran.js yalnız `gorunur` sınıfını koyar). */
 #baslangicPaneli,
+#onayPaneli,
 #sonucPaneli {
   position: fixed;
   inset: 0;
@@ -565,10 +592,12 @@ html, body {
 }
 
 #baslangicPaneli.gorunur,
-#sonucPaneli.gorunur { display: flex; }
+#sonucPaneli.gorunur,
+#onayPaneli.gorunur { display: flex; }
 
 #baslangicKutusu,
-#sonucKutusu {
+#sonucKutusu,
+#onayKutusu {
   background: var(--panel);
   padding: 24px 32px;
   border-radius: 10px;
@@ -616,7 +645,11 @@ html, body {
   font-weight: 700;
 }
 
-#sonucDugmeleri {
+/* Onay kutusu: tek soru satırı + iki düğme; dar ekranda da sığsın diye genişliği sınırlı. */
+#onayKutusu { max-width: min(28rem, 90vw); }
+
+#sonucDugmeleri,
+#onayDugmeleri {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -626,7 +659,9 @@ html, body {
 
 #yeniOyunButonu,
 #yeniElButonu,
-#baslangicaDonButonu {
+#baslangicaDonButonu,
+#onayEvetButonu,
+#onayHayirButonu {
   padding: 8px 20px;
   font-size: 1rem;
   border-radius: 6px;
@@ -636,8 +671,9 @@ html, body {
   cursor: pointer;
 }
 
-/* İkincil eylem (başlangıca dön) birincil düğmeden ayrışsın: aynı ölçü, soluk görünüm. */
-#baslangicaDonButonu {
+/* İkincil eylem (başlangıca dön, vazgeç) birincil düğmeden ayrışsın: aynı ölçü, soluk görünüm. */
+#baslangicaDonButonu,
+#onayHayirButonu {
   background: transparent;
   color: var(--metin);
   border: 1px solid var(--metin);
@@ -697,6 +733,7 @@ html, body {
     --rakip-raf-uzunluk: 110px;
     --rakip-raf-kalinlik: 14px;
     --baslik-font-boyutu: 1rem;
+    --ust-dugme-font-boyutu: 0.8rem;
     --durum-font-boyutu: 0.85rem;
     --durum-dolgu-dikey: 4px;
     --durum-dolgu-yatay: 10px;
@@ -719,6 +756,7 @@ html, body {
     --rakip-raf-uzunluk: 90px;
     --rakip-raf-kalinlik: 10px;
     --baslik-font-boyutu: 0.9rem;
+    --ust-dugme-font-boyutu: 0.75rem;
     --durum-font-boyutu: 0.8rem;
     --durum-dolgu-dikey: 3px;
     --durum-dolgu-yatay: 8px;
@@ -777,9 +815,12 @@ html, body {
 @media (orientation: portrait) and (max-width: 600px) {
   #durumSatiri, #masa { display: none; }
   #telefonUyarisi { display: flex; flex: 1 1 auto; }
-  /* Başlangıç ekranı da oyun alanının parçasıdır (ADR-016): dikeyde gizlenir, yoksa ilk açılışta
-     "telefonu yan çevir" uyarısının üstünü örterdi (R-014). Telefon yatay çevrilince geri gelir. */
+  /* Başlangıç ekranı ve oyunu bitirme onayı da oyun alanının parçasıdır (ADR-016): dikeyde
+     gizlenirler, yoksa "telefonu yan çevir" uyarısının üstünü örterlerdi (R-014). Telefon yatay
+     çevrilince geri gelirler — kabuğun durumu değişmediği için soru da olduğu gibi durur.
+     (İki kural ayrı yazılır: panel taramaları her pencereyi kendi seçicisiyle arar.) */
   #baslangicPaneli.gorunur { display: none; }
+  #onayPaneli.gorunur { display: none; }
 }
 
 #sonucKalanTaslar {

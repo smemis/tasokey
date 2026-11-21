@@ -1,10 +1,12 @@
-// Arayüz kabuğu: hangi ekranın açık olduğunu ve hangi zorluk kademesinin oynandığını tutan **tek
-// durum makinesi** (MIMARI.md §3 `arayuz/kabuk.js`; ADR-016; R-006/R-010; tasokey#42).
+// Arayüz kabuğu: hangi ekranın açık olduğunu, hangi zorluk kademesinin oynandığını ve bekleyen bir
+// onay sorusu olup olmadığını tutan **tek durum makinesi**
+// (MIMARI.md §3 `arayuz/kabuk.js`; ADR-016; R-006/R-010; tasokey#42, tasokey#43).
 //
 // Saf mantık, DOM yok: `arayuz/ekran.js` yalnız bu makinenin döndürdüğü durumu çizer ve olayları
 // buraya iletir. Üç ekran vardır — `baslangic` (Yeni oyun + zorluk seçimi), `masa` (el sürüyor),
 // `sonuc` (el bitti) — ve geçişler yalnız burada tanımlıdır; ekran.js'te "şu düğme açıksa şu panel
-// görünür" biçiminde ikinci bir kural yazılmaz (ADR-016/1).
+// görünür" biçiminde ikinci bir kural yazılmaz (ADR-016/1). Üst çubuktaki "Oyunu bitir" düğmesinin
+// onay sorusu da ayrı bir ekran değil, aynı makinenin `onay` alanıdır (tasokey#43).
 //
 // Kademe adlarının tek kaynağı `bot/bot.js` (`KADEME`, ADR-013): kabuk kendi zorluk listesini
 // yazmaz, botun tanımını okur. Kayıt katmanı (`kayit/depo.js`) zorluğu **opak dize** olarak saklar;
@@ -24,6 +26,16 @@ export const OLAY = Object.freeze({
   EL_BITTI: 'elBitti',
   YENI_EL: 'yeniEl',
   BASLANGICA_DON: 'baslangicaDon',
+  OYUNU_BITIR: 'oyunuBitir',
+  ONAY_EVET: 'onayEvet',
+  ONAY_HAYIR: 'onayHayir',
+});
+
+// Bekleyen onay sorusu (tasokey#43): ekran değişmeden önce sorulan "emin misin?". Kabuğun bir
+// ALANIDIR, ayrı ekran değildir — masa arkada durmayı sürdürür, iptal edilince hiçbir şey olmamış
+// gibi devam edilir. Şimdilik tek soru var; yeni bir onay eklenirse buraya bir değer girer.
+export const ONAY = Object.freeze({
+  OYUNU_BITIR: 'oyunuBitir',
 });
 
 // Oyuncuya sunulan zorluklar = botun kademeleri (tek kaynak); sıra arayüzdeki düğme sırasıdır.
@@ -50,9 +62,21 @@ export function zorlukCozumle(deger) {
   return zorlukGecerliMi(deger) ? deger : VARSAYILAN_KADEME;
 }
 
-// İlk açılış her zaman `baslangic` ekranındadır (iş isteği); zorluk kayıttan okunur.
+// İlk açılış her zaman `baslangic` ekranındadır (iş isteği); zorluk kayıttan okunur. Bekleyen onay
+// kayıttan GELMEZ: soru oturum içinde sorulur, açılışta hiçbir pencere açık değildir.
 export function kabukBaslat(kayit = null) {
-  return Object.freeze({ ekran: EKRAN.BASLANGIC, zorluk: zorlukCozumle(kayit?.zorluk) });
+  return Object.freeze({ ekran: EKRAN.BASLANGIC, zorluk: zorlukCozumle(kayit?.zorluk), onay: null });
+}
+
+// Üst çubuktaki "Oyunu bitir" düğmesi yalnız el sürerken anlamlıdır: başlangıç ekranında
+// bitirilecek bir oyun yoktur, sonuç ekranında el zaten bitmiştir (oradaki çıkış "Başlangıç
+// ekranı" düğmesidir). Arayüz düğmeyi bu yanıta göre gösterir — kendi koşulunu yazmaz.
+export function oyunuBitirilebilirMi(kabuk) {
+  return kabuk.ekran === EKRAN.MASA;
+}
+
+export function onayBekliyorMu(kabuk) {
+  return kabuk.onay !== null;
 }
 
 // Tek geçiş kapısı: tanımsız olay ya da o ekranda geçersiz olay kabuğu **değiştirmez** (aynı nesne
@@ -64,9 +88,28 @@ export function gecis(kabuk, olay, veri = {}) {
     if (kabuk.ekran !== EKRAN.BASLANGIC || !zorlukGecerliMi(veri.zorluk)) return kabuk;
     return Object.freeze({ ...kabuk, zorluk: veri.zorluk });
   }
+  // Oyunu bitirme isteği (tasokey#43): el sürerken ekran DEĞİŞMEZ, yalnız soru açılır — bitirme
+  // ikinci bir olayla (ONAY_EVET) olur. Başka ekranda ya da soru zaten açıkken yok sayılır.
+  if (olay === OLAY.OYUNU_BITIR) {
+    if (!oyunuBitirilebilirMi(kabuk) || onayBekliyorMu(kabuk)) return kabuk;
+    return Object.freeze({ ...kabuk, onay: ONAY.OYUNU_BITIR });
+  }
+  // Vazgeçme: yalnız soruyu kapatır. Ekran ve zorluk aynı kalır; el durumuna kabuk hiç dokunmaz,
+  // bu yüzden oyun soru hiç sorulmamış gibi sürer.
+  if (olay === OLAY.ONAY_HAYIR) {
+    if (!onayBekliyorMu(kabuk)) return kabuk;
+    return Object.freeze({ ...kabuk, onay: null });
+  }
+  if (olay === OLAY.ONAY_EVET) {
+    if (kabuk.onay !== ONAY.OYUNU_BITIR) return kabuk;
+    return Object.freeze({ ...kabuk, ekran: EKRAN.BASLANGIC, onay: null });
+  }
   const hedef = GECISLER[kabuk.ekran]?.[olay];
   if (!hedef) return kabuk;
-  return Object.freeze({ ...kabuk, ekran: hedef });
+  // Ekran değişince bekleyen soru düşer: onay yalnız sorulduğu ekranda anlamlıdır (ör. botlar soru
+  // açıkken oynamayı sürdürür ve el biterse `masa → sonuc` geçişi soruyu kapatır — iki pencere
+  // birden açılmaz).
+  return Object.freeze({ ...kabuk, ekran: hedef, onay: null });
 }
 
 // Kayda yazılacak alan (ADR-006 şema sürüm 2): kabuk neyi sakladığını kendisi söyler, ekran.js

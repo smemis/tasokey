@@ -10,7 +10,10 @@ import { elSonucunuHesapla } from '../cekirdek/puan.js';
 import { cevir } from '../dil/cevir.js';
 import { surukleBagla, cekmeSurukleBagla } from './surukle.js';
 import { HEDEF_TURU, EYLEM, eylemKararVer, cekmeKararVer, rakipEliAcikMi } from './etkilesim.js';
-import { EKRAN, OLAY, ZORLUKLAR, kabukBaslat, gecis, kayitAlanlari, botTurunuOynat } from './kabuk.js';
+import {
+  EKRAN, OLAY, ZORLUKLAR, kabukBaslat, gecis, kayitAlanlari, botTurunuOynat,
+  oyunuBitirilebilirMi, onayBekliyorMu,
+} from './kabuk.js';
 import { kayitOku, kayitYaz } from '../kayit/depo.js';
 import { gorselOlustur, gorselleriOnYukle } from './gorseller.js';
 import { oyuncuKenarHaritasi, oyuncununAtilanKosesi } from './yerlesim.js';
@@ -185,11 +188,15 @@ function sonucMetni() {
   return '';
 }
 
+// Üst çubuk: başlık, dil düğmesi ve "Oyunu bitir" (tasokey#43). Düğmenin görünürlüğü kabuğa
+// sorulur (yalnız el sürerken anlamlı) — burada "şu panel kapalıysa göster" kuralı yazılmaz.
 function ustCubukCiz() {
   const baslik = metinAl('baslik');
   eleman.baslikMetni.textContent = baslik;
   document.title = baslik;
   eleman.dilDugmesi.textContent = metinAl('dilDegistir');
+  eleman.oyunuBitirButonu.textContent = metinAl('oyunuBitir');
+  eleman.oyunuBitirButonu.hidden = !oyunuBitirilebilirMi(durumKutu.kabuk);
 }
 
 function durumSatiriCiz() {
@@ -412,6 +419,17 @@ function baslangicPaneliCiz() {
   eleman.yeniOyunButonu.textContent = metinAl('yeniOyun');
 }
 
+// Oyunu bitirme onayı (tasokey#43): görünürlüğü yine kabuktan gelir (kabuk.onay); masa arkada
+// olduğu gibi durur, pencere yalnız üstünü kapatır.
+function onayPaneliCiz() {
+  const acikMi = onayBekliyorMu(durumKutu.kabuk);
+  eleman.onayPaneli.classList.toggle('gorunur', acikMi);
+  if (!acikMi) return;
+  eleman.onayMetni.textContent = metinAl('onay.oyunuBitir');
+  eleman.onayEvetButonu.textContent = metinAl('onay.evet');
+  eleman.onayHayirButonu.textContent = metinAl('onay.hayir');
+}
+
 // R-014: dikey/yatay geçişi CSS ortam sorgusu yönetir (stil.css `orientation: portrait`); burada
 // yalnız dil anahtarlı uyarı metni basılır — JS yön tespiti yapmaz, sabit metin yazmaz.
 function telefonUyarisiCiz() {
@@ -426,6 +444,7 @@ function ciz() {
   telefonUyarisiCiz();
   baslangicPaneliCiz();
   sonucPaneliCiz();
+  onayPaneliCiz();
 }
 
 // El durumunu ilerletmenin TEK kapısı (ADR-016): motor eli bitirdiyse kabuk `masa` → `sonuc`
@@ -512,6 +531,13 @@ function kaynaktanCekUygula(kaynakTuru, kaynak) {
 
 function botAdimiOyna() {
   const { durum, kabuk } = durumKutu;
+  // Bekleyen tur masa ekranından çıkıldıktan sonra işlenmez (tasokey#43): oyuncu gecikmenin
+  // ortasında "Oyunu bitir"i onaylamışsa kabuk `baslangic`e dönmüştür ve bitirilen elin taşları
+  // pencerenin arkasında oynamayı sürdüremez — botlar yalnız masa ekranında oynar (ADR-016).
+  if (kabuk.ekran !== EKRAN.MASA) {
+    durumKutu.botCalisiyor = false;
+    return;
+  }
   // ADR-013 + ADR-016: kademe adı dışarıdan verilir ve oyuncunun başlangıç ekranındaki seçiminden
   // gelir. Kademe adı burada YAZILMAZ — `kabuk.js` botun tek girişini kendi zorluğuyla çağırır.
   const sonuc = botTurunuOynat(kabuk, durum, durum.sira);
@@ -584,6 +610,26 @@ function baslangicaDon() {
   ciz();
 }
 
+// Üst çubuktaki "Oyunu bitir" (tasokey#43): el sürerken doğrudan bitirmez, kabuğa soruyu açtırır.
+function oyunuBitirIste() {
+  durumKutu.kabuk = gecis(durumKutu.kabuk, OLAY.OYUNU_BITIR);
+  ciz();
+}
+
+// Onay: kabuk `baslangic`e döner. El durumu burada SIFIRLANMAZ — masadaki el, oyuncu "Yeni oyun"a
+// basıp yenisi dağıtılana kadar olduğu gibi kalır (sonuç ekranından dönüşle aynı davranış).
+function oyunuBitirOnayla() {
+  durumKutu.kabuk = gecis(durumKutu.kabuk, OLAY.ONAY_EVET);
+  ciz();
+}
+
+// Vazgeçme: yalnız pencere kapanır; el durumuna (durumKutu.durum, raf yerleşimi, seçili taş)
+// hiç dokunulmaz, bu yüzden oyun soru sorulmamış gibi sürer.
+function oyunuBitirVazgec() {
+  durumKutu.kabuk = gecis(durumKutu.kabuk, OLAY.ONAY_HAYIR);
+  ciz();
+}
+
 // Zorluk seçimi: karar kabukta (yalnız başlangıç ekranında geçerli), kalıcılığı kayıtta
 // (ADR-006 şema sürüm 2 — seçim bir sonraki açılışta geri okunur).
 function zorlukSec(zorluk) {
@@ -596,7 +642,7 @@ function zorlukSec(zorluk) {
 
 function elemanlariTopla() {
   const idler = [
-    'baslikMetni', 'dilDugmesi', 'durumSatiri', 'masa',
+    'baslikMetni', 'dilDugmesi', 'oyunuBitirButonu', 'durumSatiri', 'masa',
     'yerDestesiBaslik', 'yerDestesi', 'yerDestesiSayac', 'yerDestesiIpucu',
     'gostergeBaslik', 'gosterge',
     'kenarUst', 'kenarUstAd', 'kenarUstTaslar',
@@ -610,6 +656,7 @@ function elemanlariTopla() {
     'rafBaslik', 'raf',
     'sonucPaneli', 'sonucMetni', 'sonucKalanTaslar', 'yeniElButonu', 'baslangicaDonButonu',
     'baslangicPaneli', 'baslangicBaslik', 'zorlukBaslik', 'yeniOyunButonu',
+    'onayPaneli', 'onayMetni', 'onayEvetButonu', 'onayHayirButonu',
     ...Object.values(ZORLUK_DUGME_ADLARI),
   ];
   for (const id of idler) eleman[id] = document.getElementById(id);
@@ -624,6 +671,9 @@ function olaylariBagla() {
     tiklanabilirYap(eleman[KOSE_ELEMAN_ADLARI[koseAdi].kutu], () => etkilesimUygula(HEDEF_TURU.KOSE, { kose: koseAdi }));
   }
   eleman.dilDugmesi.addEventListener('click', dilDegistir);
+  eleman.oyunuBitirButonu.addEventListener('click', oyunuBitirIste);
+  eleman.onayEvetButonu.addEventListener('click', oyunuBitirOnayla);
+  eleman.onayHayirButonu.addEventListener('click', oyunuBitirVazgec);
   eleman.yeniElButonu.addEventListener('click', yeniElBaslat);
   eleman.baslangicaDonButonu.addEventListener('click', baslangicaDon);
   eleman.yeniOyunButonu.addEventListener('click', yeniOyunBaslat);

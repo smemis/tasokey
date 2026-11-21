@@ -8,9 +8,15 @@
   </head>
   <body>
     <div id="uygulama">
+      <!-- Üst çubuk: başlık + eylem düğmeleri (tasokey#43). Düğmeler ayrı bir kutuda durur ki
+           başlık dar kademede kısalsın, düğmeleri itmesin (stil.css #ustCubuk h1 / #ustCubukEylemler).
+           "Oyunu bitir" yalnız el sürerken görünür; kararı `arayuz/kabuk.js` verir (ADR-016). -->
       <div id="ustCubuk">
         <h1 id="baslikMetni"></h1>
-        <button id="dilDugmesi" type="button"></button>
+        <div id="ustCubukEylemler">
+          <button id="oyunuBitirButonu" class="ust-cubuk-dugmesi" type="button" hidden></button>
+          <button id="dilDugmesi" class="ust-cubuk-dugmesi" type="button"></button>
+        </div>
       </div>
       <div id="durumSatiri"></div>
       <div id="masa">
@@ -90,6 +96,18 @@
         <div id="sonucDugmeleri">
           <button id="yeniElButonu" type="button"></button>
           <button id="baslangicaDonButonu" type="button"></button>
+        </div>
+      </div>
+    </div>
+    <!-- Oyunu bitirme onayı (tasokey#43): üst çubuktaki düğme el sürerken bu pencereyi açar; hangi
+         pencerenin açık olduğuna yine `arayuz/kabuk.js` karar verir (kabuk.onay). Metinler dil
+         anahtarından; vazgeçilince kabuk masada kalır ve el bozulmaz. -->
+    <div id="onayPaneli" role="dialog" aria-modal="true" aria-labelledby="onayMetni">
+      <div id="onayKutusu">
+        <div id="onayMetni"></div>
+        <div id="onayDugmeleri">
+          <button id="onayEvetButonu" type="button"></button>
+          <button id="onayHayirButonu" type="button"></button>
         </div>
       </div>
     </div>
