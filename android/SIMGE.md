@@ -22,10 +22,10 @@ tarafındaki `docs/arayuz/stil.css` `:root` paletiyle birebir aynıdır (Android
 eşitlik kopya değil **ölçülen köprüdür**).
 
 Ölçüler, komut kısıtı (`pathData` yalnız mutlak `M L C Z`) ve "kenar çizgisi/gölge bilerek yok"
-gerekçeleri dosyaların kendi başlık yorumlarında yazılıdır. Simgenin mimari maddesi `MIMARI.md`'ye
-**henüz yazılmadı** (ADR-020'ye eklenecek madde; metni `tasokey#55` şartnamesinde hazır) — o madde
-yazılana kadar simgenin yazılı kuralı bu dosyadır. İlgili kararlar: ADR-020 (kabuk), ADR-011 (taş
-gövdesi tek kaynak), ADR-009 (kumar çağrışımı yok: jeton/para/zar/rulet imgesi yoktur).
+gerekçeleri dosyaların kendi başlık yorumlarında yazılıdır. Simgenin **bağlayıcı mimari maddesi
+ADR-020/11**'dir (`MIMARI.md` §5, mimari karar sürümü 15, `tasokey#55`); kural orada yazılıdır, bu
+dosya üretim yolunu, bayt özetlerini ve ölçümün sınırını tutar. İlgili kararlar: ADR-020 (kabuk),
+ADR-011 (taş gövdesi tek kaynak), ADR-009 (kumar çağrışımı yok: jeton/para/zar/rulet imgesi yoktur).
 
 ## 2. PNG'ler nasıl üretildi (ağsız)
 
@@ -63,7 +63,9 @@ farkı ortalaması ≤ 1,8/255 ve farklı piksellerin oranı %2,7-10,9 (hepsi ko
 | `mipmap-xxhdpi/ic_launcher.png` | 144×144 | 1656 | `8fd0b8a7b7f977c85c111530650fece90026cdd9ca09182aa1065fe2665059d4` |
 | `mipmap-xxxhdpi/ic_launcher.png` | 192×192 | 2263 | `9d55059df5609108e3dbcf4b50a75a92ca754ffcd2a15d9920568b0e19c2be4e` |
 
-Bu özetler **depodaki baytların** kimliğidir (dosya elle değiştirildi mi, buradan görülür).
+Bu özetler **depodaki baytların** kimliğidir (dosya elle değiştirildi mi, buradan görülür) ve bu
+tablo ile gerçek dosyaların eşitliği her `npm test`'te ölçülür (`testler/android-simge.test.js`):
+PNG değişip tablo tazelenmezse — ya da tersi — test kırmızı yanar.
 Yeniden üretimde piksellerin aynı çıkması beklenir; sıkıştırılmış baytların aynı çıkması
 **JDK sürümüne bağlıdır** (ImageIO'nun satır filtresi seçimi ve `Deflater` sürümü), yani başka bir
 JDK'da SHA-256 değişebilir — o durumda karşılaştırılacak şey özet değil, ölçülen piksel ölçüsü ve
@@ -75,12 +77,18 @@ görüntüdür.
 
 ## 4. Ne ölçüldü, ne ölçülmedi
 
-Ölçüm betiği (`is/tasokey-55/olcum.mjs`) ve günlüğü (`olcum.txt`): beş PNG'nin varlığı, PNG imzası,
+**Kalıcı ölçüm `testler/android-simge.test.js`tir** (`npm test` içinde; cihaz, emülatör, JDK, Android
+SDK, ağ ya da ek paket istemez — tabanı iş klasöründeki ölçüm betiği `is/tasokey-55/olcum.mjs` ve
+günlüğü `olcum.txt`). Ölçülenler: beş PNG'nin varlığı, PNG imzası,
 IHDR'den okunan ölçü (kare, 48/72/96/144/192), RGBA 8 bit, her parçanın CRC'si; `<adaptive-icon>`
 kökü ve gösterdiği dosyaların varlığı; viewport 108×108 ve çizimin merkezli 66 dp güvenli daireye
 sığması (ölçülen köşegen **65,378 dp**); `pathData` komut kısıtı; üç rengin `stil.css` ile eşitliği;
-manifestte `icon` var / `roundIcon` yok; `uygulama_adi` iki dilde `Taş Okey`. Ölçümün gerçekten
-ölçtüğü mutasyonla kanıtlandı (`is/tasokey-55/mutasyon-gunlugu.txt`).
+manifestte `icon` var / `roundIcon` yok; `uygulama_adi` iki dilde `Taş Okey`; `android/` altındaki XML
+yorumlarında iki tire yokluğu; yukarıdaki beş SHA-256'nın gerçek dosyalarla eşitliği. Ölçümün
+gerçekten ölçtüğü mutasyonla kanıtlandı: iş klasöründeki taban betikte 8/8
+(`is/tasokey-55/mutasyon-gunlugu.txt`), depodaki kalıcı testte 6/6
+(`is/tasokey-55/mutasyon-depo-gunlugu.txt`; son ikisi eksik ve bozuk dosyanın açık madde hatası
+verdiğini, yığın iziyle çökmediğini ölçer).
 
 **Kaynaklar aapt2 ile derlendi** (günlük `is/tasokey-55/aapt2-gunlugu.txt`):
 
@@ -94,7 +102,8 @@ kusur buldu: `values/colors.xml` ilk koşuda `xml parser error: not well-formed`
 adları). Aynı kusur `AndroidManifest.xml`'de de vardı (`tasokey#54`'ten kalma, `--min-sdk-version`);
 `aapt2 compile` manifesti okumadığı için o hata ancak **link** adımında çıkardı. İkisi de
 düzeltildi, dokuz XML'in iyi biçimliliği JDK ayrıştırıcısıyla ölçüldü (`uretici/XmlDenetle.java`:
-9 dosya, 0 bozuk) ve kural ölçüme bağlandı (`olcum.mjs` madde j).
+9 dosya, 0 bozuk) ve kural kalıcı ölçüme bağlandı (`testler/android-simge.test.js`; ADR-020/11'in son
+cümlesi).
 
 **XML yorumlarında iki tire yazılmaz** — bu dosyadaki bütün `.xml` kaynaklar için geçerli kuraldır.
 
