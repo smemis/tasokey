@@ -2,12 +2,12 @@
 
 > İş: **tasokey#53** (üst iş tasokey#52) · Tarih: 2026-11-21 · Yazan: Geliştirici (ofis)
 > Bu belge, APK üretiminde kullanılacak araç zincirinin **tek kaynağıdır**: hiçbir betik kendi içine
-> Unity yolu, JDK yolu ya da build-tools sürümü yazmaz; hepsi [`yol-coz.ps1`](yol-coz.ps1)'den gelir
-> (ADR-004'ün "komut tek yerde durur, araç sürümü ölçülür" ilkesinin Android karşılığı).
+> Unity yolu, JDK yolu ya da build-tools sürümü yazmaz; hepsi [`yol-coz.ps1`](yol-coz.ps1)'den gelir.
+> Android araç zincirinin mimari kararı PRD farkı onayıyla açılacak; numarası o zaman buraya yazılır.
 >
 > **A9 (ölç, tahmin etme) gereği:** aşağıda "ölçüldü" yazan her satır bu makinede gerçekten
-> çalıştırılarak alınmıştır. Unity kurulum klasörü bu işin manifestinde **yoktu** → o klasördeki
-> araçların gerçek yol ve sürümleri **ölçülmedi**; §4 boş tabloyu ve ölçüm komutunu veriyor.
+> çalıştırılarak alınmıştır. Unity kurulum klasörüne okuma + araçları çalıştırma izni **verildi**
+> (Sahip, 2026-11-21) → gerçek kurulumun yolları ve sürümleri de **ölçüldü**: §4.
 
 ---
 
@@ -34,16 +34,16 @@ hangi yolu verdiğini yazar. Gerekçe: yanlış Unity ile sessizce derlemektense
 
 | Amaç | Komut |
 |---|---|
-| İnsan okur rapor (kabul ölçütü) | `pwsh -File android/yol-coz.ps1 -Rapor` |
-| Başka betiğe veri | `pwsh -File android/yol-coz.ps1 -Json` → tek satır JSON |
+| İnsan okur rapor (kabul ölçütü) | `powershell -File android/yol-coz.ps1 -Rapor` |
+| Başka betiğe veri | `powershell -File android/yol-coz.ps1 -Json` → tek satır JSON |
 | Aynı oturumda nesne | `$y = & android/yol-coz.ps1` → `$y.araclar.aapt2.yol` |
 | Başka API seviyesi | `… -ApiSeviyesi 34` (varsayılan **36**) |
 | Build-tools sabitleme | `… -BuildTools 36.0.0` (verilmezse en yenisi) |
 | Yalnız yol, sürüm ölçmeden (hızlı) | `… -SurumOlcme $false` |
 
-> **Bu makinede `pwsh` YOK** (ölçüldü, §3). Eşdeğer komut: `powershell -File android/yol-coz.ps1 -Rapor`.
-> Betik hem Windows PowerShell 5.1 hem PowerShell 7 ile çalışacak biçimde yazıldı; 5.1 ile ölçüldü,
-> 7 ile **ölçülmedi** (kurulu değil).
+> **Bu makinede `pwsh` YOK** (ölçüldü, §3) ve kurulmayacak (kurulum ayrı izin istemi) → komut
+> satırı `powershell -File …` olarak yazılır. Betik hem Windows PowerShell 5.1 hem PowerShell 7 ile
+> çalışacak biçimde yazıldı; 5.1 ile ölçüldü, 7 ile **ölçülmedi** (kurulu değil).
 
 ### Çıkış kodları
 
@@ -63,22 +63,32 @@ hangi yolu verdiğini yazar. Gerekçe: yanlış Unity ile sessizce derlemektense
 Araç dosyası, aranan klasörde şu uzantılarla aranır: `.exe`, `.bat`, `.cmd`, `.jar`, (uzantısız) —
 Unity'nin SDK'sında bazı araçlar `.exe`, bazıları `.bat` olarak gelir, bundletool bir `.jar`'dır.
 
-| Araç | Beklenen yer | Sürüm komutu | Zorunlu | Niçin gerekli |
-|---|---|---|---|---|
-| `java` | `AP\OpenJDK\bin` | `-version` | evet | jar araçlarını çalıştırmak, imzalama |
-| `javac` | `AP\OpenJDK\bin` | `-version` | evet | Java kaynağını derlemek (sonra d8) |
-| `keytool` | `AP\OpenJDK\bin` | `-version` → **yoksa JDK sürümünden türetilir** | evet | Hata ayıklama imza anahtarı üretmek |
-| `aapt2` | `AP\SDK\build-tools\<sürüm>` | `version` | evet | Kaynakları derlemek + `link` ile APK iskeleti |
-| `aapt` (v1) | `AP\SDK\build-tools\<sürüm>` | `v` | hayır | Varsa `aapt add` ile dex'i APK'ya ekler |
-| `d8` | `AP\SDK\build-tools\<sürüm>` | `--version` | evet | `.class` → `classes.dex` |
-| `zipalign` | `AP\SDK\build-tools\<sürüm>` | sürüm bayrağı yok → **build-tools sürümünden türetilir** | evet | APK hizalama (imzalamadan önce) |
-| `apksigner` | `AP\SDK\build-tools\<sürüm>` | `--version` | evet | APK imzalama (v2/v3) |
-| `android.jar` | `AP\SDK\platforms\android-<API>` | — (API seviyesi) | evet | Derleme sınıf yolu |
-| `bundletool` | `AP\Tools\bundletool*.jar` | `java -jar … version` | hayır | AAB üretimi; APK yolunda gerekmez |
+"Sürüm komutu" sütunu **bu kurulumda ölçülen** davranışı yazar (§4): bazı araçlar sürüm bayrağını
+tanımıyor, o zaman sürüm aynı paketten türetilir.
 
-**Türetilmiş sürüm:** `keytool` ve `zipalign` sürümünü kendisi bildirmez. Çözücü bu durumda sürümü
-aynı pakettekinden türetir (`… (JDK ile aynı paket)` / `… (build-tools sürümü)`) ve bir `UYARI`
-satırı yazar — rapor "sürüm basılmadı" diye boş kalmaz, ama türetilmiş olduğu görünür.
+| Araç | Beklenen yer | Sürüm komutu (ölçülen davranış) | Zorunlu | Niçin gerekli |
+|---|---|---|---|---|
+| `java` | `AP\OpenJDK\bin` | `-version` → sürümü kendisi bildirir | evet | jar araçlarını çalıştırmak, imzalama |
+| `javac` | `AP\OpenJDK\bin` | `-version` → sürümü kendisi bildirir | evet | Java kaynağını derlemek (sonra d8) |
+| `keytool` | `AP\OpenJDK\bin` | `-version` → bu JDK'da bildirdi; bildirmezse **JDK sürümünden türetilir** | evet | Hata ayıklama imza anahtarı üretmek |
+| `aapt2` | `AP\SDK\build-tools\<sürüm>` | `version` → sürümü kendisi bildirir | evet | Kaynakları derlemek + `link` ile APK iskeleti |
+| `aapt` (v1) | `AP\SDK\build-tools\<sürüm>` | `v` → sürümü kendisi bildirir | hayır | Varsa `aapt add` ile dex'i APK'ya ekler |
+| `d8` | `AP\SDK\build-tools\<sürüm>` | `--version` sürüm basmıyor → **build-tools sürümünden türetilir** | evet | `.class` → `classes.dex` |
+| `zipalign` | `AP\SDK\build-tools\<sürüm>` | sürüm bayrağı yok → **build-tools sürümünden türetilir** | evet | APK hizalama (imzalamadan önce) |
+| `apksigner` | `AP\SDK\build-tools\<sürüm>` | `--version` sürüm basmıyor → **build-tools sürümünden türetilir** | evet | APK imzalama (v2/v3) |
+| `android.jar` | `AP\SDK\platforms\android-<API>` | — (API seviyesi) | evet | Derleme sınıf yolu |
+| `bundletool` | `AP\Tools\bundletool*.jar` | `java -jar … version` → sürümü kendisi bildirir | hayır | AAB üretimi; APK yolunda gerekmez |
+
+**Türetilmiş sürüm:** bu kurulumda `d8`, `zipalign` ve `apksigner` sürümünü kendisi bildirmedi
+(ölçüldü, §4). Çözücü bu durumda sürümü aynı pakettekinden türetir
+(`… (build-tools sürümü)` / `… (JDK ile aynı paket)`) ve bir `UYARI` satırı yazar — rapor
+"sürüm basılmadı" diye boş kalmaz, ama türetilmiş olduğu görünür.
+
+**Aracın bastığı yol sürüm sayılmaz:** sürüm bayrağını tanımayan araç hata satırında kendi tam
+yolunu basabiliyor (`zipalign -h` böyle yapıyor); yoldaki klasör adı (Unity sürümü `6000.3.9f1`,
+build-tools `36.0.0`) sürüm sanılırsa rapor **ölçülmemiş bir sayıyı** ölçülmüş gibi basar. Çözücü
+sürümü aramadan önce yol taşıyan sözcükleri çıkarır (`yol-coz.ps1` → `$YOL_SOZCUGU`, tek yerde
+duran kural; araca özel durum yok) ve sürüm kalmazsa türetme koluna düşer.
 
 ### `dex` → APK ekleme yolu
 
@@ -97,11 +107,16 @@ derlenecek dosya istemeden yapılır). Çıkış kodu 0 ve çıktıda `invalid s
 → `evet`. Desteklenmiyorsa rapor `hayır` der, `UYARI` yazar, ama **çıkış kodunu bozmaz**
 (araç yerinde; bu bir sürüm kararıdır, eksik araç değil).
 
+Bu kurulumda sonuç: **evet (JDK 17.0.9)** — ölçüldü, §4. Desen değişmedi; JDK 24+ `-source 8`
+yerine "no longer supported" diyor ve o sürüm bu makinede **ölçülmedi** (kurulu değil) — orada
+yalnız çıkış kodu kolu yakalar.
+
 ---
 
 ## 3. Ölçülenler (bu makine, 2026-11-21)
 
-Kanıt: `is\tasokey-53\ortam-olcumu.txt`, `is\tasokey-53\ornek-rapor.txt`, `is\tasokey-53\test-gunlugu.txt`.
+Kanıt: `is\tasokey-53\ortam-olcumu.txt`, `is\tasokey-53\ornek-rapor.txt`, `is\tasokey-53\test-gunlugu.txt`,
+`is\tasokey-53\gercek-rapor-son.txt`.
 
 | Ne | Ölçülen değer |
 |---|---|
@@ -113,9 +128,10 @@ Kanıt: `is\tasokey-53\ortam-olcumu.txt`, `is\tasokey-53\ornek-rapor.txt`, `is\t
 | `[System.IO.Compression.ZipArchiveMode]` yükleme yapmadan | çözülmüyor |
 | yalnız `System.IO.Compression.**FileSystem**` yüklenince | **hâlâ çözülmüyor** |
 | `System.IO.Compression` **+** `…FileSystem` yüklenince | `ZipArchiveMode` + `ZipFile` **var** |
-| Öz-test | `npm test` → **491/491 geçti** (12'si bu işin yeni testi) |
+| Öz-test | `npm test` → **492/492 geçti**, 0 atlandı (13'ü bu işin testi) |
 | Çözücünün gerçek makinede koşması (`-UnityKok` geçersiz yol) | **çıkış kodu 2** + `EKSİK: Unity kökü yok: … (kaynak: -UnityKok)`; Türkçe harfler bozulmadı, ortam satırı doğru (`pwsh: yok · ZipArchive: var`). Kanıt: `is\tasokey-53\gercek-kosu-kod2.txt` |
-| Kurulu bir Android araç zinciri manifest kapsamında var mı | **yok** — okuma listesindeki `D:\KraftDcm` yalnız `.md` belgeleri içeriyor; `JAVA_HOME`, `ANDROID_HOME`, `ANDROID_SDK_ROOT`, `UNITY_HOME`, `TASOKEY_UNITY_KOK` **tanımlı değil** |
+| Çözücünün gerçek kurulumda koşması (`-UnityKok <AndroidPlayer>`) | **çıkış kodu 0**, 7/7 zorunlu araç + platform jar → §4. Kanıt: `is\tasokey-53\gercek-rapor-son.txt` |
+| Ortam değişkeni ile kurulmuş araç zinciri | **yok** — `JAVA_HOME`, `ANDROID_HOME`, `ANDROID_SDK_ROOT`, `UNITY_HOME`, `TASOKEY_UNITY_KOK` **tanımlı değil**; araçların tek kaynağı Unity kurulumu (§4) |
 
 **Dersler (koda yazıldı):**
 
@@ -128,51 +144,44 @@ Kanıt: `is\tasokey-53\ortam-olcumu.txt`, `is\tasokey-53\ornek-rapor.txt`, `is\t
 
 ---
 
-## 4. ÖLÇÜLMEYENLER — gerçek kurulum (izin verilmedi, 2026-11-21)
+## 4. Gerçek kurulum (ölçüldü 2026-11-21)
 
-tasokey#53'ün manifestinde yazma: iş klasörü + ofis klonu; okuma (ek): `D:\KraftOfis\merkez\kit`,
-`D:\KraftDcm`. **Unity kurulum klasörü manifestte yok** (`unity_editor: null`, `araclar: []`);
-koruma kancası okumayı reddetti ve izin istemi **sorulmadı/verilmedi** (toplu onay kipi).
-Kapsam içinde başka bir araç zinciri de **yok** (ölçüldü, §3: `D:\KraftDcm` yalnız belge,
-ilgili ortam değişkenlerinin hiçbiri tanımlı değil). Bu yüzden aşağıdaki tablo **boş bırakıldı** —
-tahmin yazılmadı (A9). Çözücünün kendi mantığı bundan bağımsız olarak sınandı (§5) ve gerçek
-makinede de koştu (§3, kod 2).
-
-İzin gelince tek komut tabloyu dolduruyor (Unity kurulum klasörü: **okuma + çalıştırma**):
+Unity kurulum klasörüne **okuma + araçları çalıştırma** izni: **verildi** (Sahip, 2026-11-21,
+iş boyunca; `tasokey#53` manifest okuma listesi). Değerler tek komutla alındı — her satırın
+karşılığı ham çıktıda birebir var (kanıt: `is\tasokey-53\gercek-rapor-son.txt`):
 
 ```
-powershell -File android/yol-coz.ps1 -Rapor      # pwsh kurulursa: pwsh -File …
+powershell -File android/yol-coz.ps1 -Rapor -UnityKok "C:\Program Files\Unity\Hub\Editor\6000.3.9f1\Editor\Data\PlaybackEngines\AndroidPlayer"
 ```
 
-Erişimi olan taraf (Masa) başka bir makinede ya da izinli bir turda şunu yapar: komutu çalıştırır,
-çıktıyı aşağıdaki tabloya **olduğu gibi** geçirir ve satırları "ölçüldü (tarih)" diye işaretler.
-Unity kökü Hub'ın varsayılan yerinde değilse `-UnityKok <yol>` ya da bir kez
-`setx TASOKEY_UNITY_KOK <yol>`. Firma belgesine göre oyunların motoru **Unity 6000.3.9f1**
-(`D:\KraftDcm\oyunlar.md`) → beklenen Hub klasörü `…\Hub\Editor\6000.3.9f1`; bu **belgede yazan**
-değer, bu makinede **doğrulanmadı**.
+`-UnityKok` verildi çünkü `TASOKEY_UNITY_KOK` bu makinede tanımlı değil ve `setx` ile yazmak bir
+sistem ayarıdır (ayrı izin istemi) — Hub kolu da aynı klasörü bulur, ölçüm o kola bağlı değil.
 
 | Ne | Ölçülen değer |
 |---|---|
-| Unity kökü (+ hangi kaynaktan) | — ölçülmedi — |
-| Unity sürümü | — ölçülmedi — |
-| `AndroidPlayer` yolu | — ölçülmedi — |
-| `java` / `javac` / `keytool` sürümü | — ölçülmedi — |
-| `javac -source 8` desteği | — ölçülmedi — |
-| build-tools sürümü (seçilen + bulunanlar) | — ölçülmedi — |
-| `aapt2` / `aapt` / `d8` / `zipalign` / `apksigner` sürümü | — ölçülmedi — |
-| `platforms/android-36/android.jar` var mı | — ölçülmedi — (yoksa bulunan API seviyeleri raporda listelenir) |
-| `bundletool` var mı, sürümü | — ölçülmedi — |
-| Seçilen dex → APK yolu | — ölçülmedi — (yedek yol `zip-archive`in çalıştığı §3'te ölçüldü) |
+| Unity kökü (+ hangi kaynaktan) | `C:\Program Files\Unity\Hub\Editor\6000.3.9f1\Editor\Data\PlaybackEngines\AndroidPlayer` [kaynak: `-UnityKok`] |
+| Unity sürümü | `6000.3.9f1` (Hub kurulum klasörü adı; firma belgesiyle aynı) |
+| `AndroidPlayer` yolu | `…\Hub\Editor\6000.3.9f1\Editor\Data\PlaybackEngines\AndroidPlayer` (`SDK`, `OpenJDK`, `Tools` yerinde) |
+| `java` / `javac` / `keytool` sürümü | **17.0.9** / **17.0.9** / **17.0.9** (üçü de `…\AndroidPlayer\OpenJDK\bin`) |
+| `javac -source 8` desteği | **evet** (`javac 17.0.9`; JDK 24+ ölçülmedi, §2) |
+| build-tools sürümü (seçilen + bulunanlar) | **36.0.0** seçildi → `…\AndroidPlayer\SDK\build-tools\36.0.0`; klasör listelendi: bulunan tek sürüm **36.0.0** |
+| `aapt2` / `aapt` / `d8` / `zipalign` / `apksigner` sürümü | **2.20** / **0.2** / **36.0.0 (build-tools sürümü)** / **36.0.0 (build-tools sürümü)** / **36.0.0 (build-tools sürümü)** — son üçü sürümünü bildirmiyor, `UYARI` ile türetildi |
+| `platforms/android-36/android.jar` var mı | **var** → `…\AndroidPlayer\SDK\platforms\android-36\android.jar` (`-ApiSeviyesi` varsayılanı 36; kurulu platformlar: `android-34`, `android-35`, `android-36`) |
+| `bundletool` var mı, sürümü | **var**, **1.17.2** → `…\AndroidPlayer\Tools\bundletool-all-1.17.2.jar` |
+| Seçilen dex → APK yolu | **`aapt-add`** (aapt v1 bulundu); yedek `zip-archive` de kullanılabilir durumda (§3) |
+| Sonuç / çıkış kodu | `TAMAM (7/7 zorunlu araç + platform jar)` · **çıkış kodu 0** |
 
-**Manifeste yazılması gereken:** Unity kurulum klasörüne **okuma + çalıştırma**
-(sürüm komutları araçları çalıştırır; başka bir yolu yok). Başka hiçbir şey gerekmiyor:
-ağ yok, yazma yok, ücretli çağrı yok, cihaz yok.
+Ortam satırı aynı koşuda: `PowerShell 5.1.26100.9818 · pwsh: yok · ZipArchive: var`.
+
+**Manifest gereği:** Unity kurulum klasörüne **okuma + çalıştırma** (sürüm komutları araçları
+çalıştırır; başka bir yolu yok). Başka hiçbir şey gerekmiyor: ağ yok, yazma yok, ücretli çağrı yok,
+cihaz yok. Aynı izin `tasokey#54`–`#58` için de açık; o işler ölçümü yeniden yapmaz, çözücüden okur.
 
 ---
 
 ## 5. Sınanma
 
-`testler/android-yol-coz.test.js` (12 test, `npm test` içinde) çözücünün kendi mantığını **sahte**
+`testler/android-yol-coz.test.js` (13 test, `npm test` içinde) çözücünün kendi mantığını **sahte**
 bir Unity ağacıyla ölçer: araçlar, gerçek araçların çıktı biçiminde sürüm basan `.cmd` taslakları
 (`testler/yardimci/android-sahte-unity.js`). Böylece testler hiçbir kuruluma bağlı değil ve CI'da
 da koşar; Windows dışında kendiliğinden atlanır.
@@ -182,16 +191,25 @@ eksikse kod 4 + eksiğin adı · platform jar eksikse tam dosya adıyla · iste�
 bundletool) eksikliği kodu bozmaz · `aapt` yoksa dex yolu `zip-archive`e döner · sürüm bildirmeyen
 araçta türetme + uyarı · `-UnityKok` > ortam değişkeni > Hub sırası · geçersiz kökte kod 2, Android
 modülü yoksa kod 3 · en yeni build-tools **sayısal** seçilir (`36.0.0` > `9.0.0`) · `-ApiSeviyesi`
-başka seviyeye bakar.
+başka seviyeye bakar · **sürüm yerine kendi tam yolunu basan araçta** yoldaki klasör adı sürüm
+sanılmaz, türetilir ve `UYARI` yazılır (sahte ağaç bu test için Unity Hub gibi `6000.3.9f1` adlı
+klasöre kurulur — gerçek kurulumda ölçülen kusurun regresyonu).
+
+ADR atıf koruması (`testler/adr-atif-tarama.test.js`) `android/` klasörünü ve `.ps1` uzantısını da
+tarar: buradaki bir ADR atfının `MIMARI.md` §5'te karar başlığı yoksa `npm test` kırmızı yanar
+(bu klasöre uydurma numaralı bir atıf koyularak elle bir kez doğrulandı — bu belge numara yazamaz,
+yazdığı anda kendisi kırmızı yanar).
 
 ## 6. Açık noktalar (bu işin kapsamı dışında, karar Mimar'da/Sahip'te)
 
-- **PRD §Kapsam dışı** satırı bugün "mobil uygulama (Android/iOS native) paketi — bu iş yalnız web
-  sürümünü kapsıyor" diyor. Android APK yolu açılıyorsa PRD/GDD ve bir ADR güncellenmeli;
-  bu iş belge değiştirmedi (A4 kapsam disiplini).
+- **PRD farkı (Analist'te, paralel yürüyor):** `PRD.md` §Kapsam dışı satırı bugün "mobil uygulama
+  (Android/iOS native) paketi — bu iş yalnız web sürümünü kapsıyor" diyor. Android APK yolu
+  açıldığı için kapsam satırı + yeni gereksinim numarası onaya gidiyor; onay gelince Android araç
+  zincirinin ADR'si `MIMARI.md`ye yazılır ve bu belgedeki atıf oraya bağlanır. Bu iş PRD/GDD/MIMARI
+  dosyalarına dokunmadı (A4 kapsam disiplini).
 - **Donmuş alanlar:** paket adı (firma standardı `com.kraftdcm.tasokey`), imza anahtarı, sürüm kodu,
   en düşük/hedef Android sürümü bu belgeye yazılmadı — onlar R sınıfı, Masa'da karar verilir.
-- `pwsh` kurulumu bir izin istemidir; gerekmiyor (5.1 yeterli), ama kabul ölçütleri `pwsh` yazıyorsa
-  komut satırı metni `powershell` olarak güncellenmeli.
-- `keytool`/`zipalign` sürümünün türetilmesi yerine gerçek sürüm gerekiyorsa
-  (`apksigner --version` gibi) ayrı bir ölçüm yolu aranmalı; bugün gerek görülmedi.
+- `pwsh` **kurulmayacak** (Mimar kararı; kurulum ayrı izin istemi). Kabul ölçütü metinleri
+  `powershell -File …` yazar; §1 buna göre güncellendi.
+- `d8`/`zipalign`/`apksigner` sürümünün türetilmesi yerine gerçek sürüm gerekiyorsa ayrı bir ölçüm
+  yolu (ör. `apksigner.jar` içindeki bilgi) aranmalı; APK üretimi için gerek görülmedi.

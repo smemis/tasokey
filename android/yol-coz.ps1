@@ -34,7 +34,7 @@ Belirli bir build-tools sürümüne sabitler. Verilmezse bulunanların en yenisi
 $false verilirse sürüm komutları çalıştırılmaz (yalnız yol çözümü; hızlı).
 
 .EXAMPLE
-pwsh -File android/yol-coz.ps1 -Rapor
+powershell -File android/yol-coz.ps1 -Rapor
 
 .EXAMPLE
 $y = & android/yol-coz.ps1 ; & $y.araclar.aapt2.yol link ...
@@ -63,6 +63,14 @@ $ErrorActionPreference = 'Stop'
 $ORTAM_DEGISKENI = 'TASOKEY_UNITY_KOK'
 $ZAMAN_ASIMI_MS  = 20000
 $UZANTILAR       = @('.exe', '.bat', '.cmd', '.jar', '')
+
+# Araç çıktısındaki DOSYA YOLU sürüm kaynağı DEĞİLDİR. Sürüm bayrağı tanımayan araç, hata satırında
+# kendi tam yolunu basıyor; yoldaki klasör adı (Unity sürümü "6000.3.9f1", build-tools "36.0.0")
+# sürüm sanılıyor, böylece türetme kolu hiç çalışmıyordu (ÖLÇÜLDÜ, tasokey#53 gerçek kurulum).
+# Kural tek yerde durur, araca özel durum yazılmaz: sürüm aranmadan önce yol taşıyan sözcükler
+# (içinde \ ya da / olan) metinden atılır; geriye sürüm kalmazsa araç tablosundaki `yedek`ten
+# türetilir ve UYARI yazılır.
+$YOL_SOZCUGU     = '\S*[\\/]\S*'
 
 # Unity kökünden AndroidPlayer'a giden olası göreli yollar (sürümler arası fark + doğrudan klasör verme).
 $OYNATICI_YOLLARI = @(
@@ -167,7 +175,8 @@ function Calistir {
 function SurumAyikla {
   param([string] $Metin)
   if (-not $Metin) { return '' }
-  $e = [regex]::Match($Metin, '(\d+\.\d+(?:\.\d+)*(?:[_+][\w.-]+)?)')
+  $yolsuz = [regex]::Replace($Metin, $YOL_SOZCUGU, ' ')   # bkz. $YOL_SOZCUGU açıklaması
+  $e = [regex]::Match($yolsuz, '(\d+\.\d+(?:\.\d+)*(?:[_+][\w.-]+)?)')
   if ($e.Success) { return $e.Groups[1].Value }
   return ''
 }

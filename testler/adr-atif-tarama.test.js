@@ -13,8 +13,10 @@ import { join, relative } from 'node:path';
 
 const KOK = join(import.meta.dirname, '..');
 const MIMARI_MD = readFileSync(join(KOK, 'MIMARI.md'), 'utf8');
-const TARANAN_DIZINLER = ['docs', 'testler'];
-const TARANAN_UZANTILAR = ['.js', '.css', '.html', '.md'];
+// tasokey#53: yeni üst düzey `android/` klasörü (belge + PowerShell betiği) koruma kapsamına alındı;
+// kaynak türü eklenince tarama sessizce kapsam kaybetmesin diye uzantılar da burada tek yerde durur.
+const TARANAN_DIZINLER = ['docs', 'testler', 'android'];
+const TARANAN_UZANTILAR = ['.js', '.css', '.html', '.md', '.ps1'];
 
 const ATIF_DESENI = /ADR-(\d{3})/g;
 
@@ -48,7 +50,7 @@ function belgelenenler() {
 }
 
 test('ADR taraması çalışıyor (en az 1 dosya tarandı, en az 1 atıf bulundu)', () => {
-  assert.ok(kaynakDosyalari().length > 0, 'docs/ ve testler/ altında taranacak kaynak dosyası yok');
+  assert.ok(kaynakDosyalari().length > 0, `taranacak kaynak dosyası yok: ${TARANAN_DIZINLER.join(', ')}`);
   assert.ok(atiflar().size > 0, 'kaynaklarda hiç ADR atfı bulunamadı — tarama deseni bozulmuş olabilir');
 });
 

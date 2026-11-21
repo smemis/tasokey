@@ -9,8 +9,8 @@ import {
 } from './yardimci/android-sahte-unity.js';
 
 // tasokey#53 (üst iş tasokey#52) — `android/yol-coz.ps1` APK üreten bütün betiklerin TEK yol
-// kaynağıdır (ADR-004'ün "araç sürümü ölçülür, komut tek yerde durur" dili). Gerçek Unity
-// kurulumu bu işin manifestinde yok ve her makinede farklı; o yüzden çözücünün KENDİ mantığı
+// kaynağıdır (Android araç zincirinin mimari kararı PRD farkı onayıyla açılacak; numarası o zaman
+// buraya yazılır). Gerçek Unity kurulumu her makinede farklı; o yüzden çözücünün KENDİ mantığı
 // (öncelik sırası, en yeni build-tools seçimi, eksik araçta çıkış kodu, sürüm türetme,
 // dex→APK yolu seçimi) sahte bir Unity ağacıyla ölçülür (`yardimci/android-sahte-unity.js`).
 // Böylece test hiçbir kuruluma bağlı değil; gerçek kurulumun ölçümü android/ARACLAR.md'de.
@@ -20,6 +20,10 @@ import {
 
 const KOK = join(import.meta.dirname, '..');
 const BETIK = join(KOK, 'android', 'yol-coz.ps1');
+
+// Unity Hub kurulumları sürüm adlı klasörlerde durur; sahte ağacın kökü de öyle adlandırılabilsin
+// (bir aracın bastığı YOL içindeki sürüm dizesi sürüm sanılmamalı — aşağıdaki ilgili test).
+const UNITY_SURUM_KLASORU = '6000.3.9f1';
 
 /** Kabuk: kabul ölçütündeki `pwsh` varsa o, yoksa Windows PowerShell (hangisi varsa, ölçülür). */
 function kabukBul() {
@@ -114,6 +118,29 @@ test('sürümünü bildirmeyen araçların sürümü türetilir ve uyarı yazıl
   assert.match(e.araclar.keytool.surum, new RegExp(`^${JDK_SURUM.replace(/\./g, '\\.')} `), e.araclar.keytool.surum);
   assert.match(e.araclar.zipalign.surum, new RegExp(`^${BUILD_TOOLS.replace(/\./g, '\\.')} `), e.araclar.zipalign.surum);
   assert.equal(e.uyarilar.filter((u) => u.startsWith('keytool') || u.startsWith('zipalign')).length, 2);
+});
+
+test('ASIL KABUL: sürüm yerine kendi yolunu basan araçta yoldaki klasör adı sürüm sanılmaz', { skip: ATLA }, () => {
+  // Gerçek kurulumda ölçüldü (tasokey#53): `zipalign -h` sürüm basmıyor, hata satırında kendi tam
+  // yolunu basıyor; çözücü yoldaki Unity klasör adından ("6000.3.9f1") "6000.3.9" ayıklayıp sürüm
+  // sanıyordu → türetme kolu hiç çalışmıyor, UYARI yazılmıyordu. Sahte ağaç bu yüzden Unity Hub
+  // gibi SÜRÜM ADLI bir klasöre kurulur: yol gerçek bir sürüm dizesi taşısın.
+  const kok = agacKur(UNITY_SURUM_KLASORU, { yolBasan: ['zipalign'] });
+  const { kod, cikti } = kos(['-UnityKok', kok, '-Rapor']);
+
+  assert.equal(kod, 0, `çıkış kodu 0 beklenirdi. Çıktı:\n${cikti}`);
+  const satir = aracSatiri(cikti, 'zipalign');
+  assert.ok(satir, `raporda zipalign satırı yok. Çıktı:\n${cikti}`);
+  assert.match(satir, /\(build-tools sürümü\)/, `zipalign sürümü türetilmemiş: ${satir}`);
+  assert.match(cikti, /UYARI\s+: zipalign/, `türetilmiş sürüm UYARI ile görünmeli. Çıktı:\n${cikti}`);
+
+  const { e } = envanter(['-UnityKok', kok]);
+  assert.equal(e.araclar.zipalign.surum, `${BUILD_TOOLS} (build-tools sürümü)`);
+  assert.doesNotMatch(
+    e.araclar.zipalign.surum, /6000/,
+    'aracın kendi yolundaki Unity klasör adı sürüm olarak basılmış',
+  );
+  assert.ok(e.uyarilar.some((u) => u.startsWith('zipalign')), e.uyarilar.join(' | '));
 });
 
 // --- Eksik araç: 0 dışı çıkış kodu + eksiğin adı ---------------------------------------------

@@ -51,6 +51,11 @@ const TASLAKLAR = {
   apksigner: ['@echo off', 'echo 0.9', 'exit /b 0'],
 };
 
+// Sürüm bayrağını tanımayıp hata satırında KENDİ TAM YOLUNU basan araç. Gerçek `zipalign` böyle
+// davranıyor (tasokey#53'te gerçek Unity kurulumunda ölçüldü): yoldaki klasör adları (Unity sürümü,
+// build-tools sürümü) sürüm sanılmamalı, sürüm türetilmeli.
+const YOL_BASAN_TASLAK = ['@echo off', 'echo %~f0: unknown option -- h 1>&2', 'exit /b 2'];
+
 function javacTaslagi(source8Destekli) {
   if (source8Destekli) return ['@echo off', `echo javac ${JDK_SURUM}`, 'exit /b 0'];
   return [
@@ -72,13 +77,14 @@ function cmdYaz(yol, satirlar) {
 /**
  * Sahte Unity kurulumunu `kok` altına kurar ve kökü geri verir.
  * @param {string} kok kurulacak klasör (yoksa oluşturulur)
- * @param {{yok?: string[], source8?: boolean, androidPlayer?: boolean}} secenekler
+ * @param {{yok?: string[], yolBasan?: string[], source8?: boolean, androidPlayer?: boolean}} secenekler
  *   yok: kurulmayacak araç adları (`android.jar` da bir ad) ·
+ *   yolBasan: sürüm yerine kendi tam yolunu basan araç adları ·
  *   source8: javac `-source 8` destekliyor mu ·
  *   androidPlayer: Android Build Support modülü kurulu mu
  */
 export function sahteUnityKur(kok, secenekler = {}) {
-  const { yok = [], source8 = true, androidPlayer = true } = secenekler;
+  const { yok = [], yolBasan = [], source8 = true, androidPlayer = true } = secenekler;
   mkdirSync(kok, { recursive: true });
   if (!androidPlayer) {
     mkdirSync(join(kok, 'Editor', 'Data'), { recursive: true });
@@ -107,7 +113,9 @@ export function sahteUnityKur(kok, secenekler = {}) {
   };
   for (const [arac, dizin] of Object.entries(hedefler)) {
     if (yok.includes(arac)) continue;
-    cmdYaz(join(dizin, `${arac}.cmd`), arac === 'javac' ? javacTaslagi(source8) : TASLAKLAR[arac]);
+    let satirlar = arac === 'javac' ? javacTaslagi(source8) : TASLAKLAR[arac];
+    if (yolBasan.includes(arac)) satirlar = YOL_BASAN_TASLAK;
+    cmdYaz(join(dizin, `${arac}.cmd`), satirlar);
   }
   if (!yok.includes('bundletool')) {
     writeFileSync(join(tools, `bundletool-all-${BUNDLETOOL_SURUM}.jar`), ZIP_BASLIK);
