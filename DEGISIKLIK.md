@@ -275,18 +275,21 @@
 > **Sürüm 26** (`tasokey#78` — üst iş `tasokey#75`; Mimar-K2 planı + Geliştirici uygulaması, 2026-11-22):
 > **ADR-026** yazıldı — *`MIMARI.md` **dizindir**; tablo hücrelerinin yürürlükteki ayrıntısı
 > `MIMARI-AYRINTI.md`'de* (üç ev ayrıdır: yürürlükteki ayrıntı ekte, karar gövdesi `adr/`de, tarihsel
-> gerekçe burada). Dört adım sırayla ve her adımdan **sonra ölçülerek** uygulandı: §3'ün 12 uzun modül
-> hücresi + `android/` "saf mantık mı" hücresi, §7'nin kapanmış satırlarındaki 16 "Nasıl ölçülecek"
-> hücresi, §6'nın 8 "Ne ile" hücresi ve §5'in **"Tek satır karar" sütunu** (25 satır) eke taşındı —
-> toplam **62 hücre**, hepsi **birebir** (`node testler/ayrinti-tasima.olcum.js` → bayt farkı 0; ekteki
-> 63. bölüm ADR-026'nın bu işte **yazılan** satırıdır, tabanda karşılığı yoktur).
-> Belge **40.000 → 30.376 bayt** (LF), ek dosya 17.061 bayt. Satır sayıları korundu: ADR dizini **26**
-> (ADR-026 eklendi), modül **18**, kanıt **14**, risk **30**; açık 10 riskin (8, 10, 15, 16, 18, 21, 22,
-> 23, 29, 30) metni taban ile birebir.
-> Sahip'in **25.600 bayt** hedefi bu içerik listesiyle **tutmadı** (4.776 bayt fazla): planın dört adımı
-> hedefe matematiksel olarak yetmiyor, çünkü taşınabilir dört hücre grubu toplam 14.237 bayttı ve gereken
-> azalma 14.400 bayttı. Ölçülen seçenekler ve **mutlak alt sınır 22.234 bayt** `tasokey#78` raporunda;
-> karar Sahip'te. `docs/`, `android/`, kayıt şeması ve `adr/`deki 25 eski gövde **değişmedi**.
+> gerekçe burada). **13 adım** sırayla ve her adımdan **sonra ölçülerek** uygulandı: §3'ün 12 uzun modül
+> hücresi + `android/` "saf mantık mı" hücresi · §7'nin kapanmış satırlarındaki 16 "Nasıl ölçülecek" ve
+> 8 "Konu" hücresi · §6'nın 8 "Ne ile", 9 "Tek komut" ve 5 "Tür" hücresi · §5'in **"Tek satır karar"
+> sütunu** (25 satır) · §2'nin 9 "Gerekçe" ve 1 "Seçim" hücresi · §4'ün gövdesi · §1'in iki paragrafı
+> (katman şeması belgede **kaldı**) · başlıktaki **K1 onayı bloğu** — toplam **92 hücre/blok**, hepsi
+> **birebir** (`node testler/ayrinti-tasima.olcum.js` → bayt farkı 0, ölü çapa 0; ekteki bir bölüm
+> ADR-026'nın bu işte **yazılan** satırıdır, tabanda karşılığı yoktur). §3 ve §7'de satır başına bağlantı
+> yerine tablonun altına **tek not** kondu (satır başına ~45 bayt kazanç).
+> Belge **40.000 → 25.250 bayt** (LF) / **25.435 bayt** (CRLF checkout), ek dosya 25.604 bayt. Satır
+> sayıları korundu: ADR dizini **26** (ADR-026 eklendi), modül **18**, kanıt **14**, risk **30**; açık 10
+> riskin (8, 10, 15, 16, 18, 21, 22, 23, 29, 30) üç hücresi taban ile birebir.
+> Sahip'in **25.600 bayt** hedefi **tuttu** (pay 165 bayt, iki ölçüde de). Planın ilk dört adımı tek başına
+> 30.293 baytta kalıyordu (taşınabilir dört hücre grubu 14.237 B, gereken azalma 14.400 B); hedef ancak
+> kalan dokuz adımla sağlandı. İlk turda ölçülen seçenekler ve **alt sınır 22.234 bayt** `tasokey#78`
+> raporunda duruyor. `docs/`, `android/`, kayıt şeması ve `adr/`deki 25 eski gövde **değişmedi**.
 
 ## Ek — özet tablodan taşınan sürüm zinciri
 

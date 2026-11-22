@@ -1,9 +1,9 @@
 # MIMARI ayrıntı eki: Taş Okey
 
 > Bu dosya `MIMARI.md`'nin **ayrıntı ekidir** (ADR-026, `tasokey#78`): belge bir **dizin** oldu,
-> tablo hücrelerinin yürürlükteki tam metni buraya **birebir** taşındı (bayt farkı 0 ölçüldü:
-> `node testler/ayrinti-tasima.olcum.js`). Tablodaki satır, numarası ve kimliği `MIMARI.md`'de
-> **duruyor**; hücrede tek cümle + buraya bağlantı kaldı.
+> tablo hücrelerinin ve bölüm gövdelerinin yürürlükteki tam metni buraya **birebir** taşındı
+> (bayt farkı 0 ölçüldü: `node testler/ayrinti-tasima.olcum.js`). Tablodaki satır, numarası ve
+> kimliği `MIMARI.md`'de **duruyor**; hücrede tek cümle + buraya bağlantı kaldı.
 >
 > Bu dosya **yürürlükteki** ayrıntıdır (tarihsel gerekçe ve ölçüm günlüğü
 > [DEGISIKLIK.md](DEGISIKLIK.md)'de, karar gövdeleri [adr/](adr/ADR-026-mimari-dizin-ayrinti-eki.md)'de).
@@ -131,35 +131,35 @@ Yeni dil anahtarı eklenince aynı ölçüm: en uzun TR/EN durum metni dört boy
 
 ## Ek 3 — §6 kanıt satırlarının "Ne ile" hücresi
 
-### Kanıt 6 — Android kabuğu kaynak denetimi (ADR-020 maddeleri: izin
+### Kanıt 6 — ne ile
 
 Kaynak taraması + PNG bayt/`pathData` ölçümü, aynı koşucu içinde: `testler/android-kabuk.test.js`, `testler/android-simge.test.js`
 
-### Kanıt 7 — Android araç zinciri ve derleme betiğinin mantığı
+### Kanıt 7 — ne ile
 
 **Sahte** Unity ağacı + gerçek araçların çıktı biçiminde davranan taslaklar (`testler/android-yol-coz.test.js`, `testler/android-derle.test.js`); hiçbir kuruluma bağlı değil, Windows dışında kendiliğinden atlanır
 
-### Kanıt 9 — Arayüz denemesi — ofis yolu (ADR-023)
+### Kanıt 9 — ne ile
 
 `*.olcum.js --plan <dosya>` → `plan.json`; çekimi **çekirdeğin** penceresiz tarayıcısı yapar (`ekran_gerek` turu), ajan sunucu/tarayıcı açmaz
 
-### Kanıt 10 — Arayüz denemesi — Masa yolu (ADR-023)
+### Kanıt 10 — ne ile
 
 Yerel statik sunucu (ADR-004, 8777, yalnız `127.0.0.1`) + boş profilli başsız Edge/CDP; sürücünün tek komutlu kipi, ölçümü `olcum.json` + PNG olarak yazar
 
-### Kanıt 11 — Sürükle-bırak hedefleri (ıstakaya bırakma ADR-019
+### Kanıt 11 — ne ile
 
 Saf çekirdek tablo testi (`testler/surukleme-hedefi.test.js`); aynı çekirdek sayfaya **gömülerek** ölçüm yolunda gerçek Pointer Events ile koşar — beş yolun her biri `gecti/kaldi/olculmedi` döner, köşe isabeti boş bölgeye serilen 5×5 ızgarayla ölçülür
 
-### Kanıt 12 — Kısa yatay düzen varyantı (ADR-024): bant listesi
+### Kanıt 12 — ne ile
 
 Statik CSS çözümlemesi + **tarayıcıda ÖLÇÜLEN** bant/masa kutusu tablosu (`testler/yardimci/sigdirma-butcesi.js` `OLCULEN_MASA_KUTUSU`, `testler/yardimci/masa-izleri.js` bant modeli): `testler/kisa-yatay-varyant.test.js`, `testler/kose-atma-alani.test.js` (iki düzen × kendi bütün kabul boyutları — paylaşılan düzende 3 iz, varyantta 4 bant), `testler/sigdirma-butcesi.test.js`
 
-### Kanıt 13 — Sürükle-bırak hedefleri yeni düzende (ADR-024): beş yol
+### Kanıt 13 — ne ile
 
 Aynı saf çekirdek + sayfaya gömülen ölçüm; `koseAtmaAlani` yolunun `bolgeIsabetiEnAz80` denetimi oranı ölçütle karşılaştırır (`tasokey#69`da oran yalnız rapora yazılıyordu). ADR-014 **halka ∩ komşu kutu = 0** aynı turda, kendi aracıyla ölçülür (`yerlesim-cakisma` — halka çiftleri `halkaCiftleriniAyir` ile ayrı sayılır)
 
-### Kanıt 14 — Yerleşim çakışması (öğe çiftleri, kesişim alanı, taşma)
+### Kanıt 14 — ne ile
 
 Saf çekirdek tablo testi (`testler/yerlesim-cakisma.test.js`); aynı çekirdek sayfaya **gömülerek** ölçüm yolunda koşar, gömülenin modülle aynı sonucu verdiği ölçülür
 
@@ -268,3 +268,147 @@ Her karar kendi `adr/` dosyasında; §5 yalnız dizin, gövde tekrarlanmaz.
 ### ADR-026 — tek satır karar
 
 Tablo hücresi tek cümle + bağlantı; ayrıntı ekte, karar gövdesi `adr/`de.
+
+## Ek 5 — §2 yığın tablosunun "Gerekçe" sütunu
+
+### Yığın 2 — gerekçe
+
+Paket kurulumu izin istemidir (profil: "yeni paket ya da araç kurulumu izin istemidir"; manifestte ağ yok). Sıfır bağımlılık = kurulum beklemesi yok, güvenlik yüzeyi yok, sürüm bakımı yok
+
+### Yığın 3 — gerekçe
+
+Okey 2B bir masa oyunu; tuval/3B gerekmiyor. Duyarlı düzen (R-009), sürükleme ve metin ölçeklemesi CSS ile bedava gelir — tuvalde elle yazılması gerekir
+
+### Yığın 11 — gerekçe
+
+Aynı `docs/` çıktısı cihazda **değişmeden** oynanır: oyunu Android için ikinci kez yazmak tek kaynak kuralını kırardı. ADR-001'in sıfır bağımlılık kuralının cihaz karşılığı; izin satırı olmadığı için çevrimdışı iddiası ölçülebilir kalır
+
+### Yığın 12 — gerekçe
+
+**Ölçüldü** (`tasokey#53`, `android/ARACLAR.md` §4): JDK **17.0.9**, build-tools **36.0.0**, `platforms/android-36/android.jar` var → paket kurulumu (izin istemi) ve ağ olmadan imzalı APK üretiliyor. Donmuş alanlar üç ayrı yerde durur: **paket adı** manifestte **varsayılan olarak yazılıdır** (`android/kabuk/AndroidManifest.xml` `package=`; öz-test bu değeri donmuş alan olarak sabitler) ve derlemede **zorunlu** `-Kimlik` parametresi `--rename-manifest-package` ile üzerine yazar; **imza anahtarı ve parolası** depoda **hiç durmaz**, her koşuda parametre olarak gelir; **en düşük/hedef Android sürümü ve API seviyesi** ise `derle.ps1`in **ayar bloğunda** sabittir (`$MIN_SDK`/`$HEDEF_SDK`/`$API_SEVIYESI`, tek kaynak — `android/OKU.md` §3) ve oradan `aapt2` bayrağı olarak geçer
+
+## Ek 6 — §7 risk satırlarının "Konu" hücresi
+
+### Risk 1 — konu
+
+**Bitirilebilirlik çözücüsü** (eli per/çift gruplarına tam bölme, 2 okey + 2 sahte okey joker olarak) işin en zor parçası; geri izlemeli arama yanlış ya da yavaş olabilir. Bot her turda çağırdığı için maliyet çarpılır
+
+### Risk 11 — konu
+
+Bot **kademe seçimi arayüzde yok** (ADR-013): motor üç kademeyi oynatıyor, arayüz sabit `VARSAYILAN_KADEME` (orta) çağırıyor. Oyuncu kolay/zor seçemiyor
+
+### Risk 9 — konu
+
+844×390'da (telefon yatay) sonuç penceresi, el bitince açılan üst rakibin ıstakasını örtüyor; o el pencere kapanmadan okunamaz. İki istek (pencere her zaman en üstte + el bitince rakip ıstakaları açılsın) bu ölçüde çakışıyor
+
+### Risk 12 — konu
+
+Unity'nin JDK/SDK araç yolları ve sürümleri: `tasokey#52` planında **tahmin**di (manifest `C:\Program Files`'ı okumuyordu), yanlışsa bütün derleme zinciri yanlış yere bakardı
+
+### Risk 19 — konu
+
+Yayın durumu "yok"tan çıkınca paket adı, imza, sürüm kodu, en düşük/hedef Android sürümü **donar**; o andan sonra `derle.ps1`in sürüm formülünü ya da SDK sayılarını değiştirmek **R sınıfıdır** ve Masa'da yapılır
+
+### Risk 24 — konu
+
+Ölçüm sürücülerinin **Masa yolu** (ADR-023/2: yerel sunucu + başsız Edge/CDP) ofiste **hiç koşturulmadı**: sunucu başlatma, CDP istemcisi ve PNG yazımı yalnız **yazıldığı** ölçüldü, çalıştığı ölçülmedi. Ofisteki kabul "araç tek komutla koşuyor" bu yüzden açık kalır (`tasokey#67`). Ölçülebilen parçası argüman çözümüdür (tablo testi) ve dosyanın ana girişi doğrudan çağrı korumasının arkasındadır
+
+### Risk 25 — konu
+
+ADR-024'ün dayandığı "dikey zincir **4 taş boyu**" teşhisi (plan §2) **hesaptı**; yanlış olsa varyant beklenen kazancı vermezdi. Aynı aileden iki risk: el sonunda açılan **yan** rakip taşlarının kısalan bandı aşıp köşe hücrelerine ve ADR-014 halkasına girmesi (ADR-024/6), üst rakibin açık taşlarının **üst içerik bandındaki** deste/gösterge öbeğine çarpması (ADR-024/3)
+
+### Risk 28 — konu
+
+Mevcut ızgara savları (üç iz, `.kose` tek kural, `#koseSolUst` yalnız `grid-area`) varyantın **dört bandını** reddedebilir ya da tersi: sav varyanta uydurulurken **gevşetilebilir**
+
+## Ek 7 — §4 "Veri ve kayıt" bölümünün gövdesi
+
+### §4 Veri ve kayıt — tam metin
+
+- Tek anahtar: `tasokey.kayit` (JSON) + içinde `surum` alanı. İçerik (şema **sürüm 2**, ADR-016/`tasokey#42`):
+  **yalnız** `dilKodu` ve `zorluk`. Şema dışı alan (eski şemadan kalan ya da elle eklenmiş) okunmaz ve yazılmaz;
+  ses açık/kapalı ve yarım kalmış el bugün saklanmıyor (gerektiğinde şema sürümü yine yükselir).
+- Şema sürümü uyuşmazsa M1-M3'te **kayıt atılır ve yeniden başlatılır** (taşıma kodu yazılmaz; oyun yayınlanmadığı için
+  taşınacak kullanıcı verisi yok). Yayından sonra kayıt şeması **donmuş alandır**: değişikliği R sınıfıdır, Masa'da yapılır.
+- Kişisel veri, çerez, sayaç, analitik **yok** (PRD §8). Dışarıya ağ isteği yok (üçüncü taraf yazı tipi/CDN dahil → ADR-007).
+
+## Ek 8 — Başlıktaki K1 onayı bloğu
+
+### Başlıktaki K1 onayı bloğu — tam metin
+
+> **K1 onayı alındı** (Sahip, 2026-11-19, toplu onay — bütün sorular önerilen seçenekle): kural seti **Klasik Okey**,
+> yığın **sıfır bağımlılık düz JavaScript + DOM**, barındırma **kendi deposu + GitHub Pages**, 4 kural ayrıntısı
+> **önerilen varsayılanlarla sabit**, görsel tonda **kumar/para çağrışımı yok**. ADR-001, ADR-005, ADR-008, ADR-009
+> durumu **kabul** (karar veren Sahip-K1); ADR-002, ADR-003, ADR-004, ADR-006, ADR-007 durumu **kabul** (karar veren
+> Mimar-K2, K1 kapsamında onaylı yığın/akışın ayrıntısı).
+
+## Ek 9 — §6 kanıt satırlarının "Tek komut" hücresi
+
+### Kanıt 5 — tek komut
+
+`node testler/bot-zorluk.olcum.js` (elle; `npm test` kapsamında değil)
+
+### Kanıt 8 — tek komut
+
+aynı komut · **gerçek** APK için ayrıca `powershell -File android/dogrula.ps1 -Apk <yol>` (eksik 0 / fazla 0 / boyut farkı 0)
+
+### Kanıt 9 — tek komut
+
+`node testler/<ad>.olcum.js --plan <dosya>` + işin raporunda görüntü adları
+
+### Kanıt 10 — tek komut
+
+`node testler/<ad>.olcum.js --cikti <klasor>` — **ofiste koşmaz**, koşulmadığı raporda "ofiste doğrulanmadı" yazılır (§7 risk 24)
+
+### Kanıt 11 — tek komut
+
+`npm test` (kural) · `node testler/surukleme-hedefi.olcum.js --plan <dosya>` (sayfadaki gerçek hedef; **yalnız ofis yolu**, ADR-023/1)
+
+### Kanıt 13 — tek komut
+
+`npm test` (kural) · `node testler/surukleme-hedefi.olcum.js --plan <dosya>` + `node testler/yerlesim-cakisma.olcum.js --plan <dosya> --durum el` (ofis yolu)
+
+### Kanıt 14 — tek komut
+
+`npm test` (kural) · yukarıdaki iki yoldan biri (sayfadaki gerçek ölçü)
+
+## Ek 10 — §1 "Genel bakış" bölümünün paragrafları
+
+### §1 Genel bakış — giriş
+
+Taş Okey, tarayıcıda çalışan, **sunucusuz** (yalnız statik dosya) bir tek kişilik masa oyunu: 1 gerçek oyuncu + 3 bilgisayar
+rakip. Kural seti **Klasik Okey** (tek el; per/çift yalnız el biterken açılır). Sistem üç katmandır:
+
+### §1 Genel bakış — bağımlılık yönü
+
+Tek yönlü bağımlılık: `arayuz → bot → cekirdek`. `cekirdek` hiçbir şeye bağlı değildir; bu yüzden tarayıcı açmadan,
+tek komutla test edilebilir. Bot ve insan oyuncu **aynı** kural motorunu kullanır (GDD §4 değişmezi: bot asla kurala
+aykırı hamle yapamaz — çünkü hamleyi onaylayan kod insan oyuncununkiyle aynı).
+
+## Ek 11 — §2 yığın tablosunun "Seçim" hücreleri
+
+### Yığın 12 — seçim
+
+Unity kurulumunun içindeki JDK + Android SDK araçları: `aapt2` → `javac` → `d8` → dex ekleme → `zipalign` → `apksigner`. **Gradle ve Android Studio yok**; yollar tek kaynaktan (`android/yol-coz.ps1`)
+
+## Ek 12 — §6 kanıt satırlarının "Tür" hücresi
+
+### Kanıt 6 — tür
+
+Android kabuğu kaynak denetimi (ADR-020 maddeleri: izin 0, `androidx` 0, yön kilidi yok, WebView ayar listesi, **çizim katmanı anahtarı** (madde 12), varlık yolu/MIME kararları, TR/EN anahtar kümeleri, tema türetmesi, simge geometrisi ve PNG ölçüleri)
+
+### Kanıt 8 — tür
+
+APK içeriği ve depo hijyeni (anahtar/parola izi 0, `android/` altında dış derleme sistemi/kütüphane/indirme adresi 0, `OKU.md`'deki donmuş sayılar `derle.ps1` ile aynı)
+
+### Kanıt 11 — tür
+
+Sürükle-bırak hedefleri (ıstakaya bırakma ADR-019, geçersiz bırakma ADR-021, köşe atma alanı ADR-012, çekme R-012, bitirme hedefi R-013)
+
+### Kanıt 12 — tür
+
+Kısa yatay düzen varyantı (ADR-024): bant listesi, köşelerin kapladığı bantlar, varyantın eşiği ve **yalıtımı** (blok dışı bildirimler ile `tasokey#68` sürümü birebir), ince sırt oranı, şerit yüksekliği
+
+### Kanıt 13 — tür
+
+Sürükle-bırak hedefleri **yeni düzende** (ADR-024): beş yol **üç boyutta** (1920x1080 · 900x600 · 800x360) ve köşe isabeti ölçütü (dört köşede ≥ %80, tek kaynak `EN_AZ_BOLGE_ORANI` — statik kapsama savı da onu okur)

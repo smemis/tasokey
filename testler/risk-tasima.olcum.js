@@ -91,11 +91,12 @@ const simdiMd = normalize(readFileSync(join(KOK, 'MIMARI.md'), 'utf8'));
 const simdiRiskler = riskler(simdiMd);
 const bolumler = riskBolumleri(normalize(readFileSync(join(KOK, 'DEGISIKLIK.md'), 'utf8')));
 // ADR-026 (tasokey#78 ikinci tur): "Nasıl ölçülecek" hücrelerinin yürürlükteki tam metni ekte.
-const ekBolumler = riskBolumleri(
-  normalize(readFileSync(join(KOK, 'MIMARI-AYRINTI.md'), 'utf8')),
-  /^### Risk (\d+) — nasıl ölçülecek\s*$/,
-);
+const ekMetni = normalize(readFileSync(join(KOK, 'MIMARI-AYRINTI.md'), 'utf8'));
+const ekBolumler = riskBolumleri(ekMetni, /^### Risk (\d+) — nasıl ölçülecek\s*$/);
+// Üçüncü tur: kapanmış satırların "Konu" hücresinin tam metni de ekte (Ek 6).
+const ekKonular = riskBolumleri(ekMetni, /^### Risk (\d+) — konu\s*$/);
 let tasinanOlcum = 0;
+let tasinanKonu = 0;
 
 console.log(`taban commit        : ${taban.slice(0, 7)} (${git('log', '-1', '--format=%s', taban).trim()})`);
 console.log(`risk satırı         : ${tabanRiskler.size} → ${simdiRiskler.size}`);
@@ -112,7 +113,22 @@ for (const [numara, taban_] of [...tabanRiskler].sort((a, b) => a[0] - b[0])) {
     sorunlar.push(`risk ${numara}: satır silinmiş`);
     continue;
   }
-  if (taban_.konu !== simdi.konu) sorunlar.push(`risk ${numara}: "Konu" hücresi değişmiş`);
+  if (taban_.konu !== simdi.konu) {
+    // ADR-026 (tasokey#78 üçüncü tur): kapanmış satırların "Konu" hücresinde tek cümle kaldı, tam metin
+    // ekte. Sav gevşetilmedi, kesinleştirildi: değişiklik yalnız ekteki bölüm taban hücresine BİREBİR
+    // eşitse ve hücrenin kalanı tabanın bir ÖN EKİ değil, tabandan türetilmiş kısa cümleyse kabul edilir.
+    const ekGovde = ekKonular.get(numara);
+    if (ACIK.includes(numara)) sorunlar.push(`AÇIK risk ${numara}: "Konu" hücresi değişmiş (tam kalmalı)`);
+    else if (ekGovde === undefined) sorunlar.push(`risk ${numara}: "Konu" hücresi değişmiş ama ekte bölümü yok`);
+    else if (ekGovde !== taban_.konu) {
+      sorunlar.push(
+        `risk ${numara}: eke taşınan konu metni birebir değil ` +
+          `(${Buffer.byteLength(taban_.konu)} B → ${Buffer.byteLength(ekGovde)} B)`,
+      );
+    } else if (Buffer.byteLength(simdi.konu) >= Buffer.byteLength(taban_.konu)) {
+      sorunlar.push(`risk ${numara}: "Konu" hücresi kısalmamış (taşımanın kazancı yok)`);
+    } else tasinanKonu += 1;
+  }
   if (taban_.nasil !== simdi.nasil) {
     // ADR-026: hücre eke taşınmış olabilir — kabul ölçütü bağlantının TEK başına durması ve
     // ekteki bölümün taban hücresine BİREBİR eşit olmasıdır.
@@ -169,6 +185,7 @@ const boyut = Buffer.byteLength(simdiMd);
 const tabanBoyut = Buffer.byteLength(normalize(git('show', `${taban}:MIMARI.md`)));
 console.log('');
 console.log(`birebir taşınan ölçüm   : ${tasinanOlcum} hücre → MIMARI-AYRINTI.md (ADR-026)`);
+console.log(`birebir taşınan konu    : ${tasinanKonu} hücre → MIMARI-AYRINTI.md (ADR-026, Ek 6)`);
 console.log(`birebir taşınan gerekçe : ${ayni}/${[...tabanRiskler.keys()].filter((n) => !ACIK.includes(n)).length} (kapanmış/Masa'da/ölçülmüş satır)`);
 console.log(`BAYT FARKI              : ${fark}`);
 console.log(`MIMARI.md               : ${tabanBoyut} → ${boyut} bayt (LF)`);
