@@ -4,7 +4,9 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { RAF_SUTUN_SAYISI } from '../docs/arayuz/raf.js';
-import { boyutSozlugu, degiskenOlcusu, kademeSozlukleri } from './yardimci/css-olcu.js';
+import {
+  boyutSozlugu, degiskenOlcusu, kademeSozlukleri, medyaBloklari,
+} from './yardimci/css-olcu.js';
 import {
   KADEME_KABUL_BOYUTLARI, OLCEK_BASAMAGI, OLCULEN_MASA_KUTUSU, OLCULEN_OLCEK_TAVANI,
   butceDenetimi, dikeyButce, enCokOlcek, olculenBoyut, olculenTavan, yatayButce,
@@ -158,9 +160,34 @@ test('kabul-d2: her kademenin ölçeği, kendi EN DAR kabul boyutunun bütçesin
   for (const ad of Object.keys(KADEME_KABUL_BOYUTLARI)) {
     assert.ok(kademeler.some((kademe) => kademe.ad === ad), `kademe CSS'te yok: ${ad}`);
   }
-  // Telefon dikey kademesi (≤480px) bütçeye girmez: orada oyun alanı hiç çizilmez (ADR-012).
+  // Bütçeye girmeyen bloklar — ikisinin de GEREKÇESİ var, liste birebir tutulur ki yeni bir
+  // kademe sessizce denetimsiz kalmasın:
+  //  · `@media (max-width: 480px)`: yalnız telefon DİKEYde geçerli, orada oyun alanı hiç çizilmez
+  //    (ADR-012, "telefonu yan çevir") → sığdırılacak masa yok.
+  //  · `@media (orientation: landscape) and (max-height: 700px)`: kısa yatay DÜZEN varyantı
+  //    (tasokey#71, tasokey#70 planı §3) bir ÖLÇÜ kademesi değildir — `--istaka-olcek`i ve taban
+  //    taş merdivenini geçersiz kılmaz, devralır. Kendi ölçeği olmadığı için bütçeye ayrı kademe
+  //    olarak girmez; kabul boyutlarının ölçeği yine kendi ölçü kademelerinden ölçülür
+  //    (900x600 → max-width 900, 800x360/844x390 → max-height 500). Varyantın bant yapısına özgü
+  //    bütçe eşitsizliği tasokey#70 iş 2'de yazılır.
   const olculmeyen = kademeler.filter((kademe) => !(kademe.ad in KADEME_KABUL_BOYUTLARI));
-  assert.deepEqual(olculmeyen.map((kademe) => kademe.ad), ['@media (max-width: 480px)']);
+  assert.deepEqual(olculmeyen.map((kademe) => kademe.ad), [
+    '@media (max-width: 480px)',
+    '@media (orientation: landscape) and (max-height: 700px)',
+  ]);
+  // Varyant bloğu gerçekten ölçek/taban YAZMIYOR (yoksa yukarıdaki gerekçe çürür ve kendi
+  // ölçeğinin ölçülmesi gerekir — ADR-022/5).
+  const varyantBlogu = medyaBloklari(STIL_CSS).find(
+    (blok) => blok.sorgu === '@media (orientation: landscape) and (max-height: 700px)',
+  );
+  assert.ok(varyantBlogu, 'kısa yatay varyant bloğu CSS\'te yok');
+  for (const ad of ['--istaka-olcek', '--tas-taban-genislik', '--tas-taban-yukseklik']) {
+    assert.doesNotMatch(
+      varyantBlogu.govde,
+      new RegExp(`${ad}\\s*:`),
+      `kısa yatay varyant bloğu ${ad} yazıyor — o zaman kendi ölçeği ölçülmek zorundadır`,
+    );
+  }
 
   for (const [kademeAdi, boyutAdlari] of Object.entries(KADEME_KABUL_BOYUTLARI)) {
     let enDar = null;

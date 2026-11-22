@@ -1076,6 +1076,92 @@ html, body {
   .kenar-raf-dikey { min-height: 0; }
 }
 
+/* ===== KISA YATAY DÜZEN VARYANTI — BAŞLANGIÇ (tasokey#71) =====
+   Karar: tasokey#70 planı §3 (kısa yatay düzen varyantı). Kararın NUMARASI ve metni MIMARI.md'ye
+   tasokey#70 iş 4'te girer; o güne kadar burada yalnız plan maddesine atıf yapılır (atıf taraması
+   belgede karşılığı olmayan karar numarasını haklı olarak reddeder — adr-atif-tarama.test.js).
+   Kısa yatay ekranlarda masa AYRI BİR DÜZEN VARYANTI kullanır: dikey zincir en çok ÜÇ taş boyu
+   taşır (plan §3, karar maddeleri 1-2). Yukarıdaki kademeler yalnız ÖLÇÜ değiştirir; buradaki
+   blok masanın BANT LİSTESİNİ değiştirir, bu yüzden ayrı ve adlandırılmış durur.
+
+   KAPATMA ANAHTARI = YALITIM (karar maddesi 7): varyantın BÜTÜN bildirimleri bu tek bloğun içindedir.
+   Bloğu silmek `tasokey#68` düzenini birebir geri verir — öz-test bunu ölçer
+   (`kisa-yatay-varyant.test.js` kabul-a/b: blok tektir, adlandırılmış yorumu taşır ve masaüstü
+   kademelerinde blokla bloksuz CSS'in çözdüğü değerler BİREBİR aynıdır). Çalışma zamanı anahtarı
+   yazılmaz: `grid-template-areas` bir CSS değişkeninden türetilemez, uydurma bir anahtar tek
+   kaynağı ikiye bölerdi.
+
+   Eşik 700px: varyant 800x360 · 844x390 · 900x600'te ETKİN, 1280x800 · 1180x820 · 1920x1080'de
+   ETKİN DEĞİL (öz-test kabul-c). Blok yukarıdaki `max-height: 500px` kademesinden SONRA durur:
+   iki sorgunun birden uyduğu boyutlarda (telefon yatay) varyantın değerleri kazanmalı.
+
+   Ölçek değerleri burada DEĞİŞMEZ (tasokey#71 kapsamı): `--istaka-olcek` ve taban taş merdiveni
+   geçersiz kılınmaz, kazanç yapısaldır. Değerler tasokey#70 iş 2'de ÖLÇÜLEREK seçilecek. */
+@media (orientation: landscape) and (max-height: 700px) {
+  :root {
+    /* Yan çubuk bandı varyantta kısalır (uzunluk ızgara bandından gelir, tasokey#63) ve üst çubuk
+       bandı artık `auto`dur — bandın BÜTÜN yüksekliği bu kalınlıktır, yani buradan alınan her px
+       öbür üç banttan düşer. İnce sırt kuralı (uzunluk/kalınlık >= 6) ölçülen BANT uzunluğuyla
+       korunur: öz-test kabul-g üç boyutta bant ölçüsünü hesaplayıp oranı denetler. */
+    --rakip-raf-kalinlik: 8px;
+    /* El sonunda açılan rakip taşları (karar maddesi 6; ADR-022/6 muafiyeti aynen sürer — bu ölçüler
+       ölçeğe bağlanmaz). Yan kenar: çubuk bandı kısaldığı için 8 satırlık yığın bandı aşıp köşe
+       hücrelerine ve ADR-014 halkasına girerdi → sütun sayısı artar, yığın kısa ve geniş serilir.
+       Üst kenar: taşlar `top: 100%` ile çubuğun ALTINA, yani varyantta üst içerik bandına
+       (#merkez'in bandına) sarkar; iki satırlık yığın #merkez'e çarpıyordu → en yüksek el
+       (15 taş, dagitim.js) TEK SIRA serilir, sıra Sahip'in ıstaka genişliğini aşmaz. */
+    --rakip-acik-sutun-yatay: 15;
+    --rakip-acik-sutun-dikey: 4;
+  }
+
+  /* Karar maddesi 2 — varyantın TEK yapı değişikliği: masanın bant listesi. Dört bant
+     (üst çubuk `auto` / üst içerik `1fr` / yan çubuk `var(--masa-orta-satir)` / ıstaka `1fr`) ve
+     üst köşeler ilk İKİ bandı birlikte kaplar (alan adı iki satıra yazılır). Hiçbir öğenin
+     `grid-area`'sı değişmez, `.kose` kuralı değişmez, `--masa-orta-satir` tek kaynak kalır →
+     ADR-010 (dört köşede tek kural), ADR-012'nin dört kenar yerleşimi ve ADR-015 aynı kalır.
+     Üst çubuk bandı `auto`dur: içeriği yalnız çubuğun kalınlığıdır (üst köşeler esnek bir ize de
+     uzandığı için o bandın taban ölçüsünü büyütmezler — CSS Grid §11.5). Yan çubuk bandının orta
+     sütunu BOŞTUR (`.`): oyuncunun ıstakası kendi bandından taşarsa o boşluğa taşar, orta bandın
+     göstergesini değil (800x360'ın `#rafAlani ∩ #merkez` + `∩ #gosterge` çakışmalarının sebebi
+     buydu — tasokey#68 §5.3). */
+  #masa {
+    grid-template-rows: auto 1fr var(--masa-orta-satir) 1fr;
+    grid-template-areas:
+      "solUst ust sagUst"
+      "solUst merkez sagUst"
+      "sol . sag"
+      "solAlt alt sagAlt";
+  }
+
+  /* Karar maddesi 3 — deste + gösterge üst içerik bandında ve YATAY: öbek bir taş boyu yüksekliğinde
+     kalır (metin taşın yanında, aşağıdaki `.yigin`). Bandın bir ucunda durur (`justify-self`) ve
+     bandın ALT kenarına yaslanır (`align-self: end`): üst rakibin el sonunda açılan taşları
+     çubuğun altından bu banda sarkıyor, öbek bandın üst ucunda olsaydı onlara çarpardı.
+     Deste köşe hücrelerinin dışında kalır (orta sütun), atma alanına girmez. */
+  #merkez {
+    align-items: center;
+    align-self: end;
+    justify-self: start;
+  }
+
+  /* Deste/gösterge yığınında metin taşın YANINDA (üstünde/altında değil) → yığının yüksekliği
+     taş boyudur. Metin KALDIRILMAZ, taşınır (ADR-022 Seçenek D ürün kararıdır, Sahip'te). */
+  .yigin {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  /* Karar maddesi 4 — "Istakam" başlığı taşların yanına: ıstaka bandından bir metin satırı + bir
+     `--raf-bosluk` düşer. Panel yatayda başlık kadar genişler (orta sütun `auto`), köşe
+     sütunları o kadar daralır — köşe atma alanı oranı öz-testle yeniden ölçülür
+     (kose-atma-alani.test.js). */
+  #rafAlani {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+/* ===== KISA YATAY DÜZEN VARYANTI — BİTİŞ (tasokey#71) ===== */
+
 /* Telefon dikey uyarısı (R-014, ADR-012, tasokey#31): yön tespiti tamamen CSS ortam sorgusuyla
    yapılır (JS sabit karar vermez, bkz. ekran.js telefonUyarisiCiz — yalnız dil anahtarlı metni
    basar). Oyun alanı (#durumSatiri, #masa) gizlenir, yerine #telefonUyarisi görünür. */

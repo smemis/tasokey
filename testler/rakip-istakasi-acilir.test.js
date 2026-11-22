@@ -6,7 +6,9 @@ import { join } from 'node:path';
 import { EL_SONUCU } from '../docs/cekirdek/el.js';
 import { rakipEliAcikMi } from '../docs/arayuz/etkilesim.js';
 import { RAF_SUTUN_SAYISI } from '../docs/arayuz/raf.js';
-import { degiskenOlcusu, kademeSozlukleri, sozlukleriBirlestir } from './yardimci/css-olcu.js';
+import {
+  degiskenOlcusu, kademeSozlukleri, medyaBloklari, sozlukleriBirlestir,
+} from './yardimci/css-olcu.js';
 
 // tasokey#38 ek bilgi (Sahip, 2026-11-20): "El bittiğinde rakiplerin ıstakaları da gösterilsin."
 // El SÜRERKEN rakip taşı hiç görünmez (tasokey#31 ek bilgisi: yalnız ıstakanın ahşap sırtı);
@@ -71,6 +73,25 @@ test('kabul-d: açılan taşlar düzeni kaydırmıyor — kutu akış dışında
   assert.match(kutu[1], /pointer-events:\s*none/, 'açılan rakip taşları tıklama hedefi olmamalı');
 });
 
+/** Taban taş merdivenini (`--tas-taban-*`) geçersiz kılan `@media` blokları — `css-olcu.js` adları. */
+const TABAN_YAZAN_BLOKLAR = Object.freeze([
+  '@media (max-width: 1300px)',
+  '@media (max-width: 900px)',
+  '@media (max-width: 480px)',
+  '@media (orientation: landscape) and (max-height: 500px)',
+]);
+
+test('kabul-e2: taban taş merdivenini yazan bloklar listesi CSS ile birebir (merdiven dışı blok ölçü yazmaz)', () => {
+  // Merdiven denetiminin (kabul-e) dayanağı: hangi blok taban ölçü yazıyor? Liste CSS'ten
+  // ÖLÇÜLÜR, elle tutulmaz — yeni bir blok taban ölçü yazarsa merdiven denetimi sessizce
+  // kapsam kaybetmesin (tasokey#71).
+  const yazanlar = [];
+  for (const { sorgu, govde } of medyaBloklari(STIL_CSS)) {
+    if (/--tas-taban-genislik\s*:/.test(govde)) yazanlar.push(sorgu);
+  }
+  assert.deepEqual(yazanlar, [...TABAN_YAZAN_BLOKLAR], 'taban ölçü yazan @media blokları değişmiş');
+});
+
 test('kabul-e: açılan taş ölçüsü TABANdan türer (ölçekten muaf) ve kademelerde kendiliğinden küçülür', () => {
   // ADR-022 sürüm 2, madde 6 muafiyeti (tasokey#68): bu taşlar --tas-taban-*'a bağlıdır,
   // --istaka-olcek'e DEĞİL — kutusu (çubuğun dışı + masanın orta satırı) ölçekle büyümüyor.
@@ -99,11 +120,20 @@ test('kabul-e: açılan taş ölçüsü TABANdan türer (ölçekten muaf) ve kad
     }
     // Kademelerde kendiliğinden küçülme: taban merdiveni kademeli olduğu için her kademe
     // bir öncekinden küçük ölçü verir (sabit px olsaydı dar ekranda taşardı).
-    const merdiven = kademeler.map((kademe) => olcu(kademe.sozluk, 1));
+    // tasokey#71: merdiven, TABAN ÖLÇÜYÜ GEÇERSİZ KILAN kademeler üzerinden okunur. Kısa yatay
+    // DÜZEN varyantı (tasokey#70 planı §3) bir ölçü kademesi değildir — masanın bant listesini
+    // değiştirir, taban taş merdivenine dokunmaz; merdivenin basamağı olmadığı için sözlüğünde
+    // temel değerler görünür. Sav GEVŞETİLMEDİ: merdivenin kendisi yine kesin azalan, ayrıca
+    // aşağıda "merdiven dışı blok taban ölçü yazmaz" denetimi eklendi.
+    const merdivenKademeleri = kademeler.filter(
+      (kademe) => kademe.ad === 'temel (:root)' || TABAN_YAZAN_BLOKLAR.includes(kademe.ad),
+    );
+    assert.ok(merdivenKademeleri.length >= 4, `taban merdiveni ${merdivenKademeleri.length} basamak`);
+    const merdiven = merdivenKademeleri.map((kademe) => olcu(kademe.sozluk, 1));
     for (const [sira, deger] of merdiven.slice(1).entries()) {
       assert.ok(
         deger < merdiven[sira],
-        `${turetilen} ${kademeler[sira + 1].ad} kademesinde küçülmüyor (${merdiven.join(' → ')})`,
+        `${turetilen} ${merdivenKademeleri[sira + 1].ad} kademesinde küçülmüyor (${merdiven.join(' → ')})`,
       );
     }
   }
