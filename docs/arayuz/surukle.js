@@ -21,6 +21,11 @@ const UYUM_TIKLAMASI_PENCERESI_MS = 700;
 // kutusu ve karedeki kayması yazılır.
 const KOPYA_SINIFI = 'surukleme-kopyasi';
 
+// Sürüklemesi SÜREN asıl taşın sınıfı (ADR-021). Adın TEK kaynağı burasıdır: `ekran.js` gizlemeyi
+// yeniden çizimde yeniden uygularken bu sabiti alır, ikinci bir yerde sabit dize yazılmaz.
+// Görünüm kuralı (görünmez olur ama yerini korur — `visibility`) stil.css'tedir.
+export const SURUKLENIYOR_SINIFI = 'surukleniyor';
+
 /**
  * Sürükleme kopyası — TEK KAPI: ıstakadaki sürükleme de desteden/köşeden çekme de bunu kullanır
  * (tasokey#59).
@@ -52,10 +57,12 @@ function surukleKopyasi() {
       kopya.classList.add(KOPYA_SINIFI);
       // Kalkık duruş (seçili taş) kopyada tekrarlanmaz: kopyanın konumunu yalnız translate3d verir.
       kopya.classList.remove('secili');
-      // Asıl taşın `.surukleniyor` sınıfı da kopyaya geçmez: o kural akışta duran taşı anlatır
+      // Asıl taşın sürükleme sınıfı da kopyaya geçmez: o kural akışta duran taşı anlatır
       // (`position: relative`) ve kopyanın `position: fixed` kuralıyla aynı özgüllüktedir — ikisi
-      // birlikte durursa kopyanın konumunu stil.css'teki kural SIRASI belirlerdi.
-      kopya.classList.remove('surukleniyor');
+      // birlikte durursa kopyanın konumunu stil.css'teki kural SIRASI belirlerdi. Artık ikinci bir
+      // sebep daha var (ADR-021/3): o sınıf öğeyi GÖRÜNMEZ yapar, kopya onu taşısa parmağı
+      // görünmez bir taş izlerdi.
+      kopya.classList.remove(SURUKLENIYOR_SINIFI);
       // Kopya ikinci bir taş değildir: ne odak sırasına girer ne erişilebilirlik ağacında görünür.
       kopya.removeAttribute('tabindex');
       kopya.removeAttribute('id');
@@ -80,27 +87,50 @@ function surukleKopyasi() {
   };
 }
 
-export function surukleBagla(rafElemani, hedefeBirakCallback) {
+/**
+ * Istakadaki sürükleme. `suruklemeDegistiCallback(tasId | null)`: sürükleme başladığında taşın
+ * kimliğini, bittiğinde `null` bildirir (ADR-021/5) — `ekran.js` gizlemenin TEK kaynağını bundan
+ * yazar ve yeniden çizimde yeniden uygular. Bildirim çizim İSTEMEZ: sürükleme sürerken `ciz()`
+ * çağrılırsa sürüklenen öğe DOM'dan düşer ve işaretçi yakalaması kopar (tasokey#59).
+ */
+export function surukleBagla(rafElemani, hedefeBirakCallback, suruklemeDegistiCallback = () => {}) {
   let suruklenenTasId = null;
   let suruklenenEleman = null;
   let baslangicDikdortgeni = null;
   let baslangicMerkezX = 0;
   let baslangicMerkezY = 0;
+  // Hareket gerçekten başladı mı (kopya doğdu, asıl taş gizlendi). Basış tek başına sürükleme
+  // değildir: gizleme basışta başlarsa taş SEÇMEK için dokunan oyuncunun taşı kırpışır.
+  let suruklemeBasladiMi = false;
+  // En son bildirilen kimlik: aynı durum iki kez bildirilmesin (bayat durumun düşürülmesi
+  // sürükleme olmayan yerlerde de çalışır — ör. her `pointerdown`).
+  let bildirilenTasId = null;
   // Sürüklemeyi başlatan işaretçinin kimliği: masada aynı anda başka parmaklar da olabilir, bayat
   // durumu düşüren belge ağı (aşağıda) yalnız BU işaretçinin bırakmasına bakar (tasokey#59).
   let aktifIsaretciId = null;
   const kopya = surukleKopyasi();
 
+  // Durum değişince bir kez haber verir (ADR-021/5).
+  function suruklemeyiBildir(tasId) {
+    if (bildirilenTasId === tasId) return;
+    bildirilenTasId = tasId;
+    suruklemeDegistiCallback(tasId);
+  }
+
   // Sürükleme durumunu düşürür: kopyayı kaldırır, asıl taşı normale döndürür, durumu boşaltır.
+  // Asıl taşın gizlemesi burada kalkar → eylem üretmeyen her bırakma (hedefsiz nokta, iptal,
+  // ıstaka dışında biten bırakma) görünümü eski hâline döndürür (ADR-021/7).
   // Bırakma KARARI vermez (hedef arama ve geri bildirim `birak`a aittir) — bu yüzden ADR-019 itme
   // kuralı, bırakılan yuva ve çekme kaynağı davranışı bu yoldan etkilenmez.
   function durumuDusur() {
     kopya.kapat();
-    if (suruklenenEleman) suruklenenEleman.classList.remove('surukleniyor');
+    if (suruklenenEleman) suruklenenEleman.classList.remove(SURUKLENIYOR_SINIFI);
     suruklenenTasId = null;
     suruklenenEleman = null;
     baslangicDikdortgeni = null;
     aktifIsaretciId = null;
+    suruklemeBasladiMi = false;
+    suruklemeyiBildir(null);
   }
 
   rafElemani.addEventListener('pointerdown', (e) => {
@@ -117,7 +147,6 @@ export function surukleBagla(rafElemani, hedefeBirakCallback) {
     baslangicMerkezY = dikdortgen.top + dikdortgen.height / 2;
     aktifIsaretciId = e.pointerId;
     hedef.setPointerCapture(e.pointerId);
-    hedef.classList.add('surukleniyor');
   });
 
   rafElemani.addEventListener('pointermove', (e) => {
@@ -127,7 +156,14 @@ export function surukleBagla(rafElemani, hedefeBirakCallback) {
     // Kopya ilk harekette doğar: hareketsiz dokunma (seçme yolu) boşuna düğüm yaratmasın.
     // Taşıma eskisiyle aynı eşlemedir (taşın merkezi parmağın altına gelir) — görünen davranış
     // değişmez, değişen yalnız hangi öğenin hareket ettiğidir.
-    kopya.ac(suruklenenEleman, baslangicDikdortgeni);
+    // Gizleme de aynı anda başlar (deste/köşe yoluyla aynı dil, ADR-021/1): sınıf basışta değil
+    // ilk harekette konur, yoksa taşı SEÇMEK için dokunan oyuncunun taşı bir an kaybolur.
+    if (!suruklemeBasladiMi) {
+      suruklemeBasladiMi = true;
+      suruklenenEleman.classList.add(SURUKLENIYOR_SINIFI);
+      kopya.ac(suruklenenEleman, baslangicDikdortgeni);
+      suruklemeyiBildir(suruklenenTasId);
+    }
     kopya.tasi(dx, dy);
   });
 
@@ -206,8 +242,10 @@ export function cekmeSurukleBagla(masaElemani, rafElemani, kaynaktanCekCallback)
 
   function sifirla() {
     kopya.kapat();
+    // Üst taşın gizlemesi burada kalkar: motorun reddettiği çekme, iptal, masa dışında biten
+    // bırakma — hepsi `sifirla()`dan geçer ve yığın eski görünümüne döner (ADR-021/7).
     if (ustTas) {
-      ustTas.classList.remove('surukleniyor');
+      ustTas.classList.remove(SURUKLENIYOR_SINIFI);
     }
     kaynakTuru = null;
     kaynak = {};
@@ -294,10 +332,13 @@ export function cekmeSurukleBagla(masaElemani, rafElemani, kaynaktanCekCallback)
     if (!tasindiMi) {
       tasindiMi = true;
       // Istakadaki sürüklemeyle aynı görsel dil (tasokey#59: aynı tek kapı): parmağı taşın
-      // kopyası izler, asıl taş yerinde bekler ve `pointer-events: none` ile isabet testinden
-      // çekilir (altındaki ıstaka/köşe görünsün).
+      // kopyası izler, asıl taş yerinde GÖRÜNMEZ olur (ADR-021/4: yığın bir taş eksilmiş görünür,
+      // altındaki taş görünür, sayaç DEĞİŞMEZ — çekme henüz motorca onaylanmadı) ve
+      // `pointer-events: none` ile isabet testinden çekilir (altındaki ıstaka/köşe görünsün).
+      // Kopyanın kutusu sınıf konduktan SONRA ölçülür: `visibility` yolu öğenin ölçüsünü
+      // korur (`display: none` ölçüyü sıfırlardı ve kopya sıfır boyutla doğardı).
       if (ustTas) {
-        ustTas.classList.add('surukleniyor');
+        ustTas.classList.add(SURUKLENIYOR_SINIFI);
         kopya.ac(ustTas);
       }
     }

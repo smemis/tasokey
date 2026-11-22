@@ -28,6 +28,24 @@ import android.webkit.WebViewClient;
  */
 public final class OyunEtkinligi extends Activity {
 
+    /**
+     * WebView yazılım katmanıyla mı çizsin? Kabuğun tek açma/kapama anahtarı (ADR-020/12).
+     *
+     * <p><b>Niçin açık:</b> cihazda sürükleme sırasında ıstaka bölgesinde piksel/iz bozulması
+     * görülüyordu; WebView yazılım katmanına alındığında bozulma <b>tamamen</b> kayboldu —
+     * ölçen Sahip, kendi telefonu, 2026-11-22, Masa'nın deneme APK'sı. Ofiste cihaz yok: bu
+     * dosyanın öz-testi yalnız ayarın <i>yazılı olduğunu</i> ölçer, bozulmanın düzeldiğini
+     * ölçmez (MIMARI.md §7 risk 15 ile aynı sınır).
+     *
+     * <p><b>Kapatılırsa</b> katman {@code View.LAYER_TYPE_NONE} olur: kabuk hiçbir katman
+     * dayatmaz (platform varsayılanı), WebView'in GPU hızlandırması geri gelir — bozulma da geri
+     * gelebilir. Bedeli (kare süresi, pil) ofiste ölçülemedi (MIMARI.md §7 risk 22-23).
+     *
+     * <p>Bu bir {@link View} ayarıdır, {@link WebSettings} ayarı <b>değildir</b>: çağrısı
+     * {@code ayarla(WebSettings)} kapısına girmez, aşağıda tek satırda durur.
+     */
+    private static final boolean WEBVIEW_YAZILIM_KATMANI = true;
+
     private WebView oyunGorunumu;
     private AlertDialog cikisSorusu;
 
@@ -45,6 +63,9 @@ public final class OyunEtkinligi extends Activity {
         oyunGorunumu.setBackgroundColor(0xFF000000);
         // Sayfa kendi düzenini kurar; kabuk kaydırma/esneme hareketi eklemez.
         oyunGorunumu.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        // Çizim katmanı: anahtarın tek kapısı, kaynakta tek çağrı (ADR-020/12).
+        oyunGorunumu.setLayerType(
+            WEBVIEW_YAZILIM_KATMANI ? View.LAYER_TYPE_SOFTWARE : View.LAYER_TYPE_NONE, null);
         setContentView(oyunGorunumu);
 
         tamEkran();

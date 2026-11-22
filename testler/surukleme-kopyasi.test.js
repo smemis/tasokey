@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { surukleBagla, cekmeSurukleBagla } from '../docs/arayuz/surukle.js';
 import { kuralGovdesi as kuralGovdesiCoz } from './yardimci/css-olcu.js';
+import { sahneKur } from './yardimci/surukleme-sahnesi.js';
 
 // tasokey#59 — telefonda (Android Chrome) sürükleme sırasında ıstaka bölgesinin bozulması.
 // Belirti (Sahip'in iki ekran görüntüsü, is/tasokey-59/ekler/): taş parmağı izlerken ıstakanın
@@ -23,179 +23,13 @@ import { kuralGovdesi as kuralGovdesiCoz } from './yardimci/css-olcu.js';
 // kadar küçük bir sahte DOM kurulur (`surukle-cekme.test.js` ile aynı dil; orada gövde/kopya
 // gerekmediği için harness burada ayrı durur). Bırakma kararları orada ölçülür — burada ölçülen
 // tek şey sürükleme sırasında NEYİN hareket ettiğidir.
+//
+// Sahne (sahte DOM + kapıların bağlanması) tasokey#62'de `yardimci/surukleme-sahnesi.js`e taşındı:
+// `surukleme-gorunurlugu.test.js` (ADR-021) aynı sahneyi kullanıyor, iki kopya tutulmuyor.
 
 const ARAYUZ_KOK = join(import.meta.dirname, '..', 'docs', 'arayuz');
 const STIL_CSS = readFileSync(join(ARAYUZ_KOK, 'stil.css'), 'utf8');
 const SURUKLE_JS = readFileSync(join(ARAYUZ_KOK, 'surukle.js'), 'utf8');
-
-const TAS_OLCUSU = { left: 100, top: 200, width: 40, height: 60 };
-
-function ogeYap(secicileri = [], dataset = {}, olcu = TAS_OLCUSU) {
-  const oge = {
-    secicileri,
-    dataset: { ...dataset },
-    olcu,
-    ebeveyn: null,
-    cocuklar: [],
-    style: {},
-    nitelikler: new Map(),
-    taslar: [],
-    siniflar: new Set(),
-    dinleyiciler: new Map(),
-  };
-  oge.classList = {
-    add: (ad) => oge.siniflar.add(ad),
-    remove: (ad) => oge.siniflar.delete(ad),
-    contains: (ad) => oge.siniflar.has(ad),
-  };
-  oge.addEventListener = (tip, islev) => {
-    if (!oge.dinleyiciler.has(tip)) oge.dinleyiciler.set(tip, []);
-    oge.dinleyiciler.get(tip).push(islev);
-  };
-  oge.closest = (secici) => {
-    for (let dugum = oge; dugum; dugum = dugum.ebeveyn) {
-      if (dugum.secicileri.includes(secici)) return dugum;
-    }
-    return null;
-  };
-  oge.contains = (baskasi) => {
-    for (let dugum = baskasi; dugum; dugum = dugum.ebeveyn) if (dugum === oge) return true;
-    return false;
-  };
-  oge.querySelectorAll = () => oge.taslar;
-  oge.setPointerCapture = () => {};
-  oge.getBoundingClientRect = () => ({ ...oge.olcu });
-  oge.setAttribute = (ad, deger) => oge.nitelikler.set(ad, String(deger));
-  oge.removeAttribute = (ad) => oge.nitelikler.delete(ad);
-  oge.getAttribute = (ad) => oge.nitelikler.get(ad) ?? null;
-  oge.appendChild = (cocuk) => {
-    cocuk.ebeveyn = oge;
-    oge.cocuklar.push(cocuk);
-    return cocuk;
-  };
-  oge.removeChild = (cocuk) => {
-    oge.cocuklar = oge.cocuklar.filter((c) => c !== cocuk);
-    cocuk.ebeveyn = null;
-    return cocuk;
-  };
-  oge.remove = () => { if (oge.ebeveyn) oge.ebeveyn.removeChild(oge); };
-  oge.cloneNode = () => {
-    const kopya = ogeYap([...oge.secicileri], { ...oge.dataset }, { ...oge.olcu });
-    for (const sinif of oge.siniflar) kopya.siniflar.add(sinif);
-    for (const [ad, deger] of oge.nitelikler) kopya.nitelikler.set(ad, deger);
-    for (const cocuk of oge.cocuklar) kopya.appendChild(cocuk.cloneNode(true));
-    return kopya;
-  };
-  return oge;
-}
-
-function cocukYap(ebeveyn, secicileri = [], dataset = {}, olcu = TAS_OLCUSU) {
-  const oge = ogeYap(secicileri, dataset, olcu);
-  ebeveyn.appendChild(oge);
-  return oge;
-}
-
-function sahneKur(t) {
-  const belgeDinleyicileri = new Map();
-  let noktadaki = null;
-
-  const govde = ogeYap(['body']);
-  const masa = cocukYap(govde, ['#masa']);
-  const raf = cocukYap(masa, ['#raf']);
-  const rafYuva = cocukYap(raf, ['.raf-yuva'], { slotIndex: '7' });
-  const rafTasi = cocukYap(rafYuva, ['.tas'], { tasId: 'kirmizi-7-a' });
-  rafTasi.siniflar.add('tas');
-  rafTasi.setAttribute('tabindex', '0');
-  const deste = cocukYap(masa, ['[data-hedef="yerDestesi"]'], { hedef: 'yerDestesi' }, { left: 300, top: 150, width: 40, height: 60 });
-  const desteTasi = cocukYap(deste, [], { tasId: 'deste-arka' }, { left: 300, top: 150, width: 40, height: 60 });
-  desteTasi.siniflar.add('tas-arka');
-  deste.taslar = [desteTasi];
-  // Köşe yığını ikinci çekme kaynağıdır (`cekmeSurukleBagla`: `yerDestesi || kose`) ve `ekran.js`
-  // `koseYiginiCiz` de alanı `innerHTML = ''` ile boşaltır — deste ile aynı yol, aynı tuzak.
-  const kose = cocukYap(masa, ['.kose[data-kose]'], { kose: 'sol' }, { left: 60, top: 400, width: 40, height: 60 });
-  const koseTasi = cocukYap(kose, [], { tasId: 'kose-ustu' }, { left: 60, top: 400, width: 40, height: 60 });
-  koseTasi.siniflar.add('tas');
-  kose.taslar = [koseTasi];
-
-  const oncekiBelge = globalThis.document;
-  const oncekiPerformance = globalThis.performance;
-  globalThis.document = {
-    body: govde,
-    addEventListener: (tip, islev) => {
-      if (!belgeDinleyicileri.has(tip)) belgeDinleyicileri.set(tip, []);
-      belgeDinleyicileri.get(tip).push(islev);
-    },
-    elementFromPoint: () => noktadaki,
-  };
-  Object.defineProperty(globalThis, 'performance', {
-    value: { now: () => 1000 },
-    configurable: true,
-    writable: true,
-  });
-  t.after(() => {
-    globalThis.document = oncekiBelge;
-    Object.defineProperty(globalThis, 'performance', {
-      value: oncekiPerformance,
-      configurable: true,
-      writable: true,
-    });
-  });
-
-  const birakmalar = [];
-  const cekmeler = [];
-  surukleBagla(raf, (tasId, hedefTuru, bilgi) => birakmalar.push({ tasId, hedefTuru, bilgi }));
-  cekmeSurukleBagla(masa, raf, (tur, bilgi, birakma) => cekmeler.push({ tur, bilgi, birakma }));
-
-  function gonder(oge, tip, olay) {
-    for (const islev of belgeDinleyicileri.get(tip) ?? []) islev(olay);
-    for (const islev of oge.dinleyiciler.get(tip) ?? []) islev(olay);
-  }
-
-  function isaretci(oge, tip, hedef, x, y, isaretciId = 1) {
-    gonder(oge, tip, { type: tip, target: hedef, clientX: x, clientY: y, pointerId: isaretciId });
-  }
-
-  // Gövdeye eklenen kopyalar: sürükleme katmanında duran öğeler.
-  function kopyalar() {
-    return govde.cocuklar.filter((cocuk) => cocuk.classList.contains('surukleme-kopyasi'));
-  }
-
-  // `ekran.js` → `rafCiz()`: ıstakanın içeriği boşaltılıp (`eleman.raf.innerHTML = ''`) yeniden
-  // kurulur. Bot turu her sıra geçişinde `ciz()` çağırdığı için bu, sürükleme SÜRERKEN de olur:
-  // sürüklenen taş belgeden düşer ve işaretçi yakalaması kopar (tasokey#59, Denetçi turu 1).
-  function rafiYenidenCiz() {
-    for (const cocuk of [...raf.cocuklar]) raf.removeChild(cocuk);
-    const yuva = cocukYap(raf, ['.raf-yuva'], { slotIndex: '3' });
-    const tas = cocukYap(yuva, ['.tas'], { tasId: 'mavi-3-a' }, { left: 500, top: 200, width: 40, height: 60 });
-    tas.siniflar.add('tas');
-    return { yuva, tas };
-  }
-
-  // `ekran.js` → `yerDestesiYiginiCiz()` (ekran.js:254; köşede `koseYiginiCiz()`, ekran.js:230):
-  // yığın alanı da `innerHTML = ''` ile boşaltılıp yeniden kurulur — her hamlede, yani çekme
-  // SÜRERKEN de olabilir. Sürüklenen üst taş belgeden düşer (tasokey#59, Denetçi turu 2).
-  function desteyiYenidenCiz() {
-    for (const cocuk of [...deste.cocuklar]) deste.removeChild(cocuk);
-    const tas = cocukYap(deste, [], { tasId: 'yeni-arka' }, { left: 600, top: 150, width: 40, height: 60 });
-    tas.siniflar.add('tas-arka');
-    deste.taslar = [tas];
-    return tas;
-  }
-
-  // `ekran.js` → `koseYiginiCiz()` (ekran.js:230): köşe yığını da her çizimde boşaltılıp yeniden
-  // kurulur; sürüklenen üst taş belgeden düşer (tasokey#59, Denetçi turu 2 — "deste/köşe").
-  function koseyiYenidenCiz() {
-    for (const cocuk of [...kose.cocuklar]) kose.removeChild(cocuk);
-    const tas = cocukYap(kose, [], { tasId: 'kose-yeni' }, { left: 70, top: 410, width: 40, height: 60 });
-    tas.siniflar.add('tas');
-    kose.taslar = [tas];
-    return tas;
-  }
-
-  return { govde, masa, raf, rafYuva, rafTasi, deste, desteTasi, kose, koseTasi, birakmalar, cekmeler,
-    isaretci, kopyalar, rafiYenidenCiz, desteyiYenidenCiz, koseyiYenidenCiz,
-    noktaya: (oge) => { noktadaki = oge; } };
-}
 
 test('ASIL KABUL: ıstakada sürüklenen asıl taş yerinde kalır — kendisine transform yazılmaz', (t) => {
   const s = sahneKur(t);

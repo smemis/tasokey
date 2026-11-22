@@ -576,6 +576,8 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Boş yuva katmanının çapası (aşağıdaki `.yuva-bos-katman`, ADR-021/3). */
+  position: relative;
 }
 
 .raf-yuva > svg {
@@ -585,8 +587,22 @@ html, body {
   opacity: 0.85;
 }
 
-/* Sürüklemesi SÜREN asıl taş (tasokey#59). Yerinde, saydamlıksız bekler ve hareket etmez: parmağı
-   onun kopyası izler (aşağıdaki `.surukleme-kopyasi`). Burada yalnız isabet testinden çekilir ki
+/* Boş yuva görseli HER yuvada en alt katman olarak durur (ADR-021/3; ekran.js rafCiz): dolu
+   yuvada taşın altında bekler, taş sürüklenirken görünmez olunca altından aynı görsel çıkar —
+   yuva "boş" görünür, "yok" görünmez. İkinci bir boş yuva çizimi yazılmaz, görselin tek kaynağı
+   `gorsel/yuva-bos.svg`dir (köşe yığını da aynı dosyayı kullanır: `.kose-yuva-bos`).
+   Mutlak konumlu olduğu için yuvanın flex akışına girmez: taşın ortalanması değişmez. İsabet
+   testinden çekilidir → `document.elementFromPoint` (surukle.js) yine yuvayı/taşı görür, bırakma
+   davranışı (ADR-019) değişmez. `.tas` konumlu (`position: relative`) ve DOM'da sonra geldiği
+   için taş bu katmanın üstünde boyanır. */
+.raf-yuva > .yuva-bos-katman {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Sürüklemesi SÜREN asıl taş (tasokey#59). Yerinde bekler ve hareket etmez: parmağı onun kopyası
+   izler (aşağıdaki `.surukleme-kopyasi`). Burada yalnız isabet testinden çekilir ki
    `document.elementFromPoint` (surukle.js) altındaki yuvayı/köşeyi/desteyi görsün; kademesi
    ADR-015'in tek kaynağından gelir (sürüklenen taşın kademesi hem asılda hem kopyada aynıdır).
    Boyama: karede değişen hiçbir özelliği kalmadığı için ıstakanın boyanmış bölgesi karede
@@ -595,6 +611,19 @@ html, body {
   position: relative;
   z-index: var(--kademe-tas-surukleniyor);
   pointer-events: none;
+}
+
+/* ADR-021/3: asıl taş sürükleme boyunca KAYNAĞINDA GÖRÜNMEZ olur — Sahip'in belirtisi taşın hem
+   yuvasında hem parmakta görünmesiydi (is/tasokey-60/ekler/). Istaka yolu (`.tas`) ve deste/köşe
+   yolu (`.tas-arka`) aynı kuralı kullanır: gizleme TEK yerde durur, iki görsel dil doğmaz.
+   `visibility` seçildi çünkü öğe yerini KORUR: `display: none` yuvayı akıştan düşürür, ıstaka
+   sırası kayar ve oyuncunun aralıklı dizilimi (ADR-019) sürüklemenin ortasında bozulur. Yuva boş
+   görünür çünkü altında boş yuva katmanı durur (yukarıdaki `.yuva-bos-katman`); deste/köşede
+   altındaki taş görünür, yığın bir taş eksilmiş görünür (sayaç değişmez — ADR-021/4).
+   Kopya bu sınıfı TAŞIMAZ (surukle.js siler), yoksa parmakta görünmez bir taş kalırdı. */
+.tas.surukleniyor,
+.tas-arka.surukleniyor {
+  visibility: hidden;
 }
 
 /* Parmağı izleyen kopya (tasokey#59; ADR-015 kademesi, yeni kademe eklenmez — bu öğe sürüklenen

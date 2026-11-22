@@ -8,7 +8,7 @@ import { elBitirenTaslar, elDokumu, dokumSirasi } from '../cekirdek/cozucu.js';
 import { KURAL_VARSAYILAN } from '../cekirdek/kural.js';
 import { elSonucunuHesapla } from '../cekirdek/puan.js';
 import { cevir } from '../dil/cevir.js';
-import { surukleBagla, cekmeSurukleBagla } from './surukle.js';
+import { surukleBagla, cekmeSurukleBagla, SURUKLENIYOR_SINIFI } from './surukle.js';
 import { HEDEF_TURU, EYLEM, eylemKararVer, cekmeKararVer, rakipEliAcikMi } from './etkilesim.js';
 import {
   EKRAN, OLAY, BILGI, ZORLUKLAR, kabukBaslat, gecis, kayitAlanlari, botTurunuOynat,
@@ -82,6 +82,9 @@ const durumKutu = {
   dilKodu: 'tr',
   rafYerlesimi: [],
   secilenTasId: null,
+  // Sürüklemesi SÜREN ıstaka taşının kimliği (ADR-021/5): gizlemenin TEK kaynağı burasıdır,
+  // `rafCiz` onu her çizimde yeniden uygular. Sürükleme yoksa null.
+  suruklenenTasId: null,
   mesajAnahtari: null,
   botCalisiyor: false,
   // Her kurulan el bir "nesil"dir (tasokey#43): zamanlayıcıyla sıraya girmiş bot turu ateşlendiğinde
@@ -333,8 +336,23 @@ function tasiSec(id) {
   ciz();
 }
 
+// Sürükleme bildiriminin TEK kapısı (ADR-021/5; `surukle.js` çağırır): gizlemenin kaynağını
+// yazar. Çizim YAPMAZ — sürükleme sürerken `ciz()` çağrılsa sürüklenen öğe DOM'dan düşer,
+// işaretçi yakalaması kopar ve tasokey#59'un bayat durum ağları devreye girer.
+function suruklemeDurumunuYaz(tasId) {
+  const oncekiId = durumKutu.suruklenenTasId;
+  durumKutu.suruklenenTasId = tasId;
+  if (tasId !== null || oncekiId === null) return;
+  // Sürükleme bitti. `surukle.js` gizlemeyi KENDİ tuttuğu öğeden kaldırdı, ama ıstaka arada
+  // yeniden çizilmişse (bot turu) o öğe belgeden düşmüştür ve sınıf ekranda duran YENİ öğede
+  // kalır — taş kalıcı olarak görünmez kalırdı. Burada yalnız o sınıf silinir, yeniden çizim yok.
+  for (const oge of eleman.raf.querySelectorAll(`.${SURUKLENIYOR_SINIFI}`)) {
+    oge.classList.remove(SURUKLENIYOR_SINIFI);
+  }
+}
+
 function rafCiz() {
-  const { durum, rafYerlesimi, secilenTasId } = durumKutu;
+  const { durum, rafYerlesimi, secilenTasId, suruklenenTasId } = durumKutu;
   eleman.rafBaslik.textContent = metinAl('rafim');
   const elMap = new Map(durum.eller[INSAN_OYUNCUSU].map((tas) => [tas.id, tas]));
   eleman.raf.innerHTML = '';
@@ -342,20 +360,25 @@ function rafCiz() {
     const yuva = document.createElement('div');
     yuva.className = 'raf-yuva';
     yuva.dataset.slotIndex = String(index);
+    // Boş yuva görseli DOLU yuvaya da konur (ADR-021/3): en alt katmanda bekler, taş sürüklenirken
+    // görünmez olunca altından aynı görsel çıkar — yuva "boş" görünür. Böylece boş yuva görünümü
+    // tek kaynaktan gelir (`yuva-bos.svg`), ikinci bir çizim yazılmaz. Katman akışa girmez ve
+    // isabet testinden çekilidir (stil.css `.yuva-bos-katman`).
+    yuva.appendChild(gorselOlustur('yuva-bos.svg', 'yuva-bos-katman'));
     const id = rafYerlesimi[index];
     const tas = id !== null ? elMap.get(id) : null;
     if (tas) {
       const tasElemani = tasElemaniOlustur(tas, durum.okeyTasi);
       const seciliMi = id === secilenTasId;
       if (seciliMi) tasElemani.classList.add('secili');
+      // Sürüklemesi süren taş yeniden çizildikten sonra da görünmez kalır (ADR-021/5).
+      if (id === suruklenenTasId) tasElemani.classList.add(SURUKLENIYOR_SINIFI);
       tasElemani.setAttribute('tabindex', '0');
       tasElemani.setAttribute('role', 'button');
       tasElemani.setAttribute('aria-pressed', String(seciliMi));
       tasElemani.setAttribute('aria-label', tasAriaEtiketi(tas, durum.okeyTasi));
       tiklanabilirYap(tasElemani, () => tasiSec(id));
       yuva.appendChild(tasElemani);
-    } else {
-      yuva.appendChild(gorselOlustur('yuva-bos.svg'));
     }
     eleman.raf.appendChild(yuva);
   }
@@ -763,7 +786,7 @@ function olaylariBagla() {
   for (const zorluk of ZORLUKLAR) {
     eleman[ZORLUK_DUGME_ADLARI[zorluk]].addEventListener('click', () => zorlukSec(zorluk));
   }
-  surukleBagla(eleman.raf, hedefeBirakUygula);
+  surukleBagla(eleman.raf, hedefeBirakUygula, suruklemeDurumunuYaz);
   cekmeSurukleBagla(eleman.masa, eleman.raf, kaynaktanCekUygula);
 }
 

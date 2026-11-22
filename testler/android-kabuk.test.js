@@ -22,7 +22,8 @@ import { join, relative } from 'node:path';
 // (bu atıfların belgede karşılığı olduğunu `adr-atif-tarama.test.js` ayrıca ölçer).
 
 const KOK = join(import.meta.dirname, '..');
-const KABUK = join(KOK, 'android', 'kabuk');
+const ANDROID = join(KOK, 'android');
+const KABUK = join(ANDROID, 'kabuk');
 
 const MANIFEST = join(KABUK, 'AndroidManifest.xml');
 const JAVA_DIZINI = join(KABUK, 'java', 'com', 'kraftdcm', 'tasokey');
@@ -67,20 +68,41 @@ const BEKLENEN_MIME = [
 
 const BEKLENEN_BASLANGIC_ADRESI = 'https://appassets.androidplatform.net/index.html';
 
+/**
+ * ADR-020/12: WebView'in çizim katmanını açıp kapatan **tek** anahtarın adı ve kaynakta yalnız
+ * tek yerde geçmesi gereken katman belirteçleri. Katman kararı yalnız `OyunEtkinligi.java`da
+ * durur; gerekçesi `MIMARI.md`dedir (ADR-020 madde 12), `android/` belgelerinde tekrarlanmaz.
+ */
+const KATMAN_SABITI = 'WEBVIEW_YAZILIM_KATMANI';
+const KATMAN_IZLERI = ['setLayerType', 'LAYER_TYPE_SOFTWARE'];
+
 // --- okuma ve ayıklama yardımcıları ----------------------------------------------------------
 
 function oku(dosya) {
   return readFileSync(dosya, 'utf8');
 }
 
-/** `android/kabuk` altındaki bütün dosyalar (depo köküne göreli yolla birlikte). */
-function kabukDosyalari() {
+/** Bir dizin altındaki bütün dosyalar (depo köküne göreli yolla birlikte). */
+function dizinDosyalari(dizin) {
   const dosyalar = [];
-  for (const ad of readdirSync(KABUK, { recursive: true })) {
-    const tam = join(KABUK, ad);
+  for (const ad of readdirSync(dizin, { recursive: true })) {
+    const tam = join(dizin, ad);
     if (statSync(tam).isFile()) dosyalar.push([relative(KOK, tam).replace(/\\/g, '/'), tam]);
   }
   return dosyalar;
+}
+
+/** `android/kabuk` altındaki bütün dosyalar (depo köküne göreli yolla birlikte). */
+function kabukDosyalari() {
+  return dizinDosyalari(KABUK);
+}
+
+/**
+ * `android/` altındaki bütün **kaynak** dosyaları: kabuk kaynakları + betikler + belgeler.
+ * Derleme çıktısı (`android/cikti/`, `.gitignore`da) kaynak değildir ve ikili dosya taşır — taranmaz.
+ */
+function androidDosyalari() {
+  return dizinDosyalari(ANDROID).filter(([goreli]) => !goreli.startsWith('android/cikti/'));
 }
 
 /** XML yorumları atılır: yorumda geçen bir nitelik adı "yazılmış" sayılmaz. */
@@ -271,6 +293,60 @@ test('ASIL KABUL (ADR-020/7): WebView ayar listesi tam ve tek yerde (ayarla meto
     .map(([metot]) => metot)
     .filter((metot) => dis.includes(`.${metot}(`));
   assert.deepEqual(kacaklar, [], 'WebView ayarı ayarla() dışında da yazılmış (iki kaynak)');
+});
+
+test('ASIL KABUL (ADR-020/12): yazılım katmanı anahtarı tek sabit (static final boolean, değeri true)', () => {
+  const etkinlik = javaYorumsuz(oku(ETKINLIK));
+
+  const tanimlar = [...etkinlik.matchAll(
+    new RegExp(`\\bstatic\\s+final\\s+boolean\\s+${KATMAN_SABITI}\\s*=\\s*([^;]+);`, 'g'),
+  )];
+  assert.equal(tanimlar.length, 1, `${KATMAN_SABITI} tam 1 kez "static final boolean" olarak tanımlı olmalı`);
+  assert.equal(
+    tanimlar[0][1].trim(), 'true',
+    'anahtar açık olmalı: cihazda ölçülen düzeltme bu (ADR-020/12; ölçen Sahip, ofiste cihaz yok)',
+  );
+
+  // İkinci bir tanım/atama (kopya ya da tür değişikliği) tek yer kuralını bozar.
+  const atamalar = etkinlik.match(new RegExp(`\\b${KATMAN_SABITI}\\s*=`, 'g')) ?? [];
+  assert.equal(atamalar.length, 1, `${KATMAN_SABITI} birden çok yerde yazılmış`);
+});
+
+test('ASIL KABUL (ADR-020/12): setLayerType tam 1 kez, anahtarın kapısında; kapalı kol LAYER_TYPE_NONE', () => {
+  const etkinlik = javaYorumsuz(oku(ETKINLIK));
+
+  const cagrilar = [...etkinlik.matchAll(/\.setLayerType\s*\(([^;]*)\)\s*;/g)];
+  assert.equal(cagrilar.length, 1, 'setLayerType kaynakta tam 1 kez çağrılmalı (tek yer kuralı)');
+
+  assert.match(
+    cagrilar[0][1],
+    new RegExp(`^\\s*${KATMAN_SABITI}\\s*\\?\\s*View\\.LAYER_TYPE_SOFTWARE\\s*:\\s*View\\.LAYER_TYPE_NONE\\s*,\\s*null\\s*$`),
+    'çağrı anahtarın kapısında olmalı: açıkken LAYER_TYPE_SOFTWARE, kapalıyken LAYER_TYPE_NONE '
+      + '(platform varsayılanı — kabuk LAYER_TYPE_HARDWARE dayatmaz)',
+  );
+
+  // Katman bir View ayarıdır: WebSettings kapısına (`ayarla`) girmez, pencere kurulumunda durur.
+  assert.match(metotGovdesi(etkinlik, 'onCreate'), /\.setLayerType\s*\(/, 'çağrı onCreate içinde değil');
+  assert.doesNotMatch(metotGovdesi(etkinlik, 'ayarla'), /setLayerType/, 'View ayarı WebSettings kapısına yazılmış');
+
+  // ADR-020/7'nin listesi bir WebSettings listesidir: setLayerType ona eklenmez (eklenirse
+  // "ayarla dışında WebSettings çağrısı yok" denetimi bu tek çağrıyı yanlışlıkla kaçak sayar).
+  const listede = BEKLENEN_WEBVIEW_AYARLARI.map(([metot]) => metot).filter((metot) => metot === 'setLayerType');
+  assert.deepEqual(listede, [], 'setLayerType WebSettings ayar listesine girmemeli (ADR-020/7 ≠ ADR-020/12)');
+});
+
+test('ASIL KABUL (ADR-020/12): katman kararı yalnız OyunEtkinligi.java\'da; başka android/ kaynağında geçmiyor', () => {
+  const bulgular = [];
+  for (const [goreli, tam] of androidDosyalari()) {
+    if (tam === ETKINLIK) continue;
+    const icerik = goreli.endsWith('.java') ? javaYorumsuz(oku(tam))
+      : goreli.endsWith('.xml') ? xmlYorumsuz(oku(tam))
+        : oku(tam);
+    for (const iz of KATMAN_IZLERI) {
+      if (icerik.includes(iz)) bulgular.push(`${goreli}: ${iz}`);
+    }
+  }
+  assert.deepEqual(bulgular, [], 'çizim katmanı kararı ikinci bir kaynağa dağılmış (tek yer — ADR-020/12)');
 });
 
 test('ASIL KABUL (ADR-020/8): pencereye FLAG_KEEP_SCREEN_ON eklenir (bot oynarken ekran kararmaz)', () => {
