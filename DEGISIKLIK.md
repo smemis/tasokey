@@ -4,6 +4,8 @@
 > Notlar **birebir** taşındı, sıra **artan**: Sürüm 3…25 (21 not; **17** ve **23** numaralarının kendi notu hiç yazılmamıştı — numara geri alınmaz,
 > `tasokey#38`'in dersi). Her sürümün sabit bir çapası var, ör. `## Sürüm 24 — tasokey#74`.
 > Güncel belge ve özet tablo: [MIMARI.md](MIMARI.md).
+> Dosyanın sonunda iki ek var: özet tablodan taşınan **sürüm zinciri** ve `tasokey#78`'de taşınan
+> **§7 risk gerekçeleri** ([Ek](#ek--mimarimd-7-risk-gerekçeleri); risk satırları `MIMARI.md`'de duruyor).
 
 **Son sürüm: 25** (`tasokey#76`, 2026-11-22) → [Sürüm 25](#sürüm-25--tasokey76)
 
@@ -272,3 +274,75 @@
 > (hücrede yalnız son sürüm ve bu dosyaya bağlantı kaldı — ADR-025 madde 4):
 
 önceki: `24` **ADR-024** kısa yatay düzen varyantı — dikey zincir en çok üç taş boyu taşır; karar metni Mimar-K2'nin `tasokey#70` planı §3'ünden olduğu gibi, ölçülen sayılar ayrı satırda. **ADR-022 sürüm 3**'ün Sonuçlar (e) maddesi **düzeltildi** (maddeler değişmedi); ADR-012/ADR-014 "Sonuçlar"a `tasokey#70` ölçümü, §6'ya iki kanıt satırı, §7'ye risk 25-30, 2026-11-22, tasokey#74; önceki: `23` **ADR-022 sürüm 3** — muaf açık el yığını oyun oynanırken geçerli ölçeği aşağı çekmez, kendi ölçeği kademe başına küçülür; ölçek tavanı üç **ÖLÇÜLEN** terimin en küçüğüdür ve sayfa taşması tavanı tabloya girer; **madde 10** (Masa kararı, Sahip adına) el bitince `#merkez` gizlenir ve ölçüt duruma göre **ayrılır** — gevşemez, 2026-11-22, tasokey#72; önceki: `22` **ADR-022** §0'a geçti — oyuncunun ıstakası ve taşları tek ölçek değişkeninden büyür, değer kademe başına **ölçülür**; karar `tasokey#68`te §5'e yazılmış ama sürüm sayısı güncellenmemişti. Ayrıca sürükle-bırak hedefleri yeni ölçekte ölçüldü: **yeni ADR açılmadı**, ADR-012 ve ADR-014 "Sonuçlar"a `tasokey#64` ölçümü, §6'ya kanıt satırı, §7 risk 5 güncellendi, 2026-11-22, tasokey#69 · `20` **ADR-023** ofis içi arayüz ölçümü `--plan` + `ekran_gerek` yolundan alınır, sürücünün sunucu + Edge/CDP kipi **Masa yolu**dur; §6 kanıt tablosunda iki yol ayrıldı, §7 risk 6 **kapandı** ve risk 24 açıldı, 2026-11-22, tasokey#67 · `19` ADR-012 "Sonuçlar"a ızgara **iz kuralı** — esnek iz köşelerde, orta şerit ıstakaların boyunda; ADR-014 "Sonuçlar"a `tasokey#63` ölçümü; masa yüksekliği esnek **kaptan** gelir, 2026-11-22, tasokey#63 · `18` **ADR-021** sürükleme görsel dili: parmağı kopya izler, asıl taş kaynağında görünmez olur ama yerini korur; §3 `arayuz/surukle.js` satırı güncellendi, 2026-11-22, tasokey#62 · `17` ADR-020 **madde 12** WebView yazılım katmanı — kabukta tek açma/kapama sabiti, §7'ye risk 22-23, 2026-11-22, tasokey#61 · `16` kabuk ve derleme zinciri §2/§3/§6/§7'ye yazıldı + ADR-020'nin etkilenen gereksinimleri onay bekleyen R-016…R-019 olarak işaretlendi, 2026-11-22, tasokey#58 · `15` ADR-020 **madde 11** uygulama simgesi, 2026-11-21, tasokey#55 · `14` ADR-020 Android kabuğu, **koşullu kabul**, Mimar hakemliği, 2026-11-21, tasokey#54
+
+## Ek — MIMARI.md §7 risk gerekçeleri
+
+> `MIMARI.md` §7'nin **kapanmış / Masa'da / ölçülmüş** risk satırlarının durum hücresindeki tarihsel
+> gerekçe ve ölçüm günlüğü metni, `tasokey#78`'de buraya **birebir** taşındı. Tablodaki satır, numarası ve
+> konusu belgede **duruyor**; durum hücresi artık etiket + atıflar + buraya bağlantıdır (ADR-025 madde 4).
+> Risk numarası **yeniden kullanılmaz**; açık riskler (8, 10, 15, 16, 18, 21, 22, 23, 29, 30) `MIMARI.md`'de
+> tam metinle durur.
+
+### Risk 1
+
+**ölçüldü** (tasokey#37): tek el kontrolü ort. 0,0295 ms, `elBitirenTaslar` ort. 1,2777 ms (bütçe 20 ms); 200 ellik bot koşusu 17,6 s (bütçe 60 s, ADR-018 sonrası). tasokey#41 (yeniden ölçüldü; günlük `is/tasokey-41/cozucu-maliyet.log`): `node testler/el-bitiren-taslar.olcum.js` → `elBitirenTaslar` ort. **1,2306 ms** (en yavaş tek çağrı 13,74 ms), `node testler/el-dokumu.olcum.js` → `elDokumu` ort. **0,3492 ms** (en yavaş 3,94 ms) — ikisi de 20 ms bütçesinin altında. Zor kademe tur başına bir çözücü + bir döküm çağrısı daha ekliyor; bedeli el başına ölçüldü (`node --test testler/bot-dayaniklilik.test.js`): orta 200 el 17,1 s (**~86 ms/el**), zor 100 el 15,7 s (**~157 ms/el**, orta'nın ~1,8 katı), kolay 100 el 7,3 s (~73 ms/el); üç kademe toplam **40,7 s** (bütçe 60 s; ADR-013'teki 41,4 s aynı koşunun önceki çalıştırmasıdır)
+
+### Risk 3
+
+**kapandı** (ADR-008/1-3; `12-13-1` sürüm 3'te, okey atma sürüm 2'de Sahip'in isteğiyle **döndü** — ayarlar kapatma anahtarı olarak duruyor)
+
+### Risk 4
+
+**kapandı** (R-014 ile: dikeyde sığdırma denenmez, oyun alanı yerine dil anahtarlı uyarı gösterilir; bkz. ADR-012)
+
+### Risk 5
+
+**kısmen ölçüldü, açık** (`tasokey#64`/`tasokey#69`, 2026-11-22): beş yol (ıstakaya bırakma, geçersiz bırakma, köşe atma alanı, çekme, bitirme hedefi) **800×360** ve **1920×1080**'de `PointerEvent` dizisiyle (`pointerdown` → ara `pointermove`ler → `pointerup`) koşturuldu — iki boyutta da `yol=5 gecti=5 kaldi=0`, köşe isabeti dört köşede `25/25` (%100). Bu, sürükleme **yolunun** işaretçi olaylarıyla uçtan uca çalıştığını ölçer. Açık kalan parça **dokunmatiğin kendisidir**: olaylar `dispatchEvent` ile **sentetik** üretildi ve `pointerType` `'mouse'`, çünkü sentetik işaretçi etkin değildir → `setPointerCapture` ölçümde **devre dışı** bırakılmak zorunda kaldı. Gerçek parmağa özgü davranışlar (tarayıcının kendi kaydırma/yakınlaştırma jesti, `touch-action` çekişmesi, işaretçi yakalamasının kopması, gecikme, parmak altında kalan hedef) ofiste **ölçülemez**
+
+### Risk 6
+
+**kapandı** (ADR-023, 2026-11-22, `tasokey#67`): çözüm manifeste port + sürücü yazmak **değil**, ofis içi ölçümü `--plan` + `ekran_gerek` yolundan almaktır. Ajan sunucu/tarayıcı açmaz ve bunun için izin istemez; sürücünün tarayıcı kipi Masa yolu olarak durur
+
+### Risk 9
+
+**Masa'da / Sahip kararı** (pencere konumu ya da kapatılabilirlik ürün kararı; ADR-015 kademe sırası değişmez)
+
+### Risk 11
+
+**kapandı** (ADR-016, `tasokey#42`: başlangıç ekranında Kolay/Orta/Zor seçimi, kayıt şeması sürüm 2)
+
+### Risk 12
+
+**ölçüldü** (`tasokey#53`; Unity klasörüne okuma + çalıştırma izni Sahip tarafından verildi): JDK **17.0.9** (`java`/`javac`/`keytool`), build-tools **36.0.0** (kurulu tek sürüm), `aapt2` **2.20**, `platforms/android-36/android.jar` **var**. `d8`/`zipalign`/`apksigner` sürümünü **bildirmiyor** → paketten türetilir ve `UYARI` yazılır (yoldaki klasör adı sürüm sanılmaz). Hiçbir betiğe yol ya da sürüm yazılmaz
+
+### Risk 13
+
+**ölçüldü** (`tasokey#53`): `aapt` v1 **var** (0.2) → seçilen yol `aapt-add`; yedek `zip-archive` de kullanılabilir durumda. Ders koda yazıldı: PowerShell 5.1'de bu iş için **iki** derleme yüklenmeli, yalnız `System.IO.Compression.FileSystem` yetmiyor
+
+### Risk 14
+
+**ölçüldü** (`tasokey#53`): **destekliyor** (`javac 17.0.9`) → yedek yola gerek kalmadı. JDK 24+ bu makinede **ölçülmedi** (kurulu değil); orada çözücünün `invalid source release` kolu yakalar ve `UYARI` yazar, çıkış kodunu bozmaz
+
+### Risk 19
+
+**bilinen sınır** (bugün paket adı depodaki manifestte varsayılan olarak **yazılı** ve öz-testle sabit; derlemede zorunlu `-Kimlik` parametresi üzerine yazar. İmza depoda hiç durmaz, parametredir; en düşük/hedef Android sürümü ile sürüm formülü ise `derle.ps1`in ayar bloğunda sabit — ADR-020/4)
+
+### Risk 20
+
+**Masa'da** — `bundletool` planda "yok" varsayılmıştı, `tasokey#53` tersini ölçtü: **var**, **1.17.2** (`…\AndroidPlayer\Tools\bundletool-all-1.17.2.jar`). Ama AAB adımı hiçbir betiğe yazılmadı: `derle.ps1` yalnız APK üretir
+
+### Risk 25
+
+**ölçüldü, teşhis doğrulandı** (`tasokey#71`…`#73`): zincir üçe inince ölçek telefon boyutlarında `1` → **1,45 / 1,65** oldu ve ölçek 1'de bile var olan iki çakışma (`#rafAlani ∩ #merkez`, `∩ #gosterge`) **gitti**. Yan/üst açık taş aileleri: `durum=rakip` ölçümünde **yeni çakışma 0** — kalan tek çift (`#ustCubuk ∩ #sonucKutusu`) **taban dalda da vardı** ve varyant boyutlarında `135×30` → `118×22`'ye küçüldü (`tasokey#73` §5.1). Sütun sayısı (`--rakip-acik-sutun-dikey`) ve muafın ölçeği (ADR-022/8, alt sınır 0,45) ölçülerek seçildi
+
+### Risk 26
+
+**kapandı** (öz-testle bağlı): eşik `max-height: 700px`; `kisa-yatay-varyant.test.js` kabul-c varyantın 800x360 · 844x390 · 900x600'te **etkin**, 1280x800 · 1180x820 · 1920x1080'de **etkin değil** olduğunu medya sorgusunu değerlendirerek ölçer; kabul-a/b ayrıca blok dışı bildirimlerin ve masaüstü kademe sözlüğünün `tasokey#68` sürümüyle **birebir** aynı kaldığını ölçer (ADR-024/7 yalıtımı)
+
+### Risk 27
+
+**ölçüldü, sınır yazılı** (`tasokey#73` §5.2): iki dilin en uzun durum metni (45 karakter) 800 / 844 / 900 / 1280 px genişliklerin **hiçbirinde sarmıyor**; sarma ancak metin yapay olarak tekrarlanarak zorlanabildi ve orada da kutu içerikle büyüdü, metin **kırpılmadı** (`kaydırma == iç`), sayfa taşması 0
+
+### Risk 28
+
+**kapandı** (sav gevşetilmedi, kapsam genişledi): `kose-atma-alani.test.js` bant listesini **düzen başına** ölçer (paylaşılan düzende tam 3 iz, varyantta tam 4 bant + üst köşeler ilk iki bandı kaplar) ve `tasokey#74`ten sonra her düzeni **kendi bütün kabul boyutlarında** (3 + 3 = 6 boyut) ölçülen bant tablosuyla denetler; `.kose` ve `grid-area` savları hiç değişmedi. Ayrıca aynı dosyaya `ASIL KABUL (a3)` eklendi: statik iz modelinin **tarayıcıda ölçülen** köşe kutusunu birebir ürettiği (`TARAYICI_OLCUMU` tablosu, üç boyut × iki köşe, `±1 px`) ölçülür — model gerçekten sessizce ayrışırsa öbür beş kabul artık var olmayan bir masayı ölçerdi
