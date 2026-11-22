@@ -18,11 +18,16 @@ import {
   ozetSatirlari, bolgeSatirlari, yaziKatmaniBicimi, kararSatiri, TABLO_BASLIKLARI,
 } from './yardimci/surukleme-hedefi.js';
 import {
-  BOYUTLAR, CEKIRDEK_ADLARI, planNesnesi, sayfaBetigi,
+  BOYUTLAR, CEKIRDEK_ADLARI, HEDEF_TOHUMU, BITIRME_TOHUMU, SAHNE_TOHUMLARI,
+  planNesnesi, sayfaBetigi,
 } from './yardimci/surukleme-olcum-betigi.js';
+// Sabitlenen tohumlar oyunun KENDİ saf modülleriyle ölçülür (ölçüm katmanı kural yazmaz).
+import { dagit } from '../docs/cekirdek/dagitim.js';
+import { elBitirenTaslar } from '../docs/cekirdek/cozucu.js';
 import { gomulebilirKaynak } from './yardimci/yerlesim-olcum-betigi.js';
 import {
   BOLGE_BOLMESI, GEREKLI_KIMLIKLER, KOSE_TANIMLARI, BITIRME_EN_COK_EL, EN_COK_TUR,
+  HAZIRLIK_BEKLEME_MS, DAGITIM_BEKLEME_MS,
 } from './yardimci/surukleme-olcum-sayfa.js';
 import { KULLANIM, seceneklerioku } from './surukleme-hedefi.olcum.js';
 
@@ -379,6 +384,58 @@ test('plan üç boyut × iki sahne: işin metnindeki 800x360, 900x600 ve 1920x10
   }
   // Bitirme sahnesi birkaç el oynar: beklemesi hedef sahnesinden uzun olmalı.
   assert.ok(plan.cekimler[1].js_bekle > plan.cekimler[0].js_bekle);
+});
+
+test('ASIL KABUL (tasokey#74): sabitlenen tohumlar sahnenin ihtiyacı olan eli veriyor', () => {
+  // Ölçüm turu tekrar üretilebilir olmak zorunda: tohumsuz turda her boyut başka bir el ölçüyordu
+  // ve bitirme sahnesi "bitirilebilir el" bulana kadar el oynuyordu (çekim turu 2'de 900x600'de
+  // bulamadı). Sabit doğru mu: KARARI oyunun kendi çözücüsü verir, burada yeniden yazılmaz.
+  const bitirme = dagit(BITIRME_TOHUMU);
+  const bitirenler = elBitirenTaslar(bitirme.eller[0], bitirme.okeyTasi, undefined, bitirme.gosterge);
+  assert.equal(bitirme.eller[0].length, 15, 'başlayan oyuncu 15 taşla başlamıyor');
+  assert.ok(
+    bitirenler.length > 0,
+    `BITIRME_TOHUMU=${BITIRME_TOHUMU}: dağıtılan el bitirilebilir değil — R-013 sahnesi el oynamak`
+    + ' zorunda kalır. Yeni tohum taranmalı (is/tasokey-74/tohum-tara.mjs ile aynı ölçüm).',
+  );
+
+  const hedef = dagit(HEDEF_TOHUMU);
+  const hedefBitirenler = elBitirenTaslar(hedef.eller[0], hedef.okeyTasi, undefined, hedef.gosterge);
+  assert.deepEqual(
+    hedefBitirenler, [],
+    `HEDEF_TOHUMU=${HEDEF_TOHUMU}: el daha dağıtılırken bitirilebilir — hedef sahnesi olağan`
+    + ' durumu ölçmeli (el ölçüm ortasında bitebilir).',
+  );
+
+  // Tohum sahne betiğine ve çıktının özet satırına girer (görüntüden yeniden üretilebilsin).
+  for (const sahne of SAHNELER) {
+    assert.match(sayfaBetigi({ sahne }), new RegExp(`tohum: ${SAHNE_TOHUMLARI[sahne]},`));
+  }
+  assert.match(
+    ozetSatirlari({
+      sahne: 'bitirme', tohum: BITIRME_TOHUMU, gorunum: { genislik: 800, yukseklik: 360 },
+    })[0],
+    new RegExp(`tohum=${BITIRME_TOHUMU}$`),
+  );
+});
+
+test('ASIL KABUL (tasokey#74): ölçüm, uygulama açılışını ve dağıtımı BEKLER (sabit uyku değil)', () => {
+  // Belirti (çekim turu 2, 800x360): ıstaka 12x8 px, dört yol da `olculmedi`. Sebep: `ekran.js`
+  // `baslat()` asenkrondur, olaylar görseller yüklendikten sonra bağlanır; ondan önceki tıklama
+  // kaybolur ve `baslangicPaneli` henüz `gorunur` olmadığı için denetim de yanlışlıkla geçer.
+  const kaynak = readFileSync(join(KOK, 'testler/yardimci/surukleme-olcum-sayfa.js'), 'utf8');
+  assert.match(kaynak, /await uygulamaHazirOl\(\);\s*\n\s*tohumuSabitle\(tohum\);\s*\n\s*await oyunuBaslat\(\);/);
+  assert.match(kaynak, /if \(gorunurMu\('baslangicPaneli'\)\) return;/, 'hazırlık işareti okunmuyor');
+  // `oyunuBaslat` gövdesi: dağıtım ÖLÇÜLEN koşulla beklenir, sabit uykuyla değil.
+  const govde = /async function oyunuBaslat\(\) \{([\s\S]*?)\n\}/.exec(kaynak)?.[1];
+  assert.ok(govde, 'oyunuBaslat bulunamadı');
+  assert.match(govde, /await eliBekle\(\)/, 'dağıtım doğrulanmıyor');
+  assert.match(govde, /el dağıtılmadı/, 'dağıtılmama gerekçesi yazılmıyor');
+  assert.doesNotMatch(
+    govde, /await uyu\(\d{3,}\)/,
+    'oyunuBaslat hâlâ sabit uykuyla bekliyor (ölçülen koşul yerine tahmin)',
+  );
+  assert.ok(HAZIRLIK_BEKLEME_MS > 0 && DAGITIM_BEKLEME_MS > 0);
 });
 
 test('sayfa katmanının aradığı kimlikler docs/index.html\'de var', () => {

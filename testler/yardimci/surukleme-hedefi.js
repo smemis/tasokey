@@ -360,11 +360,14 @@ export function kararOzeti(kararlar) {
  * daha küçük olursa bir denetimin ölçüsü ekran görüntüsünden okunamaz.
  */
 export function ozetSatirlari(olcum, { enCokOlcu = 5 } = {}) {
-  const { sahne, gorunum, kararlar = [], olculer = {} } = olcum;
+  const { sahne, gorunum, kararlar = [], olculer = {}, tohum = null } = olcum;
   const ozet = kararOzeti(kararlar);
   const satirlar = [
     `SURUKLE ${gorunum.genislik}x${gorunum.yukseklik} sahne=${sahne}`
-    + ` yol=${ozet.toplam} gecti=${ozet.gecti} kaldi=${ozet.kaldi} olculmedi=${ozet.olculmedi}`,
+    + ` yol=${ozet.toplam} gecti=${ozet.gecti} kaldi=${ozet.kaldi} olculmedi=${ozet.olculmedi}`
+    // Ölçülen el SABİT tohumludur (ADR-003): görüntüdeki sayılar hangi elden geldiği yazılmadan
+    // yeniden üretilemez, bu yüzden tohum özetin ilk satırında durur (tasokey#74).
+    + (tohum === null ? '' : ` tohum=${tohum}`),
     `OLCU istaka ${olcuMetni(olculer.istaka)} tas ${olcuMetni(olculer.tas)}`
     + ` olcek ${olculer.olcek ?? '—'} hedefPay ${sayi(olculer.hedefPay)}px`,
   ];

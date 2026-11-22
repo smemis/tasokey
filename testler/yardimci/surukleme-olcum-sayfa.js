@@ -52,6 +52,14 @@ export const BITIRME_EN_COK_EL = 8;
 /** Bir elde en çok kaç insan turu oynanır (sonsuz döngü ağı; deste ~26 turda tükenir). */
 export const EN_COK_TUR = 60;
 
+/**
+ * Uygulamanın AÇILIŞI ve elin DAĞITILMASI için beklenen en uzun süreler (ms). İkisi de sabit
+ * uyku değil, ölçülen bir koşulun üst sınırıdır: koşul erken sağlanırsa beklenmez, hiç
+ * sağlanmazsa ölçüm sessizce sürmek yerine gerekçeli hata verir (A9).
+ */
+export const HAZIRLIK_BEKLEME_MS = 8000;
+export const DAGITIM_BEKLEME_MS = 3000;
+
 // Sayfa katmanının durumu: saf çekirdek ve kurcalanmamış zamanlayıcı. `olcumYap` çağrısında
 // doldurulur; modül düzeyinde durmalarının tek nedeni yardımcı işlev gövdelerinin `export`
 // sözcüğü atılarak aynı kapsama gömülmesidir (tasokey#67 deseni).
@@ -178,12 +186,54 @@ async function surukleBirak({
 /** İnsan oyuncunun sırası mı: uygulamanın kendi işareti (`.cekilebilir`, ekran.js masaCiz). */
 const insanSirasiMi = (cekilebilirKose) => el(koseId(cekilebilirKose)).classList.contains('cekilebilir');
 
+/**
+ * Uygulama açılışının BİTTİĞİNİ bekler. Niçin ayrı bir kapı: `ekran.js` `baslat()` ASENKRONdur —
+ * dil dosyaları ve görseller yüklendikten SONRA `olaylariBagla()` ve ilk `ciz()` koşar. Ondan önce
+ * `yeniOyunButonu`na basmak sessizce kaybolur (dinleyici henüz bağlı değil) ve `baslangicPaneli` de
+ * `gorunur` sınıfını henüz almadığı için "pencere kapandı" denetimi yanlışlıkla GEÇER: ölçüm, el
+ * hiç dağıtılmamışken sürer ve bütün yollar `olculmedi` döner. Ölçüldü (tasokey#74 çekim turu 2,
+ * 800x360): ıstaka 12x8 px, "itme ölçümü için en az 2 taş gerekir", "sıra insana gelmedi".
+ * İşaret: ilk ekran `baslangic`tır (ADR-016) → panel `gorunur` sınıfını ilk çizimde alır.
+ */
+async function uygulamaHazirOl() {
+  for (let i = 0; i < HAZIRLIK_BEKLEME_MS / 10; i += 1) {
+    if (gorunurMu('baslangicPaneli')) return;
+    await uyu(10);
+  }
+  throw new Error('uygulama açılışı bitmedi (başlangıç penceresi hiç görünmedi)');
+}
+
+/** El dağıtıldı mı: ıstakada taş görünene kadar bekler (sabit uyku yerine ölçülen koşul). */
+async function eliBekle() {
+  for (let i = 0; i < DAGITIM_BEKLEME_MS / 10; i += 1) {
+    if (elSayisi() > 0) return true;
+    await uyu(10);
+  }
+  return false;
+}
+
 async function oyunuBaslat() {
   el('zorlukKolay').click();
   el('yeniOyunButonu').click();
-  await uyu(400);
+  if (!(await eliBekle())) throw new Error('el dağıtılmadı ("Yeni oyun" tıklaması işlemedi)');
   bilgiyiKapat();
   if (gorunurMu('baslangicPaneli')) throw new Error('başlangıç penceresi kapanmadı');
+}
+
+/**
+ * O turun elini SABİTLER: oyunun kendi belgeli tohum parametresini (`?tohum=`, `ekran.js`
+ * `tohumuBelirle`) adres satırına yazar; "Yeni oyun" onu okur ve aynı eli dağıtır (ADR-003).
+ * Uygulama DEĞİŞMEZ, ölçüm katmanı yalnız parametreyi verir; sayfa yeniden yüklenmez.
+ * Niçin: tohumsuz turda el `Date.now()` ile dağıtılıyordu → aynı betik her boyutta BAŞKA bir el
+ * ölçüyordu ve R-013 sahnesi "bitirilebilir el" bulana kadar el oynamak zorundaydı (tasokey#74
+ * çekim turu 2'de 900x600'de 8 el denendi, bulunamadı → yol `olculmedi` kaldı).
+ */
+function tohumuSabitle(tohum) {
+  if (tohum === null || tohum === undefined) return null;
+  const adres = new URL(window.location.href);
+  adres.searchParams.set('tohum', String(tohum));
+  window.history.replaceState(null, '', adres.toString());
+  return tohum;
 }
 
 /**
@@ -787,7 +837,7 @@ async function bitirmeSahnesi(moduller) {
  * (tek kaynak — kural orada, burada yalnız gözlem). `gosterim === 'ekran'` ise özet sayfanın
  * üstüne yazı katmanı olarak basılır ve isabet noktaları işaretlenir.
  */
-export async function olcumYap({ sahne = 'hedef', gosterim = 'json', surukleme } = {}) {
+export async function olcumYap({ sahne = 'hedef', gosterim = 'json', surukleme, tohum = null } = {}) {
   if (!surukleme) throw new Error('olcumYap: surukleme (saf çekirdek) verilmedi');
   if (!surukleme.SAHNELER.includes(sahne)) throw new Error(`olcumYap: bilinmeyen sahne ${sahne}`);
   S = surukleme;
@@ -818,6 +868,8 @@ export async function olcumYap({ sahne = 'hedef', gosterim = 'json', surukleme }
       moduller.elModulu.oncekiOyuncu(0), moduller.elModulu.sonrakiOyuncu,
     );
 
+    await uygulamaHazirOl();
+    tohumuSabitle(tohum);
     await oyunuBaslat();
     const sonuc = sahne === 'hedef' ? await hedefSahnesi(moduller) : await bitirmeSahnesi(moduller);
     gozlemler = sonuc.gozlemler;
@@ -830,6 +882,7 @@ export async function olcumYap({ sahne = 'hedef', gosterim = 'json', surukleme }
   const kararlar = S.sahneKararlari(sahne, gozlemler);
   const olcum = {
     sahne,
+    tohum,
     gorunum: { genislik: window.innerWidth, yukseklik: window.innerHeight },
     olculer: olculeriAl(),
     kararlar,

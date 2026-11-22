@@ -34,6 +34,24 @@ export const BOYUTLAR = Object.freeze([
   Object.freeze([800, 360, 'telefon-kucuk']),
 ]);
 
+/**
+ * Ölçülen eller SABİT TOHUMLUDUR (ADR-003: aynı tohum aynı el; botların kararı da durumdan türeyen
+ * tohumludur — `bot/bot.js`, dilin yerleşik üreteci orada yasak). Niçin: tohumsuz turda el
+ * `Date.now()` ile dağıtılıyordu, yani her boyut BAŞKA bir el ölçüyor, bir turun yeşil olması
+ * sonrakini bağlamıyordu. Ölçüldü (tasokey#74 çekim turu 2): 900x600'de bitirme sahnesi 8 el
+ * oynadı ve bitirilebilir el bulamadı → yol `olculmedi` kaldı.
+ *
+ * `BITIRME_TOHUMU`: dağıtılan 15 taşlık el ZATEN bitirilebilir (bir taş atınca el biter), bu yüzden
+ * R-013 el oynamadan, üç boyutta aynı durumda ölçülür. Tohum tarandı, uydurulmadı: başlayan
+ * oyuncunun eli 1/499 tohumda bitirilebilir çıkıyor (2495 tohum denendi, 5 bulundu;
+ * `is/tasokey-74/tohum-tara.mjs`). Sabit `surukleme-hedefi.test.js`te oyunun kendi saf
+ * modülleriyle yeniden ölçülür — dağıtım değişirse test kırmızı yanar ve tohum yenilenir.
+ * `HEDEF_TOHUMU`: sıradan bir el (bitirici taşı YOK) — hedef sahnesi olağan durumu ölçmeli.
+ */
+export const HEDEF_TOHUMU = 1;
+export const BITIRME_TOHUMU = 537;
+export const SAHNE_TOHUMLARI = Object.freeze({ hedef: HEDEF_TOHUMU, bitirme: BITIRME_TOHUMU });
+
 /** Saf çekirdeğin sayfa katmanına verilen adları (tek liste; öz-test modülle karşılaştırır). */
 export const CEKIRDEK_ADLARI = Object.freeze([
   'ESIK_PX', 'EN_AZ_BOLGE_ORANI', 'SAHNELER', 'SAHNE_YOLLARI', 'YOLLAR', 'YOL_ANAHTARLARI',
@@ -55,6 +73,7 @@ export function sayfaBetigi({ sahne = 'hedef', gosterim = 'json' } = {}) {
     'const OLCUM = await olcumYap({',
     `  sahne: ${JSON.stringify(sahne)},`,
     `  gosterim: ${JSON.stringify(gosterim)},`,
+    `  tohum: ${JSON.stringify(SAHNE_TOHUMLARI[sahne])},`,
     `  surukleme: { ${CEKIRDEK_ADLARI.join(', ')} },`,
     '});',
     'return OLCUM;',
