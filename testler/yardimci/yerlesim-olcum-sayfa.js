@@ -339,11 +339,17 @@ function olcekAramasi({ esik, basamak = 0.05, tavan = 2 }) {
     olcekYaz(olcek);
     const sonuc = dene();
     const fark = G.ciftFarki(taban.ihlaller, sonuc.ihlaller, { esik });
+    const kisa = (cift) => ({ a: cift.a, b: cift.b, kutu: cift.kutu, alan: cift.alan });
     denemeler.push({
       olcek,
       yeni: fark.yeni.length,
       buyuyen: fark.buyuyen.length,
       tasma: sonuc.tasmalar.length,
+      // Çiftlerin ADLARI da taşınır: ölçeği seçen kısıtın hangi öğe olduğu ancak böyle okunur
+      // (tasokey#68 — 1. turda yalnız sayı yazılmıştı, bağlayıcı çift ölçülmemiş kaldı).
+      yeniCiftler: fark.yeni.map(kisa),
+      buyuyenCiftler: fark.buyuyen.map((cift) => ({ ...kisa(cift), tabanAlan: cift.tabanAlan })),
+      tasmaListesi: sonuc.tasmalar,
     });
   }
 

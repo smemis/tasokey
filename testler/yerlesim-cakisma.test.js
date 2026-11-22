@@ -360,9 +360,27 @@ test('arama özeti ekrandan okunur: ölçülen bütçe terimleri + deneme tablos
     taban: { ihlal: 2, tasma: 0 },
     denemeler: [
       { olcek: 1.05, yeni: 0, buyuyen: 0, tasma: 0 },
-      { olcek: 1.1, yeni: 0, buyuyen: 1, tasma: 0 },
-      { olcek: 1.15, yeni: 1, buyuyen: 1, tasma: 0 },
-      { olcek: 1.2, yeni: 1, buyuyen: 2, tasma: 1 },
+      {
+        olcek: 1.1,
+        yeni: 0,
+        buyuyen: 1,
+        tasma: 0,
+        buyuyenCiftler: [{ a: '#rafAlani', b: '#merkez', kutu: { sol: 0, ust: 0, sag: 308, alt: 14 }, alan: 4312, tabanAlan: 2926 }],
+      },
+      {
+        olcek: 1.15,
+        yeni: 1,
+        buyuyen: 1,
+        tasma: 0,
+        yeniCiftler: [{ a: '#rafAlani', b: '#gosterge', kutu: { sol: 0, ust: 0, sag: 6, alt: 10 }, alan: 60 }],
+      },
+      {
+        olcek: 1.2,
+        yeni: 1,
+        buyuyen: 2,
+        tasma: 1,
+        tasmaListesi: [{ tur: 'dikey-tasma', anahtar: '#masa', miktar: 9 }],
+      },
     ],
   };
   const satirlar = aramaSatirlari(arama);
@@ -370,6 +388,26 @@ test('arama özeti ekrandan okunur: ölçülen bütçe terimleri + deneme tablos
   assert.match(satirlar[1], /pd=4 kk=5 mb=6 rb=4 yb=0 taban=25x36 n=12/);
   assert.match(satirlar[2], /ARAMA taban\(olcek 1\) ihlal=2 tasma=0/);
   assert.ok(satirlar.some((satir) => satir.includes('1.05:0/0/0 1.10:0/1/0 1.15:1/1/0 1.20:1/2/1')));
+  // İlk BOZULAN deneme adıyla yazılır: ölçeği sınırlayan çift sayı değil, ÖĞE olarak okunur
+  // (tasokey#68 — "2 yeni çift" hangi öğenin bağlayıcı olduğunu söylemiyordu).
+  assert.ok(satirlar.some((satir) => /ARAMA ilk-yeni olcek=1\.15 sayi=1/.test(satir)));
+  assert.ok(satirlar.some((satir) => satir.includes('+ #rafAlani n #gosterge  6x10')));
+  assert.ok(satirlar.some((satir) => /ARAMA ilk-buyuyen olcek=1\.10 sayi=1/.test(satir)));
+  assert.ok(satirlar.some((satir) => satir.includes('> #rafAlani n #merkez  308x14')));
+  assert.ok(satirlar.some((satir) => /ARAMA ilk-tasma olcek=1\.20 sayi=1/.test(satir)));
+  assert.ok(satirlar.some((satir) => satir.includes('! #masa dikey-tasma 9px')));
+  // Döküm en çok `enCokAyrinti` satır yazar (yazı katmanı taşmasın).
+  const cokCift = aramaSatirlari({
+    ...arama,
+    denemeler: [{
+      olcek: 1.05,
+      yeni: 5,
+      buyuyen: 0,
+      tasma: 0,
+      yeniCiftler: Array.from({ length: 5 }, (_, i) => ({ a: `#a${i}`, b: '#b', kutu: { sol: 0, ust: 0, sag: 1, alt: 1 }, alan: 1 })),
+    }],
+  }, { enCokAyrinti: 2 });
+  assert.equal(cokCift.filter((satir) => satir.startsWith('  +')).length, 2);
   // En çok ölçek üç ölçüte göre ayrı okunur: yeni çift yok · yeni+büyüyen yok · taşma yok.
   assert.match(satirlar.at(-1), /yeni0=1\.10 yeni0buyumez0=1\.05 tasma0=1\.15/);
   // Satır başına beş deneme: `white-space: pre` katmanı 800px görünümde yatayda kırpmasın.

@@ -217,7 +217,7 @@ export function ozetSatirlari(olcum, { enCokCift = 6 } = {}) {
  * (`ölçek:yeni/büyüyen/taşma`, satır başına beşi): yazı katmanı `white-space: pre` olduğu için
  * uzun satır 800px görünümde yatayda kırpılır. Saf: yalnız sayı ve metin.
  */
-export function aramaSatirlari(arama, { satirBasinaDeneme = 5 } = {}) {
+export function aramaSatirlari(arama, { satirBasinaDeneme = 5, enCokAyrinti = 3 } = {}) {
   const { taban, denemeler = [], olculenler = {} } = arama;
   const sayi = (deger) => (typeof deger === 'number' ? Math.round(deger * 10) / 10 : '—');
   const satirlar = [
@@ -235,6 +235,22 @@ export function aramaSatirlari(arama, { satirBasinaDeneme = 5 } = {}) {
     satirlar.push(`  ${denemeler.slice(i, i + satirBasinaDeneme)
       .map((d) => `${d.olcek.toFixed(2)}:${d.yeni}/${d.buyuyen}/${d.tasma}`).join(' ')}`);
   }
+  // Sayı tek başına ölçeği SEÇTİRMEZ: "2 yeni çift" hangi çiftin doğduğunu söylemez, yani hangi
+  // öğenin bağlayıcı olduğu ölçülmemiş kalır (tasokey#68 1. turun sınırı). İlk BOZULAN denemenin
+  // çiftleri ada ve ölçüye kadar yazılır; satır başına bir kayıt (katman `white-space: pre`,
+  // uzun satır yatayda kırpılır).
+  const dokum = (alan, liste, isaret, bicimle) => {
+    const deneme = denemeler.find((d) => (d[alan] ?? 0) > 0);
+    if (!deneme) return;
+    satirlar.push(`ARAMA ilk-${alan} olcek=${deneme.olcek.toFixed(2)} sayi=${deneme[alan]}`);
+    for (const kayit of (deneme[liste] ?? []).slice(0, enCokAyrinti)) {
+      satirlar.push(`  ${isaret} ${bicimle(kayit)}`);
+    }
+  };
+  dokum('yeni', 'yeniCiftler', '+', (c) => `${c.a} n ${c.b}  ${olcuMetni(c.kutu)}`);
+  dokum('buyuyen', 'buyuyenCiftler', '>', (c) => `${c.a} n ${c.b}  ${olcuMetni(c.kutu)}`);
+  dokum('tasma', 'tasmaListesi', '!', (t) => `${t.anahtar} ${t.tur} ${Math.round(t.miktar)}px`);
+
   const enBuyuk = (sart) => {
     const uygun = denemeler.filter(sart).map((d) => d.olcek);
     return uygun.length === 0 ? '—' : Math.max(...uygun).toFixed(2);
