@@ -17,21 +17,23 @@ import { DURUMLAR } from './yerlesim-olcum-sayfa.js';
 const GEOMETRI_DOSYASI = join(import.meta.dirname, 'yerlesim-cakisma.js');
 const SAYFA_DOSYASI = join(import.meta.dirname, 'yerlesim-olcum-sayfa.js');
 
-/** Plan §5'in beş boyutu: `[genislik, yukseklik, ad]`. */
+/**
+ * Ölçüm boyutları: `[genislik, yukseklik, ad]`.
+ *
+ * tasokey#71 (üst iş tasokey#70 planı §5): 900x600 artık ARAMA EK BOYUTU değil ASIL ölçüm
+ * boyutudur. İki gerekçe: (1) Sahip onu kanıt boyutu sayıyor (kısa yatay düzen varyantının en
+ * geniş kabul boyutu, tasokey#70 isteği), (2) `max-width: 900px` kademesinin tek kabul boyutu
+ * odur ve her turda ölçülmesi gerekir. Sıra `sigdirma-butcesi.js` OLCULEN_MASA_KUTUSU ile
+ * birebir aynıdır (geniş → dar), böylece iki tablo yan yana okunur.
+ */
 export const BOYUTLAR = Object.freeze([
   Object.freeze([1920, 1080, 'masaustu']),
   Object.freeze([1280, 800, 'dizustu']),
   Object.freeze([1180, 820, 'tablet']),
+  Object.freeze([900, 600, 'kademe-900']),
   Object.freeze([844, 390, 'telefon-yatay']),
   Object.freeze([800, 360, 'telefon-kucuk']),
 ]);
-
-/**
- * Ölçek aramasının (tasokey#68) ek boyutu: `max-width: 900px` kademesinin en dar kabul boyutu
- * (plan §4). Planın §5 ölçüm boyutlarında yoktur — orada 900px kademesine düşen bir boyut yok,
- * ama ölçek değeri o kademede de ölçülmek zorunda (ADR-022/5).
- */
-export const ARAMA_EK_BOYUTU = Object.freeze([900, 600, 'kademe-900']);
 
 /** Saf çekirdeğin sayfa katmanına verilen adları (tek liste; öz-test modülle karşılaştırır). */
 export const GEOMETRI_ADLARI = Object.freeze([
@@ -87,14 +89,13 @@ export function sayfaBetigi({
 
 /**
  * Ofisin ekran görüntüsü yolu için plan nesnesi (iş klasörüne `plan.json` olarak yazılır):
- * beş boyut × iki durum, ölçüm özeti sayfanın üstüne yazı katmanı olarak basılır.
+ * altı boyut × iki durum, ölçüm özeti sayfanın üstüne yazı katmanı olarak basılır.
  * Tohum verilmez (`index.html` düz açılır): çekirdeğin sürücüsü sayfa adını yol olarak
  * kullanıyor, sorgu dizesi eklemek riskli — el sürerken durumu tohuma bağlı değildir.
  */
 export function planNesnesi({ bekle = 1.5, jsBekle = 1.2, arama = false } = {}) {
-  const boyutlar = arama ? [...BOYUTLAR, ARAMA_EK_BOYUTU] : BOYUTLAR;
   return {
-    boyutlar: boyutlar.map((boyut) => [...boyut]),
+    boyutlar: BOYUTLAR.map((boyut) => [...boyut]),
     cekimler: DURUMLAR.map((durum) => ({
       ad: `olcum-${durum}`,
       sayfa: 'index.html',

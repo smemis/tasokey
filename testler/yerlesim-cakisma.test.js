@@ -12,7 +12,7 @@ import {
 } from './yardimci/yerlesim-cakisma.js';
 import * as geometriModulu from './yardimci/yerlesim-cakisma.js';
 import {
-  ARAMA_EK_BOYUTU, BOYUTLAR, GEOMETRI_ADLARI, EKRAN_EN_COK_CIFT, gomulebilirKaynak, sayfaBetigi,
+  BOYUTLAR, GEOMETRI_ADLARI, EKRAN_EN_COK_CIFT, gomulebilirKaynak, sayfaBetigi,
   planNesnesi,
 } from './yardimci/yerlesim-olcum-betigi.js';
 import { DURUMLAR, OGE_TANIMLARI, HALKA_TANIMLARI } from './yardimci/yerlesim-olcum-sayfa.js';
@@ -451,29 +451,33 @@ test('uzunluk değişkenleri ölçü öğesiyle çözülür, getPropertyValue il
 
 // --- 4. Ölçüm protokolünün verisi (plan §5) ---------------------------------------------------
 
-test('beş boyut ve iki durum planın §5\'indeki küme', () => {
+test('altı boyut ve iki durum planın §5\'indeki küme', () => {
+  // tasokey#71 (tasokey#70 planı §5): 900x600 ARTIK ASIL ÖLÇÜM BOYUTU — kısa yatay düzen
+  // varyantının en geniş kabul boyutu ve `max-width: 900px` kademesinin tek kabul boyutu.
+  // Sıra `sigdirma-butcesi.js` OLCULEN_MASA_KUTUSU ile birebir aynı (iki tablo yan yana okunur).
   assert.deepEqual(BOYUTLAR.map((boyut) => `${boyut[0]}x${boyut[1]}`), [
-    '1920x1080', '1280x800', '1180x820', '844x390', '800x360',
+    '1920x1080', '1280x800', '1180x820', '900x600', '844x390', '800x360',
   ]);
   assert.deepEqual([...DURUMLAR], ['el', 'rakip']);
 });
 
-test('ölçek araması kipi: 900px kademesinin boyutu eklenir, betiğe arama geçer (tasokey#68)', () => {
-  // Planın §5 boyutlarında `max-width: 900px` kademesine düşen boyut YOK; ölçek değeri o
-  // kademede de ölçülmek zorunda (ADR-022/5) → arama kipi 900x600'ü ekler.
-  assert.deepEqual([...ARAMA_EK_BOYUTU], [900, 600, 'kademe-900']);
-  assert.ok(!BOYUTLAR.some((boyut) => boyut[0] === 900 && boyut[1] === 600));
+test('ölçek araması kipi boyut listesini DEĞİŞTİRMEZ, betiğe yalnız arama bayrağını geçer', () => {
+  // tasokey#68'de 900x600 yalnız arama kipinde eklenen bir "ek boyut"tu; tasokey#71'de asıl
+  // ölçüm boyutu oldu → ayrı liste kalmadı, iki kip de aynı altı boyutu ölçer (tek kaynak).
+  assert.ok(BOYUTLAR.some((boyut) => boyut[0] === 900 && boyut[1] === 600));
   const plan = planNesnesi({ arama: true });
-  assert.equal(plan.boyutlar.length, BOYUTLAR.length + 1);
-  assert.deepEqual(plan.boyutlar.at(-1), [...ARAMA_EK_BOYUTU]);
+  assert.equal(plan.boyutlar.length, BOYUTLAR.length);
+  assert.deepEqual(plan.boyutlar, BOYUTLAR.map((boyut) => [...boyut]));
   for (const cekim of plan.cekimler) {
     assert.ok(cekim.js.includes('arama: true'));
     assert.doesNotThrow(() => new Function(`return (async () => {\n${cekim.js}\n});`));
   }
   // Sürücünün argüman çözümü de aynı listeyi verir (iki yol tek kaynaktan — ADR-023/4).
-  assert.equal(seceneklerioku(['--arama']).boyutlar.length, BOYUTLAR.length + 1);
+  assert.equal(seceneklerioku(['--arama']).boyutlar.length, BOYUTLAR.length);
   assert.equal(seceneklerioku([]).boyutlar.length, BOYUTLAR.length);
   assert.equal(seceneklerioku(['--arama', '--boyut', '800x360']).boyutlar.length, 1);
+  // 900x600 artık `--boyut 900x600` ile de tanınır (adıyla birlikte).
+  assert.deepEqual(seceneklerioku(['--boyut', '900x600']).boyutlar, [[900, 600, 'kademe-900']]);
 });
 
 test('öğe kümesi planın §5\'indeki bütün öğeleri kapsar ve index.html\'de var', () => {

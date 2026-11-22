@@ -27,7 +27,7 @@ import {
   TABLO_BASLIKLARI, markdownTablosu, olcumSatiri, ozetSatirlari, halkaCiftleriniAyir,
 } from './yardimci/yerlesim-cakisma.js';
 import {
-  ARAMA_EK_BOYUTU, BOYUTLAR, sayfaBetigi, planNesnesi,
+  BOYUTLAR, sayfaBetigi, planNesnesi,
 } from './yardimci/yerlesim-olcum-betigi.js';
 import { DURUMLAR } from './yardimci/yerlesim-olcum-sayfa.js';
 
@@ -66,8 +66,8 @@ export const KULLANIM = [
   '  --tohum <sayi>         dağıtım tohumu (varsayılan 20261122)',
   '  --sunucu-yok           sunucuyu başlatma (zaten koşuyorsa)',
   '  --arama                ölçek araması: --istaka-olcek kademe kademe denenir, ölçülen',
-  '                         bütçe terimleri + deneme tablosu ekrana yazılır; plana 900x600',
-  '                         kademe boyutu eklenir (ADR-022/5, tasokey#68)',
+  '                         bütçe terimleri + deneme tablosu ekrana yazılır (ADR-022/5,',
+  '                         tasokey#68); boyut listesi iki kipte de aynıdır (tasokey#71)',
 ].join('\n');
 
 /**
@@ -130,11 +130,10 @@ export function seceneklerioku(argv) {
       default: throw new Error(`bilinmeyen seçenek: ${bayrak}`);
     }
   }
-  // Ölçek aramasında (tasokey#68) 900px kademesinin en dar kabul boyutu da ölçülür — planın §5
-  // boyut listesinde o kademeye düşen bir boyut yok (ADR-022/5).
+  // tasokey#71: 900x600 artık BOYUTLAR listesindedir (tasokey#70 planı §5) — ölçek araması için
+  // ayrı bir ek boyut yok, iki kip de aynı altı boyutu ölçer.
   if (secenekler.boyutlar.length === 0) {
-    const liste = secenekler.arama ? [...BOYUTLAR, ARAMA_EK_BOYUTU] : BOYUTLAR;
-    secenekler.boyutlar = liste.map((b) => [...b]);
+    secenekler.boyutlar = BOYUTLAR.map((b) => [...b]);
   }
   if (secenekler.durumlar.length === 0) secenekler.durumlar = [...DURUMLAR];
   return secenekler;
