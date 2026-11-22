@@ -75,6 +75,47 @@ export function sozlukleriBirlestir(...sozlukler) {
   return birlesik;
 }
 
+/**
+ * Bir `@media` sorgusu verilen görünüm ölçüsünde geçerli mi (`{genislik, yukseklik}` px).
+ * `kose-atma-alani.test.js` içinde yazılmıştı (tasokey#63); tasokey#64 iş 2'de buraya taşındı:
+ * sığdırma bütçesi öz-testi de "bu boyutta hangi kademe kazanıyor?" sorusunu soruyor ve kademe
+ * sözlüğü GEÇERLİ BÜTÜN blokların sırasıyla birleşimidir (`kademeSozlukleri` her bloğu tek
+ * başına temel sözlükle birleştirir — 844x390 gibi ÜÇ bloğun birden uyduğu boyutta yetmez).
+ */
+export function medyaSorgusuUyuyor(sorgu, { genislik, yukseklik }) {
+  const yon = genislik >= yukseklik ? 'landscape' : 'portrait';
+  for (const [, ozellik, ham] of sorgu.matchAll(/\(\s*([a-z-]+)\s*:\s*([^)]+)\)/g)) {
+    const sayi = Number.parseFloat(ham);
+    if (ozellik === 'max-width' && !(genislik <= sayi)) return false;
+    if (ozellik === 'min-width' && !(genislik >= sayi)) return false;
+    if (ozellik === 'max-height' && !(yukseklik <= sayi)) return false;
+    if (ozellik === 'min-height' && !(yukseklik >= sayi)) return false;
+    if (ozellik === 'orientation' && ham.trim() !== yon) return false;
+  }
+  return true;
+}
+
+/**
+ * Verilen görünüm ölçüsünde GEÇERLİ değişken sözlüğü: temel `:root` + uyan her `@media`
+ * bloğunun `:root` geçersiz kılmaları, CSS sırasıyla (sonraki kazanır).
+ * `ekler`: CSS dışından gelen değişkenler (ör. `arayuz/raf.js` RAF_SUTUN_SAYISI).
+ */
+export function boyutSozlugu(css, boyut, ekler = new Map()) {
+  const metin = yorumlariAt(css);
+  const kokBasi = metin.indexOf(':root');
+  if (kokBasi === -1) throw new Error('CSS içinde :root bloğu yok');
+  const sozlukler = [degiskenleriTopla(blokGovdesi(metin, metin.indexOf('{', kokBasi)).govde)];
+
+  for (const { sorgu, govde } of medyaBloklari(css)) {
+    if (!medyaSorgusuUyuyor(sorgu, boyut)) continue;
+    const icKok = govde.indexOf(':root');
+    if (icKok === -1) continue;
+    sozlukler.push(degiskenleriTopla(blokGovdesi(govde, govde.indexOf('{', icKok)).govde));
+  }
+
+  return sozlukleriBirlestir(...sozlukler, ekler);
+}
+
 /** `{ ... }` bloğunu süslü parantez dengesiyle çıkarır; `basIndex` açılış parantezini gösterir. */
 function blokGovdesi(metin, basIndex) {
   let derinlik = 0;
@@ -128,6 +169,22 @@ export function varCoz(ifade, sozluk, derinlik = 0) {
   });
 }
 
+/**
+ * Birden çok argüman alan karşılaştırma işlevleri (tasokey#64 iş 2): taş ölçüsü artık
+ * `clamp(taban, taban * ölçek, taban * tavan)` ile türetiliyor (ADR-022/3), yani ölçüyü
+ * değişkenden okuyan bütün testler bu üç işlevi hesaplayabilmek zorunda. Argümanların birimi
+ * aynı olmalı — karışık birim CSS'te de geçersizdir (bildirim düşer).
+ */
+const COK_ARGUMANLI = Object.freeze({
+  min: (degerler) => Math.min(...degerler),
+  max: (degerler) => Math.max(...degerler),
+  clamp: (degerler) => {
+    if (degerler.length !== 3) throw new Error(`clamp() üç argüman bekler (${degerler.length} geldi)`);
+    const [enKucuk, deger, enBuyuk] = degerler;
+    return Math.min(Math.max(deger, enKucuk), enBuyuk);
+  },
+});
+
 /** `{sayi, birim}` döndürür; birim '' (saf sayı), 'px', '%', 'rem'… */
 export function ifadeHesapla(ham) {
   const metin = ham.replace(/\bcalc\(/g, '(');
@@ -136,8 +193,30 @@ export function ifadeHesapla(ham) {
 
   function etiket(birim) { return birim === '' ? 'birimsiz sayı' : birim; }
 
+  /** `min(a, b, …)` / `max(…)` / `clamp(alt, deger, ust)` — virgülle ayrılmış argüman listesi. */
+  function cokArgumanli(ad, onekUzunlugu) {
+    i += onekUzunlugu;
+    const argumanlar = [];
+    for (;;) {
+      argumanlar.push(toplam());
+      bosluk();
+      if (metin[i] === ',') { i += 1; continue; }
+      if (metin[i] === ')') { i += 1; break; }
+      throw new Error(`${ad}() içinde çözümlenemeyen belirteç: ${metin.slice(i, i + 16)}`);
+    }
+    const birimler = [...new Set(argumanlar.map((a) => a.birim))];
+    if (birimler.length > 1) {
+      throw new BirimHatasi(
+        `${ad}() argümanlarının birimi aynı değil (${birimler.map(etiket).join(', ')})`,
+      );
+    }
+    return { sayi: COK_ARGUMANLI[ad](argumanlar.map((a) => a.sayi)), birim: birimler[0] };
+  }
+
   function birimselDeger() {
     bosluk();
+    const islev = /^(min|max|clamp)\s*\(/i.exec(metin.slice(i));
+    if (islev) return cokArgumanli(islev[1].toLowerCase(), islev[0].length);
     if (metin[i] === '(') {
       i += 1;
       const ic = toplam();

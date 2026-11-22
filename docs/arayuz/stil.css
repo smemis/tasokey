@@ -24,10 +24,61 @@
   --tas-kenar-renk: #3a3226;
   --tas-kenar-opaklik: 0.2;
 
-  --tas-genislik: 58px;
-  --tas-yukseklik: 82px;
-  --tas-arka-genislik: 36px;
-  --tas-arka-yukseklik: 52px;
+  /* Taş ölçüsü İKİ KATMANLIDIR (ADR-022, tasokey#64 iş 2): kademe merdiveni artık TABAN'dır,
+     görünen ölçü tabanın --istaka-olcek katıdır. Taban değerleri tasokey#13'ten beri aynıdır
+     (ölçek 1 bütün kademelerde bugünkü düzeni birebir geri verir — kapatma anahtarı). */
+  --tas-taban-genislik: 58px;
+  --tas-taban-yukseklik: 82px;
+  --tas-arka-taban-genislik: 36px;
+  --tas-arka-taban-yukseklik: 52px;
+  /* Oyuncunun ıstakasının ve taşların tek ölçek değişkeni (ADR-022, R-009). Kademe başına değeri
+     SEÇİLMEZ, ÖLÇÜLÜR: her kademenin en dar kabul boyutunda sığdırma bütçesi (plan §4;
+     testler/yardimci/sigdirma-butcesi.js) sağlanmak zorundadır, ölçüm iş 1'in aracıyla yapılır
+     (testler/yerlesim-cakisma.olcum.js → çakışma/taşma 0). Kapatma anahtarı: bu değeri 1 yapmak
+     bütün kademelerde tasokey#13 düzenine döner (testler/istaka-olcek.test.js kabul-c ölçer).
+     Kabul boyutu 1920x1080: bütçe 2,17 (tavanın üstü) diyordu ama TARAYICI ÖLÇÜMÜ 1,85 dayattı
+     (tasokey#68 2. çekim turu) — 1,90'da ıstaka kendi ızgara satırını aşıp orta satırın alta
+     yaslı göstergesini örtüyor (#rafAlani ∩ #merkez + ∩ #gosterge). Ölçülen kazanır (ADR-022/5);
+     bütçe yalnız ikinci, daha gevşek denetimdir. Tek kaynak: sigdirma-butcesi.js
+     OLCULEN_OLCEK_TAVANI. */
+  --istaka-olcek: 1.85;
+  /* Sığdırma bütçesinin (plan §4 dikey eşitsizliği) METİN SATIRI terimi — ÖLÇÜLEN tek değişken
+     (ADR-022/5): ıstaka başlığı + deste sütununun taş boyunu aşan payı (başlık + sayaç + ipucu
+     satırları ve `.yigin` boşlukları). rem tabanlı olduğu için CSS içinde px'e çevrilemez, bu
+     yüzden tarayıcıda ölçülür ve buraya YAZILIR (tasokey#68 1. çekim turu, en kötü metin durumu:
+     rafBaslik 17 + (merkez 150 − taş 82) = 85). Kademeyle yalnız `.yigin` boşluğu ve yazı ölçüsü
+     değiştiğinde değişir — aşağıda yalnız yatay+kısa kademe onu geçersiz kılar. Bu değişkeni
+     hiçbir CSS kuralı kullanmaz: bütçenin tek kaynağıdır, öz-test (sigdirma-butcesi.test.js)
+     buradan okur ki eşitsizliğe çıplak sayı girmesin. */
+  --sigdirma-metin-payi: 85px;
+  /* "En çok 2 kat" kuralı — TEK YER (ADR-022/3). Aşağıdaki clamp()'ler tavanı buradan okur,
+     öz-test de (kabul-b) hiçbir kademenin bu değeri aşmadığını buradan ölçer. */
+  --istaka-olcek-tavan: 2;
+  /* Görünen taş ölçüsü: taban ile taban×tavan arasında, taban×ölçek. clamp() alt sınırı tabandır
+     → ölçek 1'in altına inse bile taş KÜÇÜLMEZ (küçülme regresyonu yasak); üst sınır tavandır
+     → ölçek yanlışlıkla büyütülse bile taş 2 katı geçmez. Bu dört değişkenin ADI değişmedi:
+     ıstaka, köşe, deste, rakip çubuğu ve sürükleme kopyası ölçülerini bunlardan türetmeye devam
+     eder (ADR-010/012/014/019/021 değişmez). */
+  --tas-genislik: clamp(
+    var(--tas-taban-genislik),
+    var(--tas-taban-genislik) * var(--istaka-olcek),
+    var(--tas-taban-genislik) * var(--istaka-olcek-tavan)
+  );
+  --tas-yukseklik: clamp(
+    var(--tas-taban-yukseklik),
+    var(--tas-taban-yukseklik) * var(--istaka-olcek),
+    var(--tas-taban-yukseklik) * var(--istaka-olcek-tavan)
+  );
+  --tas-arka-genislik: clamp(
+    var(--tas-arka-taban-genislik),
+    var(--tas-arka-taban-genislik) * var(--istaka-olcek),
+    var(--tas-arka-taban-genislik) * var(--istaka-olcek-tavan)
+  );
+  --tas-arka-yukseklik: clamp(
+    var(--tas-arka-taban-yukseklik),
+    var(--tas-arka-taban-yukseklik) * var(--istaka-olcek),
+    var(--tas-arka-taban-yukseklik) * var(--istaka-olcek-tavan)
+  );
   /* Rakam alanı: tas-govde.svg'deki data-alan="rakam" dikdörtgeniyle (viewBox 100x140,
      x=18 y=16 w=64 h=78) eşleşen yüzde konum/ölçü; ADR-011 (tasokey#28). */
   --tas-rakam-sol: 18%;
@@ -40,10 +91,17 @@
   /* El bittiğinde açılan rakip ıstakası (Sahip ek bilgisi, 2026-11-20): taşlar kendi ölçüsünün
      bu oranında çizilir ki 14-15 taş kenara sığsın; sütun sayıları yatay (üst) ve dikey
      (sol/sağ) kenar için ayrı. Ölçek her duyarlı kademede kendiliğinden küçülür, çünkü taban
-     --tas-genislik/--tas-yukseklik'ten türer (tek kaynak). */
+     merdiveni (--tas-taban-*) kademelidir.
+     TABANA bağlıdır, --istaka-olcek'e DEĞİL (ADR-022 sürüm 2, madde 6 muafiyeti): bu taşlar
+     çubuğun DIŞINA mutlak konumla serilir (.kenar-taslar left/right: 100%), sığdıkları yer ise
+     masanın orta satırı (--masa-orta-satir) ile çubuğun uzunluğudur — ikisi de ölçeğe bağlı
+     değildir. Ölçekle büyütülünce sol/sağ yığın (2 sütun × 8 satır) orta satırı aşıp köşe
+     hücrelerine girer ve ADR-014'ün hedef halkasına çarpar: üç kademede +8 yeni çakışma
+     (tasokey#68 3. çekim turu, #kenarSol/SagTaslar ∩ #koseSol/SagAlt::after). Kural: bir ölçü
+     ölçeğe ancak KENDİ KUTUSU da ölçekle büyüyorsa bağlanır. */
   --rakip-acik-olcek: 0.6;
-  --rakip-acik-tas-genislik: calc(var(--tas-genislik) * var(--rakip-acik-olcek));
-  --rakip-acik-tas-yukseklik: calc(var(--tas-yukseklik) * var(--rakip-acik-olcek));
+  --rakip-acik-tas-genislik: calc(var(--tas-taban-genislik) * var(--rakip-acik-olcek));
+  --rakip-acik-tas-yukseklik: calc(var(--tas-taban-yukseklik) * var(--rakip-acik-olcek));
   --rakip-acik-bosluk: 2px;
   --rakip-acik-sutun-yatay: 8;
   --rakip-acik-sutun-dikey: 2;
@@ -54,6 +112,10 @@
      calc() toplamında uzunluklarla toplanıyor; birimsiz `0` orada <number> sayılır, uzunlukla
      toplanamaz ve bütün formülü geçersiz kılar → üst rakibin çubuğu hiç çizilmez. */
   --raf-yuva-bosluk: 0px;
+  /* Istaka panelinin (#rafAlani) iç dikey boşluğu: başlık ile taş sıraları arası. TEK KAYNAK
+     (tasokey#64 iş 2): sığdırma bütçesinin (plan §4 dikey eşitsizliği) "raf-bosluk" terimi bu
+     değişkenden okunur, öz-teste sayı yazılmaz. Önceden kuralın içinde 8px/4px yazıyordu. */
+  --raf-bosluk: 8px;
   /* Rakip ıstakası artık yalnız ince ahşap sırt (taş çizilmez — Sahip ek bilgisi, 2026-11-20):
      --rakip-raf-kalinlik çubuğun gerçek inceliğidir (sol/sağda genişlik, üstte yükseklik).
      --rakip-raf-uzunluk sol/sağ çubuğun taban (min-height) uzunluğu; gerçek uzunluk artık ızgaranın
@@ -592,7 +654,7 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: var(--raf-bosluk);
   padding: var(--panel-dolgu);
   min-height: max-content;
   background-image: url('../gorsel/istaka.svg');
@@ -904,10 +966,15 @@ html, body {
    `orientation: portrait` sorgusu) — bu kademeler ona uygulanmaz. */
 @media (max-width: 1300px) {
   :root {
-    --tas-genislik: 50px;
-    --tas-yukseklik: 72px;
-    --tas-arka-genislik: 30px;
-    --tas-arka-yukseklik: 44px;
+    --tas-taban-genislik: 50px;
+    --tas-taban-yukseklik: 72px;
+    --tas-arka-taban-genislik: 30px;
+    --tas-arka-taban-yukseklik: 44px;
+    /* Kabul boyutları 1280x800 ve 1180x820. Bütçe 1,48 diyordu; TARAYICI ÖLÇÜMÜ (tasokey#68
+       2. tur) 1280x800'de 1,35, 1180x820'de 1,40 verdi → bağlayıcı olan 1280x800, ölçek 1,35.
+       (Bütçe bağlayıcıyı 1180x820 sanıyordu: kesirli ızgara satırları toplam bütçeyle
+       modellenemiyor — sigdirma-butcesi.js OLCULEN_OLCEK_TAVANI.) */
+    --istaka-olcek: 1.35;
     --masa-bosluk: 18px;
     --masa-cerceve-kalinlik: 11px;
     --rakip-raf-uzunluk: 190px;
@@ -921,10 +988,15 @@ html, body {
 
 @media (max-width: 900px) {
   :root {
-    --tas-genislik: 42px;
-    --tas-yukseklik: 60px;
-    --tas-arka-genislik: 24px;
-    --tas-arka-yukseklik: 36px;
+    --tas-taban-genislik: 42px;
+    --tas-taban-yukseklik: 60px;
+    --tas-arka-taban-genislik: 24px;
+    --tas-arka-taban-yukseklik: 36px;
+    /* Kabul boyutu 900x600: bütçe 1,34 diyordu, TARAYICI ÖLÇÜMÜ (tasokey#68 2. tur) 1,05 —
+       1,10'da ıstaka göstergeyi 4 px örtüyor. Bu kademede kazanç çok azdır; büyütmenin yolu
+       orta satırın payını (--masa-orta-satir) ya da metin satırlarını değiştirmektir
+       (ADR-022 Seçenek D / Sonuçlar f — Sahip ve Mimar kararı). */
+    --istaka-olcek: 1.05;
     --masa-bosluk: 14px;
     --masa-dolgu: 10px;
     --masa-cerceve-kalinlik: 8px;
@@ -936,10 +1008,16 @@ html, body {
 
 @media (max-width: 480px) {
   :root {
-    --tas-genislik: 34px;
-    --tas-yukseklik: 50px;
-    --tas-arka-genislik: 18px;
-    --tas-arka-yukseklik: 28px;
+    --tas-taban-genislik: 34px;
+    --tas-taban-yukseklik: 50px;
+    --tas-arka-taban-genislik: 18px;
+    --tas-arka-taban-yukseklik: 28px;
+    /* Bu kademe YALNIZ telefon dikeyde (≤480px) geçerlidir ve orada oyun alanı gizlidir
+       ("telefonu yan çevir" uyarısı, ADR-012) — yatayda bu genişlikte yükseklik her zaman
+       500px'in altında kalır, yani aşağıdaki yatay+kısa kademe kazanır. Bu yüzden ölçeği
+       ÖLÇÜLMEDİ; değer yalnız art arda gelen kademelerin devralmasıyla (cascade) öz-testteki
+       kademe sözlüğünü aynı tutmak için yazılı (tasokey#64 iş 2). */
+    --istaka-olcek: 1;
     --masa-bosluk: 8px;
     --masa-dolgu: 6px;
     --masa-cerceve-kalinlik: 6px;
@@ -959,10 +1037,22 @@ html, body {
    çünkü telefon yatayda genişlik 900px kademesine düşse de yükseklik çok daha dar kalır. */
 @media (orientation: landscape) and (max-height: 500px) {
   :root {
-    --tas-genislik: 25px;
-    --tas-yukseklik: 36px;
-    --tas-arka-genislik: 13px;
-    --tas-arka-yukseklik: 20px;
+    --tas-taban-genislik: 25px;
+    --tas-taban-yukseklik: 36px;
+    --tas-arka-taban-genislik: 13px;
+    --tas-arka-taban-yukseklik: 20px;
+    /* Bağlayıcı kabul boyutu 800x360: bu kademede KAZANÇ YOK (ADR-022 Sonuçlar/e). Bütçe 1,09
+       diyordu; tarayıcı ölçümü (tasokey#68 2. tur) 800x360'ta ölçek 1'de ZATEN 2 çakışma buldu
+       (#rafAlani ∩ #merkez 308x10, ∩ #gosterge 6x10) ve ilk basamakta (1,05) ikisi de büyüyor
+       → `buyumez0` yok, ölçek 1'de kalır. 844x390 ölçek 1'de temiz ve 1,05'e izin veriyor, ama
+       kademenin değeri en dar kabul boyutundan gelir. O 2 çakışma TABANDAN gelir (tasokey#67
+       "önce" ölçümünde de vardı), bu işin kapsamı değil — raporun Öneriler'inde.
+       Büyütmenin tek yolu metin satırlarını kaldırmak (ADR-022 Seçenek D) — ÜRÜN kararı. */
+    --istaka-olcek: 1;
+    --raf-bosluk: 4px;
+    /* Ölçülen metin payı bu kademede 79 px: `.yigin { gap: 4px }` (aşağıda) üç boşluğu 6'dan
+       4'e indiriyor → 85 − 3·2 = 79 (tasokey#68 1. çekim turu, 844x390 ve 800x360'ta aynı). */
+    --sigdirma-metin-payi: 79px;
     --masa-bosluk: 6px;
     --masa-dolgu: 4px;
     --masa-cerceve-kalinlik: 4px;
@@ -982,7 +1072,7 @@ html, body {
      tamamı olduğundan (height: 100%, tasokey#63) satırın dışına taşamaz, ama min-height satırı
      büyütüp Sahip'in kendi ıstakasını sıkıştırabilir (R-014/#32 düzeltmesini bozmamak için —
      Sahip'in kendi ıstakası öncelikli, tasokey#33). */
-  #rafAlani, .yigin { gap: 4px; }
+  .yigin { gap: 4px; }
   .kenar-raf-dikey { min-height: 0; }
 }
 
