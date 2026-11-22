@@ -995,7 +995,11 @@ html, body {
     /* Kabul boyutu 900x600: bütçe 1,34 diyordu, TARAYICI ÖLÇÜMÜ (tasokey#68 2. tur) 1,05 —
        1,10'da ıstaka göstergeyi 4 px örtüyor. Bu kademede kazanç çok azdır; büyütmenin yolu
        orta satırın payını (--masa-orta-satir) ya da metin satırlarını değiştirmektir
-       (ADR-022 Seçenek D / Sonuçlar f — Sahip ve Mimar kararı). */
+       (ADR-022 Seçenek D / Sonuçlar f — Sahip ve Mimar kararı).
+       tasokey#72: 900x600 yatay olduğu için orada artık kısa yatay DÜZEN VARYANTI kazanıyor ve
+       ölçek oradan 1,25 geliyor. Bu değer VARYANTSIZ hâlin ölçüsü olarak kalır (kapatma anahtarı:
+       varyant bölgesi silinince 900x600 yine 1,05'e döner) ve 900px genişliğindeki yatay OLMAYAN
+       görünümlerin ölçüsüdür. */
     --istaka-olcek: 1.05;
     --masa-bosluk: 14px;
     --masa-dolgu: 10px;
@@ -1047,7 +1051,11 @@ html, body {
        → `buyumez0` yok, ölçek 1'de kalır. 844x390 ölçek 1'de temiz ve 1,05'e izin veriyor, ama
        kademenin değeri en dar kabul boyutundan gelir. O 2 çakışma TABANDAN gelir (tasokey#67
        "önce" ölçümünde de vardı), bu işin kapsamı değil — raporun Öneriler'inde.
-       Büyütmenin tek yolu metin satırlarını kaldırmak (ADR-022 Seçenek D) — ÜRÜN kararı. */
+       Büyütmenin tek yolu metin satırlarını kaldırmak (ADR-022 Seçenek D) — ÜRÜN kararı.
+       tasokey#72: o yol GEREKMEDİ. Kısa yatay DÜZEN VARYANTI (tasokey#71) metni kaldırmadan taşıdı
+       ve yan çubuk bandının orta sütununu boşalttı → 800x360'ta ölçek 1'deki 2 çakışma kalktı,
+       ölçüm 1,95'e izin verdi. Varyant aşağıda ölçeği geçersiz kılar; buradaki 1 VARYANTSIZ hâlin
+       (kapatma anahtarı) ölçüsü olarak kalır. */
     --istaka-olcek: 1;
     --raf-bosluk: 4px;
     /* Ölçülen metin payı bu kademede 79 px: `.yigin { gap: 4px }` (aşağıda) üç boşluğu 6'dan
@@ -1095,10 +1103,48 @@ html, body {
    ETKİN DEĞİL (öz-test kabul-c). Blok yukarıdaki `max-height: 500px` kademesinden SONRA durur:
    iki sorgunun birden uyduğu boyutlarda (telefon yatay) varyantın değerleri kazanmalı.
 
-   Ölçek değerleri burada DEĞİŞMEZ (tasokey#71 kapsamı): `--istaka-olcek` ve taban taş merdiveni
-   geçersiz kılınmaz, kazanç yapısaldır. Değerler tasokey#70 iş 2'de ÖLÇÜLEREK seçilecek. */
+   ÖLÇEK DEĞERLERİ BURADADIR (tasokey#72, tasokey#70 planı §6.2). Varyantın kazancı yapısaldır ama
+   ölçülebilir: dikey zincir dört taş boyundan üçe indiği için ıstaka ve taşlar büyüyebilir. Değerler
+   ADR-022/5 gereği SEÇİLMEZ, ÖLÇÜLÜR (tasokey#72 1. çekim turu) ve VARYANTIN İÇİNDE durur — taban
+   kademeler tasokey#68'in değerlerini (900px → 1,05 · yatay+kısa → 1) korur, yani bu bölgeyi silmek
+   hem düzeni hem ölçeği birebir geri verir (kapatma anahtarı = yalıtım, karar maddesi 7).
+   Taban taş merdiveni burada yine geçersiz kılınmaz: değişen yalnız ölçektir. */
 @media (orientation: landscape) and (max-height: 700px) {
   :root {
+    /* Bağlayıcı kabul boyutu 800x360 (ayrıca 844x390). ÖLÇÜLDÜ (tasokey#72 1. çekim turu,
+       `is/tasokey-72/ekran/olcum-*-telefon-*.png` "ARAMA enCok" satırı):
+         · `durum=el`    800x360 **1,95** · 844x390 **2,00** (aramanın tavanı)
+         · `durum=rakip` 800x360 **1,20** · 844x390 **1,40**
+       tasokey#68'de bu kademede ölçek 1'di ve ölçek 1'de BİLE 2 çakışma vardı
+       (#rafAlani ∩ #merkez + ∩ #gosterge); varyantın yan çubuk bandındaki boş orta sütunu
+       (karar maddesi 2) o çifti kaldırdığı için kazanç ilk kez ölçülebildi. `el` yönünde bağlayıcı
+       olan YATAY bütçedir — bkz. aşağıdaki --sigdirma-raf-baslik-payi.
+
+       YAZILAN DEĞER İKİ DURUMUN EN KÜÇÜĞÜDÜR (1,20): el sonunda açılan rakip ıstakası görünürken
+       #merkez kendi bandını aşıp üst rakibin açılan taşlarına giriyor (ölçüm: 1,25'te
+       `#merkez ∩ #kenarUstTaslar`; öz-test karşılığı kisa-yatay-varyant kabul-h). Böylece iş 1'in
+       "durum=rakip'te YENİ çakışma 0" ölçütü bozulmadan geçer ve hiçbir denetim gevşetilmez.
+       AÇIK SORU (Sahip kapısı, tasokey#72 raporu): ADR-022 Seçenek F "birkaç saniyelik bir durum
+       kalıcı ölçüyü belirlemesin" diyor — o okumayla değer 1,95 olurdu. Bedeli kabul-h'nin 800x360
+       savını gevşetmek ve ADR-022/6'ya yeni bir açık madde yazmaktır; karar Sahip'te. */
+    --istaka-olcek: 1.2;
+    /* Varyantın sığdırma bütçesi (plan §4'ün varyant karşılığı) — ÖLÇÜLEN iki terim (ADR-022/5):
+       varyant metni KALDIRMAZ, TAŞIR (yığınlar ve ıstaka paneli yatay akar), yani metnin payı
+       dikeyden yataya geçer. İkisi de rem tabanlı yazı ölçüsünden geldiği için CSS içinde px'e
+       çevrilemez → tarayıcıda ölçülüp buraya YAZILIR, tahmin yazılmaz.
+       Bu değişkenleri hiçbir CSS kuralı kullanmaz: bütçenin tek kaynağıdır, öz-test
+       (sigdirma-butcesi.test.js) buradan okur ki eşitsizliğe çıplak sayı girmesin. */
+    /* DİKEY: deste/gösterge yığınında taş DIŞINDAKİ en yüksek öğe. Yığın yatay aktığı için üst
+       içerik bandının yüksekliği max(taş, bu pay)tır — taban kademedeki dört metin satırı yerine
+       tek terim. Ölçüldü: üç varyant boyutunda da 17 (1. çekim turu, BUTCE-V satırı). */
+    --sigdirma-yan-metin-payi: 17px;
+    /* YATAY: "Istakam" başlığı taşların yanına geçince orta sütuna eklediği GENİŞLİK (karar
+       maddesi 4). Ölçüldü: 43,6 (altı boyutun hepsinde aynı — başlığın yazı boyu kademeye göre
+       değişmiyor). Varyantta bağlayıcı yön budur: 900x600'de yatay bütçe ölçeği 1,25'te durdurur
+       (12 taş + başlık + iki köşe sütunu masanın 864 px'ine ancak sığıyor), tarayıcı ölçümü de
+       1,30'da 13 px yatay taşma gördü. Dikey payı ise ÖLÇÜLDÜ ve 0'dır (başlık iki sıra taştan
+       kısa) → dikey eşitsizlikte terim yoktur; 0 varsayılmadı, ölçüldü. */
+    --sigdirma-raf-baslik-payi: 43.6px;
     /* Yan çubuk bandı varyantta kısalır (uzunluk ızgara bandından gelir, tasokey#63) ve üst çubuk
        bandı artık `auto`dur — bandın BÜTÜN yüksekliği bu kalınlıktır, yani buradan alınan her px
        öbür üç banttan düşer. İnce sırt kuralı (uzunluk/kalınlık >= 6) ölçülen BANT uzunluğuyla
@@ -1186,7 +1232,27 @@ html, body {
     align-items: center;
   }
 }
-/* ===== KISA YATAY DÜZEN VARYANTI — BİTİŞ (tasokey#71) ===== */
+
+/* Varyantın İKİNCİ bloğu (tasokey#72) — yalnız ÖLÇEK. Varyant üç kabul boyutunu birden kapsar ama
+   ölçek kademe başına ÖLÇÜLÜR (ADR-022/5) ve 900x600'ün tabanı daha büyüktür (42x60; telefonda
+   25x36), bu yüzden aynı yatay bütçe orada daha küçük bir ölçeğe izin verir. Sorgu, varyantın
+   yukarıdaki bandının YALNIZ üst dilimidir (501…700 px yükseklik) → telefon yatay (<= 500) 1,95'te
+   kalır, 900x600 buradan 1,25 okur. Blok yukarıdakinden SONRA durur: devralma sırası budur.
+   Bölgenin parçasıdır — bölgeyi silmek ölçeği de taban kademeye (900px → 1,05) geri verir. */
+@media (orientation: landscape) and (min-height: 501px) and (max-height: 700px) {
+  :root {
+    /* Kabul boyutu 900x600. ÖLÇÜLDÜ (tasokey#72 1. çekim turu,
+       `is/tasokey-72/ekran/olcum-*-kademe-900.png` "ARAMA enCok" satırı):
+         · `durum=el`    **1,25** — 1,30'da sayfa YATAYDA 13 px taşıyor. Bütçe de aynı yönü ve aynı
+           değeri veriyor (bkz. --sigdirma-raf-baslik-payi) — ölçülen kazanır.
+         · `durum=rakip` **1,10** — 1,15'te ıstaka kendi bandını aşıp yan açık yığınlara giriyor
+           (`#rafAlani ∩ #kenarSol/SagTaslar`).
+       Yukarıdaki blokla aynı kural: yazılan değer iki durumun en küçüğüdür. Aynı açık soru burada
+       da var (el okumasıyla değer 1,25 olurdu) — Sahip kapısı, tasokey#72 raporu. */
+    --istaka-olcek: 1.1;
+  }
+}
+/* ===== KISA YATAY DÜZEN VARYANTI — BİTİŞ (tasokey#71, ölçekler tasokey#72) ===== */
 
 /* Telefon dikey uyarısı (R-014, ADR-012, tasokey#31): yön tespiti tamamen CSS ortam sorgusuyla
    yapılır (JS sabit karar vermez, bkz. ekran.js telefonUyarisiCiz — yalnız dil anahtarlı metni

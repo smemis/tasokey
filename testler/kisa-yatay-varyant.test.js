@@ -9,7 +9,7 @@ import {
   boyutSozlugu, degiskenOlcusu, kuralGovdeleri, medyaBloklari, medyaSorgusuUyuyor, yorumlariAt,
 } from './yardimci/css-olcu.js';
 import { alanSatirlari, bildirim, masaModeli } from './yardimci/masa-izleri.js';
-import { olculenMasaKutusu } from './yardimci/sigdirma-butcesi.js';
+import { olculenBantlar, olculenMasaKutusu } from './yardimci/sigdirma-butcesi.js';
 
 // tasokey#71 (üst iş tasokey#70, sınıf K) — KISA YATAY DÜZEN VARYANTININ YAPISI · R-014.
 // Karar: tasokey#70 planı §3 (maddeler 1-7); kararın numarası ve metni MIMARI.md'ye aynı üst işin
@@ -38,7 +38,9 @@ const BITIS_ISARETI = '===== KISA YATAY DÜZEN VARYANTI — BİTİŞ';
  * `yardimci/sigdirma-butcesi.js`) — masa yüksekliği esnek kaptan gelir, CSS'ten okunamaz.
  */
 function model(boyut) {
-  return masaModeli(STIL_CSS, boyut, EKLER, { masaIc: olculenMasaKutusu(boyut) });
+  return masaModeli(STIL_CSS, boyut, EKLER, {
+    masaIc: olculenMasaKutusu(boyut), bant: olculenBantlar(boyut),
+  });
 }
 
 /** Varyantın ETKİN olduğu kabul boyutları (plan §5) ve etkin OLMADIĞI gerilemesizlik boyutları. */
@@ -53,13 +55,31 @@ const ETKIN_OLMAYAN_BOYUTLAR = [
   { ad: '1920x1080', genislik: 1920, yukseklik: 1080 },
 ];
 
-/** Varyant bloğunun `@media` sorgusu (eşik 500px'ten büyük olan yatay+kısa blok). */
+/** Varyanta ait `@media` sorgusu mu (eşik 500px'ten büyük olan yatay+kısa sorgu)? */
+function varyantSorgusuMu(sorgu) {
+  return /orientation:\s*landscape/.test(sorgu) && Number.parseFloat(
+    (/max-height:\s*(\d+)/.exec(sorgu) ?? [])[1] ?? '0',
+  ) > 500;
+}
+
+/** Varyant bloklarının `@media` sorguları (tasokey#72'den beri iki tane: yapı + ikinci ölçek). */
 function varyantSorgulari() {
-  return medyaBloklari(STIL_CSS)
-    .map((blok) => blok.sorgu)
-    .filter((sorgu) => /orientation:\s*landscape/.test(sorgu) && Number.parseFloat(
-      (/max-height:\s*(\d+)/.exec(sorgu) ?? [])[1] ?? '0',
-    ) > 500);
+  return medyaBloklari(STIL_CSS).map((blok) => blok.sorgu).filter(varyantSorgusuMu);
+}
+
+/**
+ * Varyantın YAPI bloğu: masanın bant listesini yazan TEK blok. Kademeye özgü ikinci düzen buradan
+ * gelir; bölgedeki öbür blok(lar) yalnız ölçülen değer yazar (tasokey#72).
+ */
+function varyantYapiBlogu() {
+  const bloklar = medyaBloklari(STIL_CSS)
+    .filter((blok) => varyantSorgusuMu(blok.sorgu) && /grid-template-areas\s*:/.test(blok.govde));
+  assert.equal(
+    bloklar.length,
+    1,
+    `masanın bant listesini ${bloklar.length} varyant bloğu yazıyor (tek olmalı — tek kaynak)`,
+  );
+  return bloklar[0];
 }
 
 /** `stil.css`in varyant bloğu ÇIKARILMIŞ hâli (kapatma anahtarı: bloğu silmek). */
@@ -77,34 +97,73 @@ function varyantsizCss() {
 
 /* ---------------------------------------------------------------------------------- kabul-a */
 
-test('kabul-a: varyant TEK bir @media bloğudur ve adlandırılmış başlangıç/bitiş yorumu taşır', () => {
+test('kabul-a: varyantın BÜTÜN blokları adlandırılmış başlangıç/bitiş yorumunun arasındadır', () => {
+  // tasokey#72: bölge artık İKİ blok (yapı + ölçek · 501…700 px dilimi için ikinci ölçek). Kapatma
+  // anahtarının ölçütü "tek blok" değil YALITIMDIR: varyanta ait her blok işaretlerin ARASINDA
+  // durmalı ve bölgeyi kesmek onların HEPSİNİ birden götürmeli (yoksa silince yarım düzen kalır).
   const sorgular = varyantSorgulari();
-  assert.equal(
-    sorgular.length,
-    1,
-    `kısa yatay varyant ${sorgular.length} @media bloğuna yayılmış (${sorgular.join(' | ')}) — `
-    + 'kapatma anahtarı (bloğu silmek) tek blok olmadan ölçülemez',
-  );
+  assert.ok(sorgular.length >= 1, 'kısa yatay varyant bloğu CSS\'te yok');
   for (const isaret of [BAS_ISARETI, BITIS_ISARETI]) {
     const sayi = STIL_CSS.split(isaret).length - 1;
     assert.equal(sayi, 1, `"${isaret}" yorumu ${sayi} kez geçiyor (tek olmalı)`);
   }
-  // İşaretler bloğu gerçekten SARIYOR: başlangıç yorumu bloğun önünde, bitiş yorumu arkasında.
-  const blokBasi = STIL_CSS.indexOf(`@media ${sorgular[0].replace(/^@media\s*/, '')}`);
-  assert.ok(blokBasi > STIL_CSS.indexOf(BAS_ISARETI), 'başlangıç yorumu varyant bloğundan sonra');
-  assert.ok(blokBasi < STIL_CSS.indexOf(BITIS_ISARETI), 'bitiş yorumu varyant bloğundan önce');
-  // Blok çıkarıldığında geride varyanta ait hiçbir iz kalmıyor (bant listesi geçersiz kılması).
+  // İşaretler blokları gerçekten SARIYOR: her biri başlangıç yorumundan sonra, bitişten önce.
+  for (const sorgu of sorgular) {
+    const blokBasi = STIL_CSS.indexOf(`@media ${sorgu.replace(/^@media\s*/, '')}`);
+    assert.ok(blokBasi !== -1, `blok metinde bulunamadı: ${sorgu}`);
+    assert.ok(
+      blokBasi > STIL_CSS.indexOf(BAS_ISARETI) && blokBasi < STIL_CSS.indexOf(BITIS_ISARETI),
+      `varyant bloğu bölgenin dışında: ${sorgu}`,
+    );
+  }
+  // Bölge çıkarıldığında geride varyanta ait hiçbir iz kalmıyor (bant listesi, ölçek, işaretler).
   const kalan = varyantsizCss();
-  assert.equal(varyantSorgulari().length, 1);
   assert.ok(
     !kalan.includes(BAS_ISARETI) && !kalan.includes(BITIS_ISARETI),
-    'varyant bloğu çıkarıldığında yorum işaretleri geride kalıyor — kesme yeri yanlış',
+    'varyant bölgesi çıkarıldığında yorum işaretleri geride kalıyor — kesme yeri yanlış',
   );
   assert.equal(
     medyaBloklari(kalan).length,
-    medyaBloklari(STIL_CSS).length - 1,
-    'varyant bloğu çıkarıldığında @media sayısı yalnız bir azalmıyor',
+    medyaBloklari(STIL_CSS).length - sorgular.length,
+    'bölge çıkarıldığında @media sayısı varyant bloğu sayısı kadar azalmıyor',
   );
+  assert.equal(
+    medyaBloklari(kalan).filter((blok) => varyantSorgusuMu(blok.sorgu)).length,
+    0,
+    'bölge çıkarıldıktan sonra geride varyant sorgulu @media kalıyor',
+  );
+});
+
+test('kabul-a2: varyantın ölçeği BÖLGENİN İÇİNDE yazılı (kapatma anahtarı ölçeği de geri verir)', () => {
+  // ADR-022/5 gereği ölçek ölçülerek seçilir (tasokey#72) ama değerin geçerliliği varyantın
+  // YAPISINA bağlıdır: dört bantlı düzen olmadan 800x360'ta 1,95 anlamsızdır. Bu yüzden ölçek
+  // bölgenin içinde durur; bölge silinince taban kademelerin tasokey#68 değerleri (1,05 ve 1)
+  // yeniden kazanır — kapatma anahtarı hem düzeni hem ölçeği geri verir.
+  const kalan = varyantsizCss();
+  for (const { boyut, varyantli, varyantsiz } of [
+    { boyut: ETKIN_BOYUTLAR[0], varyantli: 1.2, varyantsiz: 1 },
+    { boyut: ETKIN_BOYUTLAR[1], varyantli: 1.2, varyantsiz: 1 },
+    { boyut: ETKIN_BOYUTLAR[2], varyantli: 1.1, varyantsiz: 1.05 },
+  ]) {
+    assert.equal(
+      degiskenOlcusu('--istaka-olcek', boyutSozlugu(STIL_CSS, boyut, EKLER)).sayi,
+      varyantli,
+      `${boyut.ad}: varyantlı ölçek beklenenden farklı`,
+    );
+    assert.equal(
+      degiskenOlcusu('--istaka-olcek', boyutSozlugu(kalan, boyut, EKLER)).sayi,
+      varyantsiz,
+      `${boyut.ad}: bölge silinince ölçek tasokey#68 değerine dönmüyor`,
+    );
+  }
+  // Masaüstü boyutlarında ölçek iki hâlde de AYNI (gerilemesizlik; kabul-b'nin ölçek yanı).
+  for (const boyut of ETKIN_OLMAYAN_BOYUTLAR) {
+    assert.equal(
+      degiskenOlcusu('--istaka-olcek', boyutSozlugu(STIL_CSS, boyut, EKLER)).sayi,
+      degiskenOlcusu('--istaka-olcek', boyutSozlugu(kalan, boyut, EKLER)).sayi,
+      `${boyut.ad}: varyant bölgesi masaüstü ölçeğini değiştiriyor`,
+    );
+  }
 });
 
 /* ---------------------------------------------------------------------------------- kabul-b */
@@ -175,7 +234,7 @@ test('kabul-b: varyant bloğunun DIŞI tasokey#68 ile birebir aynı (masaüstü 
 /* ---------------------------------------------------------------------------------- kabul-c */
 
 test('kabul-c: varyant 800x360/844x390/900x600\'te ETKİN, 1280x800/1180x820/1920x1080\'de DEĞİL', () => {
-  const [sorgu] = varyantSorgulari();
+  const { sorgu } = varyantYapiBlogu();
   for (const boyut of ETKIN_BOYUTLAR) {
     assert.equal(
       medyaSorgusuUyuyor(sorgu, boyut),
@@ -199,19 +258,19 @@ test('kabul-c: varyant 800x360/844x390/900x600\'te ETKİN, 1280x800/1180x820/192
 /* ---------------------------------------------------------------------------------- kabul-d */
 
 test('kabul-d: varyantta .kose kuralı ve grid-area geçersiz kılması YOK (ADR-010/012 korunur)', () => {
-  const [sorgu] = varyantSorgulari();
-  const blok = medyaBloklari(STIL_CSS).find((b) => b.sorgu === sorgu);
-  assert.ok(blok, 'varyant bloğunun gövdesi okunamadı');
-  assert.doesNotMatch(
-    blok.govde,
-    /(^|[,}\s])\.kose\s*\{/m,
-    'varyant .kose kuralını yeniden tanımlıyor — dört köşe tek kuraldan okunamaz (ADR-010 simetrisi)',
-  );
-  assert.doesNotMatch(
-    blok.govde,
-    /(^|;|\s)grid-area\s*:/,
-    'varyant bir öğenin grid-area\'sını geçersiz kılıyor — dört kenar/dört köşe yerleşimi (ADR-012) kademeye göre ayrışır',
-  );
+  // Bölgenin BÜTÜN blokları denetlenir (tasokey#72: iki blok).
+  for (const blok of medyaBloklari(STIL_CSS).filter((aday) => varyantSorgusuMu(aday.sorgu))) {
+    assert.doesNotMatch(
+      blok.govde,
+      /(^|[,}\s])\.kose\s*\{/m,
+      `${blok.sorgu}: .kose kuralı yeniden tanımlanmış — dört köşe tek kuraldan okunamaz (ADR-010)`,
+    );
+    assert.doesNotMatch(
+      blok.govde,
+      /(^|;|\s)grid-area\s*:/,
+      `${blok.sorgu}: bir öğenin grid-area'sı geçersiz kılınmış — dört kenar/dört köşe yerleşimi (ADR-012) kademeye göre ayrışır`,
+    );
+  }
   // Dokuz alanın grid-area ataması hâlâ TEK yerde (taban kurallarda) duruyor.
   for (const [secici, alan] of [
     ['#koseSolUst', 'solUst'], ['#kenarUst', 'ust'], ['#koseSagUst', 'sagUst'],

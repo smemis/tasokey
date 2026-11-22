@@ -7,7 +7,7 @@ import { yorumlariAt } from './yardimci/css-olcu.js';
 import {
   alanSatirlari, bildirim as beyan, izlerCoz, masaKullanilanYukseklik, masaModeli,
 } from './yardimci/masa-izleri.js';
-import { olculenMasaKutusu } from './yardimci/sigdirma-butcesi.js';
+import { olculenBantlar, olculenMasaKutusu } from './yardimci/sigdirma-butcesi.js';
 import { RAF_SUTUN_SAYISI } from '../docs/arayuz/raf.js';
 
 // tasokey#63 (sınıf K) — Sahip'in `tasokey#47`e düzeltmesi:
@@ -64,7 +64,9 @@ const OLCUM_BOYUTLARI = [
  * tahmini 360 px yükseklikte masaya yalnız 184 px bırakıyor ve bantları yanıltıyordu.
  */
 function masaOlcusu(boyut) {
-  return masaModeli(STIL_CSS, boyut, EKLER, { masaIc: olculenMasaKutusu(boyut) });
+  return masaModeli(STIL_CSS, boyut, EKLER, {
+    masaIc: olculenMasaKutusu(boyut), bant: olculenBantlar(boyut),
+  });
 }
 
 function bildirim(secici, ozellik, boyut) {

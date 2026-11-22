@@ -29,13 +29,14 @@ export const KABUK_YUKSEKLIGI_ALT_SINIRI_PX = 48;
 export const METIN_SATIRI_UST_SINIRI_PX = 32;
 /** #rafAlani ve #merkez içindeki dikey boşlukların üst sınırı (stil.css: 8px / 6px, dar 4px). */
 export const IC_BOSLUK_UST_SINIRI_PX = 16;
-/**
- * Kısa yatay varyantta ıstaka başlığı ("Istakam" / "My rack", <= 0,8rem) taşların YANINA geçer ve
- * orta sütunu kendi genişliği kadar büyütür (karar maddesi 4). Yazı genişliği burada ölçülemez →
- * ÜST SINIR yazılır: orta sütun en geniş, köşe sütunları en dar varsayılır, yani köşe kapsama
- * oranı iddiası en temkinli hâliyle kurulur. Gerçek değer tarayıcı ölçümünde görünür.
+/*
+ * Kısa yatay varyantta ıstaka başlığı ("Istakam" / "My rack") taşların YANINA geçer ve orta sütunu
+ * kendi genişliği kadar büyütür (karar maddesi 4). tasokey#71'de burada 80 px'lik bir ÜST SINIR
+ * yazılıydı (yazı genişliği CSS'ten okunamaz); tasokey#72'de değer TARAYICIDA ÖLÇÜLDÜ (43,6 px,
+ * altı boyutta da aynı) ve `--sigdirma-raf-baslik-payi` olarak CSS'e yazıldı → model artık tahmin
+ * değil o değişkeni okur (ADR-022/5, A9). Eski üst sınır ölçek büyüyünce köşe sütununu olduğundan
+ * dar gösteriyordu.
  */
-export const YAN_BASLIK_GENISLIK_UST_SINIRI_PX = 80;
 
 /** Masa ızgarasının dokuz alan adı (ADR-012 dört kenar + dört köşe + merkez). */
 export const MASA_ALANLARI = Object.freeze([
@@ -187,13 +188,17 @@ export function pxOlcu(ifade, sozluk) {
  * Bir görünüm ölçüsünde masanın bant modeli. Dönen alanlar:
  *  · `varyant`   — kısa yatay düzen varyantı mı (bant sayısı 3'ten fazla)
  *  · `satirAdlari` / `sutunAdlari` / `sablon`
- *  · `satirOlculeri[i]` — i. bandın ALT SINIRI (kendi içeriği en küçük, ÖBÜRLERİ en büyük
- *    alındığında çıkan ölçü; iz ölçüsü kendi içeriğinde artan, komşu içeriklerde azalandır)
+ *  · `satirOlculeri[i]` — i. bandın ölçüsü: `bant` verilirse TARAYICIDA ÖLÇÜLEN değer
+ *    (`sigdirma-butcesi.js` OLCULEN_MASA_KUTUSU), verilmezse ALT SINIRI (kendi içeriği en küçük,
+ *    ÖBÜRLERİ en büyük alındığında çıkan ölçü; iz ölçüsü kendi içeriğinde artan, komşu
+ *    içeriklerde azalandır). Alt sınır ölçek büyüdükçe gerçeğin çok altına düşer — bantlar
+ *    aslında ölçekten bağımsızdır (`auto` + `1fr 2fr 1fr`), bu yüzden ölçülen değer tercih edilir
+ *    (A9, tasokey#72)
  *  · `koseler` — üst/alt köşe hücresi ve onu çevreleyen boş bölge
  *  · `yanBantUzunlugu` — sol/sağ çubuk bandının ölçüsü (ince sırt oranının BÖLENİ)
  *  · `cubukUzunluk` — çubuğun o bantta gerçekten kapladığı uzunluk
  */
-export function masaModeli(css, boyut, ekler = new Map(), { masaIc = null } = {}) {
+export function masaModeli(css, boyut, ekler = new Map(), { masaIc = null, bant = null } = {}) {
   const sozluk = boyutSozlugu(css, boyut, ekler);
   const px = (ifade) => pxOlcu(ifade, sozluk);
   const degisken = (ad) => px(`var(${ad})`);
@@ -242,7 +247,7 @@ export function masaModeli(css, boyut, ekler = new Map(), { masaIc = null } = {}
     ? Math.max(tasYukseklik, METIN_SATIRI_UST_SINIRI_PX)
     : tasYukseklik + 4 * METIN_SATIRI_UST_SINIRI_PX + 3 * IC_BOSLUK_UST_SINIRI_PX;
   const ortaSutunIcerik = varyant
-    ? istakaGenislik + rafBosluk + YAN_BASLIK_GENISLIK_UST_SINIRI_PX
+    ? istakaGenislik + rafBosluk + degisken('--sigdirma-raf-baslik-payi')
     : istakaGenislik;
 
   /**
@@ -291,8 +296,12 @@ export function masaModeli(css, boyut, ekler = new Map(), { masaIc = null } = {}
     toplamOlcu: masaIcGenislik, bosluk, icerikler: sutunIcerik,
   });
 
-  // Her bandın ALT SINIRI: o bandın içeriği en küçük, ÖBÜR bantlarınki en büyük alındığında.
-  const satirOlculeri = satirAdlari.map((_, i) => izOlculeri(satirAdlari, {
+  // Bant ölçüleri: ÖLÇÜLEN değer varsa o (tek kaynak), yoksa her bandın ALT SINIRI — o bandın
+  // içeriği en küçük, ÖBÜR bantlarınki en büyük alındığında.
+  if (bant && bant.length !== satirAdlari.length) {
+    throw new Error(`ölçülen bant sayısı ${bant.length}, CSS ${satirAdlari.length} bant tanımlıyor`);
+  }
+  const satirOlculeri = bant ?? satirAdlari.map((_, i) => izOlculeri(satirAdlari, {
     toplamOlcu: masaIcYukseklik,
     bosluk,
     icerikler: satirIcerikUst.map((deger, k) => (k === i ? satirIcerikAlt[k] : deger)),

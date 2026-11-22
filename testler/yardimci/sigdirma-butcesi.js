@@ -23,15 +23,44 @@
  * (ve ölçekten) bağımsızdır: ölçek araması boyunca sabit kaldığı aynı turda ölçüldü.
  * `taban` sütunu ayrıca statik çözümleyicinin denetimidir: "bu boyutta hangi `@media` kazanıyor?"
  * sorusunun tarayıcıdaki yanıtı budur (öz-test `boyutSozlugu` ile aynı sayıyı bulmak zorunda).
+ *
+ * `bant` sütunu (tasokey#72 1. çekim turu, `BUTCE-V bant=` satırı): `#masa`nın ÇÖZÜLEN
+ * `grid-template-rows` ölçüleri. Kısa yatay düzen varyantının (tasokey#71) hangi boyutlarda ETKİN
+ * olduğunun DOĞRUDAN kanıtıdır — varsayım değil ölçüm: dört bant = varyant, üç bant = paylaşılan
+ * düzen. Bant ölçüleri ölçekten BAĞIMSIZDIR (üst çubuk bandı `auto` = çubuğun kalınlığı, kalan üç
+ * bant `1fr 2fr 1fr`), bu yüzden ölçek araması boyunca da sabit kalırlar.
  */
 export const OLCULEN_MASA_KUTUSU = Object.freeze([
-  Object.freeze({ ad: 'masaustu', boyut: [1920, 1080], masaIc: [1860, 945], taban: [58, 82] }),
-  Object.freeze({ ad: 'dizustu', boyut: [1280, 800], masaIc: [1226, 671], taban: [50, 72] }),
-  Object.freeze({ ad: 'tablet', boyut: [1180, 820], masaIc: [1126, 691], taban: [50, 72] }),
-  Object.freeze({ ad: 'kademe-900', boyut: [900, 600], masaIc: [864, 489], taban: [42, 60] }),
-  Object.freeze({ ad: 'telefon-yatay', boyut: [844, 390], masaIc: [828, 311], taban: [25, 36] }),
-  Object.freeze({ ad: 'telefon-kucuk', boyut: [800, 360], masaIc: [784, 281], taban: [25, 36] }),
+  Object.freeze({
+    ad: 'masaustu', boyut: [1920, 1080], masaIc: [1860, 945], taban: [58, 82],
+    bant: Object.freeze([224.25, 448.5, 224.25]),
+  }),
+  Object.freeze({
+    ad: 'dizustu', boyut: [1280, 800], masaIc: [1226, 671], taban: [50, 72],
+    bant: Object.freeze([158.75, 317.5, 158.75]),
+  }),
+  Object.freeze({
+    ad: 'tablet', boyut: [1180, 820], masaIc: [1126, 691], taban: [50, 72],
+    bant: Object.freeze([163.75, 327.5, 163.75]),
+  }),
+  Object.freeze({
+    ad: 'kademe-900', boyut: [900, 600], masaIc: [864, 489], taban: [42, 60],
+    bant: Object.freeze([8, 109.75, 219.5, 109.75]),
+  }),
+  Object.freeze({
+    ad: 'telefon-yatay', boyut: [844, 390], masaIc: [828, 311], taban: [25, 36],
+    bant: Object.freeze([8, 71.25, 142.5, 71.25]),
+  }),
+  Object.freeze({
+    ad: 'telefon-kucuk', boyut: [800, 360], masaIc: [784, 281], taban: [25, 36],
+    bant: Object.freeze([8, 63.75, 127.5, 63.75]),
+  }),
 ]);
+
+/** Ölçülen bant sayısından: bu boyutta kısa yatay DÜZEN VARYANTI etkin mi (dört bant)? */
+export function olculenVaryant(ad) {
+  return olculenBoyut(ad).bant.length > 3;
+}
 
 /**
  * Kademe başına KABUL boyutları (plan §4): seçilen ölçek, kendi kademesinin BÜTÜN kabul
@@ -39,13 +68,21 @@ export const OLCULEN_MASA_KUTUSU = Object.freeze([
  * `@media (max-width: 480px)` listede yoktur: o kademe yalnız telefon DİKEYde geçerlidir ve
  * orada oyun alanı hiç çizilmez (ADR-012, "telefonu yan çevir" uyarısı) → sığdırılacak masa yok.
  * Anahtarlar `css-olcu.js`in kademe adlarıdır (`@media` sorgusu birebir).
+ *
+ * tasokey#72: kısa yatay DÜZEN VARYANTININ iki bloğu da listeye girdi, çünkü ölçeği artık ORADA
+ * yazılı (varyantın kazancı ölçülebilir hâle geldi). Kabul boyutları, ölçeği KAZANAN bloğa göre
+ * gruplanır: 800x360/844x390 varyantın birinci bloğundan, 900x600 ikinci (501…700 px) bloğundan
+ * okur. Taban kademelerin (`max-width: 900px`, `max-height: 500px`) kendi değerleri VARYANTSIZ
+ * hâlin ölçüsü olarak durur — kapatma anahtarı — ve artık hiçbir kabul boyutunda kazanmaz.
  */
 export const KADEME_KABUL_BOYUTLARI = Object.freeze({
   'temel (:root)': Object.freeze(['masaustu']),
   '@media (max-width: 1300px)': Object.freeze(['dizustu', 'tablet']),
-  '@media (max-width: 900px)': Object.freeze(['kademe-900']),
-  '@media (orientation: landscape) and (max-height: 500px)': Object.freeze([
+  '@media (orientation: landscape) and (max-height: 700px)': Object.freeze([
     'telefon-yatay', 'telefon-kucuk',
+  ]),
+  '@media (orientation: landscape) and (min-height: 501px) and (max-height: 700px)': Object.freeze([
+    'kademe-900',
   ]),
 });
 
@@ -70,31 +107,40 @@ export const OLCEK_BASAMAGI = 0.05;
  * boyutlarda bağlayıcı olan çift budur (`#rafAlani ∩ #merkez` + `#rafAlani ∩ #gosterge`).
  * ADR-022/5 gereği kademe değeri SEÇİLMEZ, ÖLÇÜLÜR → CSS'teki değerin tek dayanağı bu tablodur,
  * bütçe yalnız ikinci (daha gevşek) bir denetim olarak kalır.
+ *
+ * tasokey#72 (1. çekim turu, `is/tasokey-72/ekran/olcum-*.png`): tablo kısa yatay DÜZEN VARYANTI
+ * (tasokey#71) ETKİNKEN YENİDEN ölçüldü. Masaüstü üç boyut BİREBİR aynı kaldı (varyant orada etkin
+ * değil — gerilemesizlik kanıtı); üç varyant boyutunun hepsi yukarı çıktı:
+ *   · 800x360 `el` 1 → **1,95** (tasokey#68'de taban zaten ihlalliydi, `buyumez0` yoktu)
+ *   · 844x390 `el` 1,05 → **2,00** (aramanın tavanı; gerçek sınır daha yukarıda olabilir)
+ *   · 900x600 `el` 1,05 → **1,25**
+ * `durum=rakip` de üç boyutta birden yükseldi (1,05/1,05 → 1,40/1,20 · 1,05 → 1,10) ve masaüstünde
+ * ADR-022/6'nın muafiyetinden sonra `el` ile eşitlendi (1,85 / 1,35 / 1,40).
  */
 export const OLCULEN_OLCEK_TAVANI = Object.freeze({
   masaustu: Object.freeze({
     el: Object.freeze({ yeni0: 1.85, buyumez0: 1.85 }),
-    rakip: Object.freeze({ yeni0: 1.30, buyumez0: 1.30 }),
+    rakip: Object.freeze({ yeni0: 1.85, buyumez0: 1.85 }),
   }),
   dizustu: Object.freeze({
     el: Object.freeze({ yeni0: 1.35, buyumez0: 1.35 }),
-    rakip: Object.freeze({ yeni0: 1.05, buyumez0: 1.05 }),
+    rakip: Object.freeze({ yeni0: 1.35, buyumez0: 1.35 }),
   }),
   tablet: Object.freeze({
     el: Object.freeze({ yeni0: 1.40, buyumez0: 1.40 }),
-    rakip: Object.freeze({ yeni0: 1.10, buyumez0: 1.10 }),
+    rakip: Object.freeze({ yeni0: 1.40, buyumez0: 1.40 }),
   }),
   'kademe-900': Object.freeze({
-    el: Object.freeze({ yeni0: 1.05, buyumez0: 1.05 }),
-    rakip: Object.freeze({ yeni0: 1.05, buyumez0: null }),
+    el: Object.freeze({ yeni0: 1.25, buyumez0: 1.25 }),
+    rakip: Object.freeze({ yeni0: 1.10, buyumez0: 1.10 }),
   }),
   'telefon-yatay': Object.freeze({
-    el: Object.freeze({ yeni0: 1.05, buyumez0: 1.05 }),
-    rakip: Object.freeze({ yeni0: 1.05, buyumez0: 1.05 }),
+    el: Object.freeze({ yeni0: 2.00, buyumez0: 2.00 }),
+    rakip: Object.freeze({ yeni0: 1.40, buyumez0: 1.40 }),
   }),
   'telefon-kucuk': Object.freeze({
-    el: Object.freeze({ yeni0: 1.15, buyumez0: null }),
-    rakip: Object.freeze({ yeni0: 1.15, buyumez0: null }),
+    el: Object.freeze({ yeni0: 1.95, buyumez0: 1.95 }),
+    rakip: Object.freeze({ yeni0: 1.20, buyumez0: 1.20 }),
   }),
 });
 
@@ -135,11 +181,27 @@ export function olculenBoyut(ad) {
  * bandı sıfıra sıkıştırdığı için savları yanıltıyordu (A9: ölç, tahmin etme).
  */
 export function olculenMasaKutusu({ genislik, yukseklik }) {
+  return [...olculenKayit(genislik, yukseklik).masaIc];
+}
+
+/**
+ * Aynı kaydın ÖLÇÜLEN bant (satır) ölçüleri — tasokey#72. `masa-izleri.js` bunu okur: bant modeli
+ * bir ALT SINIR hesaplar (kendi içeriği en küçük, komşularınki en büyük) ve ölçek büyüdükçe o alt
+ * sınır gerçeğin çok altına düşer (800x360'ta yan çubuk bandı için 36 px derken ölçülen 127,5 px).
+ * Bantlar aslında ölçekten BAĞIMSIZDIR (`auto` + `1fr 2fr 1fr`), bu yüzden ölçülen sayı hem doğru
+ * hem kararlıdır (A9: ölç, tahmin etme).
+ */
+export function olculenBantlar({ genislik, yukseklik }) {
+  return [...olculenKayit(genislik, yukseklik).bant];
+}
+
+/** Görünüm ölçüsüne karşılık gelen ölçüm satırı; yoksa hata (sessiz `undefined` yok). */
+function olculenKayit(genislik, yukseklik) {
   const kayit = OLCULEN_MASA_KUTUSU.find(
     (satir) => satir.boyut[0] === genislik && satir.boyut[1] === yukseklik,
   );
   if (!kayit) throw new Error(`ölçülen masa kutusu yok: ${genislik}x${yukseklik}`);
-  return [...kayit.masaIc];
+  return kayit;
 }
 
 /**
@@ -171,13 +233,85 @@ export function dikeyButce({
   return { pay, enCokTasYukseklik: pay / 4 };
 }
 
+/* ------------------------------------------- kısa yatay DÜZEN VARYANTININ bütçesi (tasokey#72) */
+
+/*
+ * Varyant (tasokey#71, tasokey#70 planı §3) masanın BANT LİSTESİNİ değiştirir, bu yüzden planın
+ * §4'ündeki iki eşitsizliğin de varyant karşılığı vardır. Paylaşılan düzende masa ÜÇ banttır
+ * (köşe / orta / ıstaka) ve dikey zincir DÖRT taş boyu taşır; varyantta DÖRT banttır
+ * (üst çubuk `auto` / üst içerik `1fr` / yan çubuk `2fr` / ıstaka `1fr`), üst köşeler ilk iki bandı
+ * birlikte kaplar ve dikey zincir ÜÇ taş boyu taşır (üst içerik 1 + ıstaka 2). Kazanç buradan gelir.
+ *
+ * Metin KALDIRILMAZ, TAŞINIR (karar maddeleri 3-4; ADR-022 Seçenek D hâlâ Sahip'tedir): yığınlar ve
+ * ıstaka paneli yatay akar. Bu yüzden metnin payı da dikeyden yataya geçer —
+ *   · dikeyde `--sigdirma-metin-payi`nın (dört satır) yerini tek terim alır:
+ *     `--sigdirma-yan-metin-payi` (yığında taş dışındaki en yüksek öğe),
+ *   · yatayda orta sütuna `--raf-bosluk + --sigdirma-raf-baslik-payi` eklenir (başlık taşların
+ *     yanında).
+ * İkisi de rem tabanlıdır → CSS'te px'e çevrilemez, ÖLÇÜLÜR (ADR-022/5). Istaka başlığının DİKEY
+ * payı da ölçüldü ve 0'dır (başlık iki sıra taştan kısa) → dikey eşitsizlikte terimi yoktur.
+ */
+
+/**
+ * Varyantın YATAY eşitsizliği: orta sütun artık ıstaka şeridi + ıstaka başlığı, yan sütunlar yine
+ * köşenin en küçük genişliği, aralarında iki ızgara boşluğu.
+ *   N·w + 2·panel-dolgu + raf-bosluk + raf-başlık-payı + 2·(w + 2·kose-kaydirma) + 2·masa-bosluk ≤ W
+ * Varyantta BAĞLAYICI yön budur (ölçüm: 900x600'de 1,30'da 13 px yatay taşma).
+ */
+export function varyantYatayButce({
+  masaIcGenislik, panelDolgu, koseKaydirma, masaBosluk, rafBosluk, rafBaslikPayi, sutun,
+}) {
+  const pay = masaIcGenislik
+    - (2 * panelDolgu + rafBosluk + rafBaslikPayi + 4 * koseKaydirma + 2 * masaBosluk);
+  return { pay, enCokTasGenislik: pay / (sutun + 2) };
+}
+
+/**
+ * Varyantın DİKEY eşitsizliği: üst çubuk bandı (`auto` = çubuğun kalınlığı) + üst içerik bandı
+ * (deste/gösterge yığını, yüksekliği `max(h, yan-metin-payı)`) + ıstaka bandı (2·h + 2·panel-dolgu)
+ * + alt köşe yığını payı (2·kose-kaydirma) + ÜÇ ızgara boşluğu ≤ H.
+ *
+ * `max(h, pay)` kapalı bir formül vermediği için üst bant `h + pay` ile yüklenir: bu, gerçeğin
+ * ÜSTÜNDE kalan TEMKİNLİ bir üst sınırdır (taban formülün 2·kk temkinliliğiyle aynı tercih) ve
+ * bütçe zaten bir üst sınır olduğundan yanlış tarafa düşmez. Yan çubuk bandı (`2fr`) burada terim
+ * değildir: kalan yeri alır ve ÖLÇÜSÜ ayrı denetlenir (ince sırt oranı, kisa-yatay-varyant kabul-g).
+ */
+export function varyantDikeyButce({
+  masaIcYukseklik, panelDolgu, koseKaydirma, masaBosluk, cubukKalinlik, yanMetinPayi,
+}) {
+  const pay = masaIcYukseklik
+    - (cubukKalinlik + yanMetinPayi + 2 * panelDolgu + 2 * koseKaydirma + 3 * masaBosluk);
+  return { pay, enCokTasYukseklik: pay / 3 };
+}
+
+/**
+ * ÜST BANDIN ek yatay denetimi: üst rakibin çubuğu (`--rakip-ust-genislik` = N·w + 2·panel-dolgu,
+ * ıstakayla aynı formül — tek kaynak) ıstaka başlığını TAŞIMAZ, yani orta sütundan ıstaka satırının
+ * istediğinden daha azını ister. Denetim bunu ölçer: üst bant da sığmalı, ve bağlayıcı satırın
+ * ıstaka satırı olduğu `fark = raf-bosluk + raf-başlık-payı` özdeşliğiyle gösterilir.
+ * Döner: `{ pay, gereken, bos, fark }` — `bos` artı ise üst bant sığıyor.
+ */
+export function varyantUstBantYatay(girdi) {
+  const { masaIcGenislik, koseKaydirma, masaBosluk, tasGenislik, ustCubukGenislik } = girdi;
+  const gereken = ustCubukGenislik + 2 * (tasGenislik + 2 * koseKaydirma) + 2 * masaBosluk;
+  const istakaSatiri = varyantYatayButce(girdi);
+  return {
+    pay: masaIcGenislik,
+    gereken,
+    bos: masaIcGenislik - gereken,
+    fark: girdi.rafBosluk + girdi.rafBaslikPayi,
+    istakaSatiriBos: istakaSatiri.enCokTasGenislik - tasGenislik,
+  };
+}
+
 /**
  * İki eşitsizliğin birlikte denetimi. `bos` artı ise taş sığıyor, eksi ise bütçe aşılmış demektir
  * (hata iletisine yazılır: hangi yön, ne kadar).
+ * `girdi.varyant` ise kısa yatay düzen varyantının eşitsizlikleri kullanılır (yukarı bkz.).
  */
 export function butceDenetimi(girdi) {
-  const yatay = yatayButce(girdi);
-  const dikey = dikeyButce(girdi);
+  const yatay = girdi.varyant ? varyantYatayButce(girdi) : yatayButce(girdi);
+  const dikey = girdi.varyant ? varyantDikeyButce(girdi) : dikeyButce(girdi);
   const yatayBos = yatay.enCokTasGenislik - girdi.tasGenislik;
   const dikeyBos = dikey.enCokTasYukseklik - girdi.tasYukseklik;
   return {
@@ -193,8 +327,10 @@ export function butceDenetimi(girdi) {
  * Bu bir ÜST SINIRDIR: gerçek çakışma ölçümü (tarayıcı) daha düşük bir değer dayatabilir.
  */
 export function enCokOlcek(girdi, { tabanGenislik, tabanYukseklik, tavan, basamak = OLCEK_BASAMAGI }) {
-  const yatay = yatayButce(girdi).enCokTasGenislik / tabanGenislik;
-  const dikey = dikeyButce(girdi).enCokTasYukseklik / tabanYukseklik;
+  const yatayPay = girdi.varyant ? varyantYatayButce(girdi) : yatayButce(girdi);
+  const dikeyPay = girdi.varyant ? varyantDikeyButce(girdi) : dikeyButce(girdi);
+  const yatay = yatayPay.enCokTasGenislik / tabanGenislik;
+  const dikey = dikeyPay.enCokTasYukseklik / tabanYukseklik;
   const ham = Math.min(yatay, dikey, tavan);
   const basamakli = Math.round(Math.floor(ham / basamak + 1e-9) * basamak * 100) / 100;
   return { yatay, dikey, ham, basamakli: Math.max(1, basamakli) };
