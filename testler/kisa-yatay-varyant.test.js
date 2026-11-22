@@ -26,6 +26,8 @@ import { olculenBantlar, olculenMasaKutusu } from './yardimci/sigdirma-butcesi.j
 const DOCS_KOK = join(import.meta.dirname, '..', 'docs');
 const STIL_CSS = readFileSync(join(DOCS_KOK, 'arayuz', 'stil.css'), 'utf8');
 const YORUMSUZ = yorumlariAt(STIL_CSS);
+// ADR-022 madde 10'un zinciri arayüz JS'inden başlıyor (durum sınıfı) — kaynak taramasıyla ölçülür.
+const EKRAN_JS = readFileSync(join(DOCS_KOK, 'arayuz', 'ekran.js'), 'utf8');
 
 const EKLER = new Map([['--raf-sutun-sayisi', [String(RAF_SUTUN_SAYISI)]]]);
 
@@ -62,7 +64,7 @@ function varyantSorgusuMu(sorgu) {
   ) > 500;
 }
 
-/** Varyant bloklarının `@media` sorguları (tasokey#72'den beri iki tane: yapı + ikinci ölçek). */
+/** Varyant bloklarının `@media` sorguları (tasokey#72'den beri üç tane: yapı + iki ölçek dilimi). */
 function varyantSorgulari() {
   return medyaBloklari(STIL_CSS).map((blok) => blok.sorgu).filter(varyantSorgusuMu);
 }
@@ -95,10 +97,28 @@ function varyantsizCss() {
   return STIL_CSS.slice(0, kesBasi) + STIL_CSS.slice(kesSonu);
 }
 
+/**
+ * El sonu durum sınıfı: `ekran.js` masaya yazar, `stil.css` okur — ad TEK yerde (ADR-022 madde 10).
+ */
+const EL_SONU_SINIFI = 'rakip-eli-acik';
+const MERKEZ_GIZLEME_SECICISI = `#masa.${EL_SONU_SINIFI} #merkez`;
+
+/**
+ * ADR-022 madde 10 (Masa kararı, Sahip adına 2026-11-22): el bitince (`durum=rakip`) #merkez
+ * gizleniyor mu ve kural varyant BÖLGESİNİN İÇİNDE mi? Kural ÖLÇÜLÜR, varsayılmaz: silinirse
+ * kabul-h'nin üst yığın savı kendiliğinden eski (geometrik) hâline döner.
+ */
+function merkezElSonundaGizliMi() {
+  const govdeler = kuralGovdeleri(YORUMSUZ, MERKEZ_GIZLEME_SECICISI);
+  if (govdeler.length !== 1 || !/display\s*:\s*none/.test(govdeler[0])) return false;
+  const yeri = STIL_CSS.indexOf(MERKEZ_GIZLEME_SECICISI);
+  return yeri > STIL_CSS.indexOf(BAS_ISARETI) && yeri < STIL_CSS.indexOf(BITIS_ISARETI);
+}
+
 /* ---------------------------------------------------------------------------------- kabul-a */
 
 test('kabul-a: varyantın BÜTÜN blokları adlandırılmış başlangıç/bitiş yorumunun arasındadır', () => {
-  // tasokey#72: bölge artık İKİ blok (yapı + ölçek · 501…700 px dilimi için ikinci ölçek). Kapatma
+  // tasokey#72: bölge artık ÜÇ blok (yapı + 361…700 ve 501…700 px dilimleri için ölçek). Kapatma
   // anahtarının ölçütü "tek blok" değil YALITIMDIR: varyanta ait her blok işaretlerin ARASINDA
   // durmalı ve bölgeyi kesmek onların HEPSİNİ birden götürmeli (yoksa silince yarım düzen kalır).
   const sorgular = varyantSorgulari();
@@ -140,10 +160,11 @@ test('kabul-a2: varyantın ölçeği BÖLGENİN İÇİNDE yazılı (kapatma anah
   // bölgenin içinde durur; bölge silinince taban kademelerin tasokey#68 değerleri (1,05 ve 1)
   // yeniden kazanır — kapatma anahtarı hem düzeni hem ölçeği geri verir.
   const kalan = varyantsizCss();
+  // tasokey#72: üç dilim, üç ÖLÇÜLEN değer (800x360 1,30 · 844x390 1,50 · 900x600 1,20).
   for (const { boyut, varyantli, varyantsiz } of [
-    { boyut: ETKIN_BOYUTLAR[0], varyantli: 1.2, varyantsiz: 1 },
-    { boyut: ETKIN_BOYUTLAR[1], varyantli: 1.2, varyantsiz: 1 },
-    { boyut: ETKIN_BOYUTLAR[2], varyantli: 1.1, varyantsiz: 1.05 },
+    { boyut: ETKIN_BOYUTLAR[0], varyantli: 1.3, varyantsiz: 1 },
+    { boyut: ETKIN_BOYUTLAR[1], varyantli: 1.5, varyantsiz: 1 },
+    { boyut: ETKIN_BOYUTLAR[2], varyantli: 1.2, varyantsiz: 1.05 },
   ]) {
     assert.equal(
       degiskenOlcusu('--istaka-olcek', boyutSozlugu(STIL_CSS, boyut, EKLER)).sayi,
@@ -384,8 +405,15 @@ test('kabul-h: varyantta açılan rakip taşları kendi bandına sığar (yan y�
       + `(${(2 * (m.cubukKalinlik + yanGenislik)).toFixed(0)} px / ${m.masaIcGenislik} px)`,
     );
 
-    // (2) Üst kenar: yığın çubuğun ALTINA, yani #merkez'in bandına sarkar. #merkez bandın alt
-    // kenarına yaslı (karar maddesi 3); yığının alt kenarı onun üst kenarına değmemeli.
+    // (2) Üst kenar: yığın çubuğun ALTINA, yani #merkez'in bandına sarkar. Burada DURUM AYRIMI
+    // vardır (Masa kararı, Sahip adına 2026-11-22; ADR-022 madde 10) — gevşetme değil, iki ayrı
+    // durumun iki ayrı kuralı:
+    //   · `durum=el` (oyun oynanırken): açılan rakip taşı HİÇ YOKTUR (ekran.js kutuyu boşaltır),
+    //     #merkez görünür ve çakışacak bir şey bulunmaz.
+    //   · `durum=rakip` (el bitti, ıstakalar açık): yığın vardır ama #merkez GİZLİDİR, yani
+    //     çakışma geometrik olarak olanaksızdır. Gizlemenin kendisi burada ÖLÇÜLÜR (aşağıdaki
+    //     kural aranır); kural kalkarsa sav eski hâline döner ve yığının #merkez'e değmediğini
+    //     yeniden ister.
     const ustSatir = Math.ceil(EN_COK_EL / sutunYatay);
     const ustYiginAlt = m.cubukKalinlik + pay + ustSatir * tasY + (ustSatir - 1) * bosluk;
     const ortaBant = alanSatirlari(m.sablon, 'merkez');
@@ -394,7 +422,7 @@ test('kabul-h: varyantta açılan rakip taşları kendi bandına sığar (yan y�
     const merkezUst = m.satirOlculeri[0] + m.bosluk
       + (m.satirOlculeri[ortaBant[0]] - merkezYukseklik);
     assert.ok(
-      ustYiginAlt < merkezUst,
+      merkezElSonundaGizliMi() || ustYiginAlt < merkezUst,
       `${boyut.ad}: üst açık yığın ${ustYiginAlt.toFixed(0)} px'e kadar sarkıyor, #merkez `
       + `${merkezUst.toFixed(0)} px'te başlıyor — deste/gösterge öbeğine çarpar (${sutunYatay} sütun)`,
     );
@@ -405,6 +433,37 @@ test('kabul-h: varyantta açılan rakip taşları kendi bandına sığar (yan y�
       `${boyut.ad}: üst açık sıra ${ustGenislik.toFixed(0)} px, ıstaka ${m.istakaGenislik.toFixed(0)} px`,
     );
   }
+});
+
+/* ---------------------------------------------------------------------------------- kabul-j */
+
+test('kabul-j: el bitince #merkez gizlenir — sınıf saf karardan gelir, kural bölgenin içinde', () => {
+  // ADR-022 madde 10 (Masa kararı, Sahip adına 2026-11-22). Zincir tek yönlüdür ve her halkası
+  // ölçülür: saf karar (`etkilesim.js rakipEliAcikMi`) → `ekran.js` masaya durum sınıfını yazar →
+  // `stil.css` o sınıfın altında #merkez'i gizler. Arayüz JS'i NEYİN gizleneceğine karar vermez
+  // (düzen kuralı CSS'te, kademesinin içinde kalır).
+  assert.ok(
+    merkezElSonundaGizliMi(),
+    `${MERKEZ_GIZLEME_SECICISI} kuralı yok, display:none değil ya da varyant bölgesinin dışında`,
+  );
+  assert.match(
+    EKRAN_JS,
+    new RegExp(`eleman\\.masa\\.classList\\.toggle\\('${EL_SONU_SINIFI}', rakipEliAcik\\)`),
+    'ekran.js durum sınıfını saf karardan (rakipEliAcik) yazmıyor',
+  );
+  // Sınıfın adı iki dosyada da birebir aynı geçiyor (tek kaynak; yazım kayması sessizce geçmesin).
+  assert.equal((EKRAN_JS.match(new RegExp(EL_SONU_SINIFI, 'g')) || []).length, 1);
+  // Kapatma anahtarı: bölge silinince gizleme kuralı da gider.
+  assert.equal(
+    kuralGovdeleri(varyantsizCss(), MERKEZ_GIZLEME_SECICISI).length,
+    0,
+    'varyant bölgesi silindiğinde #merkez gizleme kuralı geride kalıyor',
+  );
+  // Gerilemesizlik: #merkez'i gizleyen BAŞKA bir kural yok — masaüstü/dizüstü/tablet kademelerinde
+  // deste ve gösterge el bittikten sonra da görünür kalır.
+  const gizleyenler = [...YORUMSUZ.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter(([, seciciler, govde]) => /#merkez/.test(seciciler) && /display\s*:\s*none/.test(govde));
+  assert.equal(gizleyenler.length, 1, '#merkez birden çok kuralda gizleniyor — tek kapı bozuldu');
 });
 
 /* ---------------------------------------------------------------------------------- kabul-i */

@@ -1111,35 +1111,26 @@ html, body {
    Taban taş merdiveni burada yine geçersiz kılınmaz: değişen yalnız ölçektir. */
 @media (orientation: landscape) and (max-height: 700px) {
   :root {
-    /* Bağlayıcı kabul boyutu 800x360 (ayrıca 844x390). ÖLÇÜLDÜ (tasokey#72 1. çekim turu,
-       `is/tasokey-72/ekran/olcum-*-telefon-*.png` "ARAMA enCok" satırı):
-         · `durum=el`    800x360 **1,95** · 844x390 **2,00** (aramanın tavanı)
-         · `durum=rakip` 800x360 **1,20** · 844x390 **1,40**
-       tasokey#68'de bu kademede ölçek 1'di ve ölçek 1'de BİLE 2 çakışma vardı
-       (#rafAlani ∩ #merkez + ∩ #gosterge); varyantın yan çubuk bandındaki boş orta sütunu
-       (karar maddesi 2) o çifti kaldırdığı için kazanç ilk kez ölçülebildi. `el` yönünde bağlayıcı
-       olan YATAY bütçedir — bkz. aşağıdaki --sigdirma-raf-baslik-payi.
+    /* Bağlayıcı kabul boyutu 800x360. 844x390 artık AYRI dilimdedir (aşağıdaki `min-height: 361px`
+       bloğu): ölçüm iki boyut için FARKLI tavan verdiği sürece kademe bölünür (ADR-022 madde 9),
+       yoksa geniş olan dar olanın bedelini öder.
+       ÖLÇÜLDÜ (tasokey#72 4. çekim turu, `is/tasokey-72/ekran/muaf-*-telefon-kucuk.png`,
+       "ARAMA enCok" + "MUAF" satırları):
+         · `durum=el`    **1,95** (çakışma ve taşma aynı basamakta; 2,00'de sayfa yatayda taşıyor)
+         · `durum=rakip` **1,30** — ADR-022 madde 10'dan SONRA. Ölçümde 1,25'te görünen TEK yeni
+           çift `#merkez ∩ #kenarUstTaslar`tı ve 1,95'e kadar başka yeni çift çıkmadı; madde 10
+           #merkez'i el sonunda gizlediği için o çift ortadan kalkar, kalan sınır SAYFA TAŞMASIDIR
+           (`tasma0` **1,30**; 1,35'te `#masa` dikeyde 1 px taşıyor ve taşan öğe de ÖLÇÜLDÜ:
+           `#koseSagAltSayac` + `#koseSolAltSayac`).
+       YAZILAN DEĞER ÜÇ ÖLÇÜLEN TERİMİN EN KÜÇÜĞÜDÜR (ADR-022 madde 9): el tavanı 1,95 · rakip
+       tavanı 1,30 · taşma tavanı 1,30 → **1,30**. Tek kaynak `testler/yardimci/sigdirma-butcesi.js`
+       → `OLCULEN_OLCEK_TAVANI` (öz-test `sigdirma-butcesi` kabul-d10).
 
-       YAZILAN DEĞER İKİ DURUMUN EN KÜÇÜĞÜDÜR (1,20): el sonunda açılan rakip ıstakası görünürken
-       #merkez kendi bandını aşıp üst rakibin açılan taşlarına giriyor (ölçüm: 1,25'te
-       `#merkez ∩ #kenarUstTaslar`; öz-test karşılığı kisa-yatay-varyant kabul-h). Böylece iş 1'in
-       "durum=rakip'te YENİ çakışma 0" ölçütü bozulmadan geçer ve hiçbir denetim gevşetilmez.
-       AÇIK SORU (Sahip kapısı, tasokey#72 raporu): ADR-022 Seçenek F "birkaç saniyelik bir durum
-       kalıcı ölçüyü belirlemesin" diyor — o okumayla değer 1,95 olurdu. Bedeli YALNIZ kabul-h'nin
-       800x360 savını gevşetmek değildir: aynı turda `durum=rakip`te TAŞMA da ölçüldü
-       (`ARAMA enCok tasma0` 800x360 **1,30** · 844x390 **1,50** · 900x600 **1,25**), yani 1,95'te
-       sayfa ayrıca taşar — iş 1'in "taşma 0" ölçütü de düşer. Karar Sahip'te.
-
-       NİÇİN BU KADEMEDE 1,20'NİN ÜSTÜ ÖLÇÜLEMEZ (tasokey#72 2. tur ölçümüyle, 800x360):
-       üst içerik bandı 63,75 px'tir ve ÖLÇEKTEN BAĞIMSIZDIR (bant listesi `auto 1fr 2fr 1fr`,
-       oran kararı tasokey#33 madde 1); #merkez'in yüksekliği taş boyudur (36·ölçek, ADR-022 tek
-       kaynak) ve açılan üst sıra çubuğun altından aynı banda sarkar (karar maddesi 6) →
-       8 + ad payı + sıra yüksekliği < 14 + 63,75 − 36·ölçek. Ölçek 1,6 için sıranın yüksekliği
-       10 px'in altına inmeliydi (bugün 21,6; taşlar 7x10 px olurdu). YATAY kaçış da yok: #merkez
-       ÖLÇÜLDÜ, scale 1'de 505,8 px geniş (ipucu metni taşların yanında, BUTCE-V merkezGen) — sıra
-       (253 px) ile yan yana orta sütuna sığmıyor. Yani ölçeği bu kademede yükseltmenin yolu
-       ÖLÇÜ değil DÜZEN değişikliğidir (bant oranı / metnin yeri / durum-başına ölçek) → Mimar. */
-    --istaka-olcek: 1.2;
+       NİÇİN DAHA YUKARISI ÖLÇÜLEMEZ: bağlayıcı olan artık çakışma değil TAŞMADIR — 1,35'te alt iki
+       köşenin sayaç kutuları masanın alt kenarından 1 px çıkıyor. Bunu açmak köşe sayaçlarının
+       yerleşimini değiştirmek demektir (bu işin kapsamı değil; tasokey#72 raporu "Öneriler").
+       "Telefonda ölçek ≥ 1,6" bu düzende ölçümle olanaksızdır ve Sahip kapısındadır. */
+    --istaka-olcek: 1.3;
     /* Varyantın sığdırma bütçesi (plan §4'ün varyant karşılığı) — ÖLÇÜLEN iki terim (ADR-022/5):
        varyant metni KALDIRMAZ, TAŞIR (yığınlar ve ıstaka paneli yatay akar), yani metnin payı
        dikeyden yataya geçer. İkisi de rem tabanlı yazı ölçüsünden geldiği için CSS içinde px'e
@@ -1228,6 +1219,19 @@ html, body {
     justify-self: start;
   }
 
+  /* ADR-022 madde 10 (Masa kararı, Sahip adına 2026-11-22) — EL BİTİNCE #merkez GİZLENİR.
+     El sonunda üç rakibin ıstakası açılır (`etkilesim.js rakipEliAcikMi`; `ekran.js` masaya
+     `rakip-eli-acik` sınıfını yazar) ve üst rakibin açılan taşları çubuğun altından TAM BU BANDA
+     sarkar. Deste el bittikten sonra kullanılmaz, gösterge de yalnız bilgi verir → öbek gizlenince
+     o çakışma GEOMETRİK olarak kalkar; el OYNANIRKEN (durum=el) hiçbir şey değişmez.
+     Ölçülen kazanç (4. çekim turu): `durum=rakip` tavanı 800x360'ta 1,20 → 1,30 · 844x390'ta
+     1,40 → 1,50; ikisinde de sınır artık sayfa taşmasıdır.
+     `display: none` seçildi: `visibility: hidden` kutuyu yerinde bırakır, yani ızgara bandını ve
+     çakışma ölçümünü hâlâ bağlardı. Kural varyant bölgesinin İÇİNDEDİR — masaüstü/dizüstü/tablet
+     kademelerinde deste el sonunda da görünür kalır (gerilemesizlik, kabul-b).
+     Öz-test karşılığı: `kisa-yatay-varyant` kabul-h (durum ayrımı) ve kabul-j. */
+  #masa.rakip-eli-acik #merkez { display: none; }
+
   /* Deste/gösterge yığınında metin taşın YANINDA (üstünde/altında değil) → yığının yüksekliği
      taş boyudur. Metin KALDIRILMAZ, taşınır (ADR-022 Seçenek D ürün kararıdır, Sahip'te). */
   .yigin {
@@ -1245,24 +1249,50 @@ html, body {
   }
 }
 
-/* Varyantın İKİNCİ bloğu (tasokey#72) — yalnız ÖLÇEK. Varyant üç kabul boyutunu birden kapsar ama
-   ölçek kademe başına ÖLÇÜLÜR (ADR-022/5) ve 900x600'ün tabanı daha büyüktür (42x60; telefonda
-   25x36), bu yüzden aynı yatay bütçe orada daha küçük bir ölçeğe izin verir. Sorgu, varyantın
-   yukarıdaki bandının YALNIZ üst dilimidir (501…700 px yükseklik) → telefon yatay (<= 500)
-   yukarıdaki blokta (1,2) kalır, 900x600 buradan okur. Blok yukarıdakinden SONRA durur: devralma
-   sırası budur.
+/* Varyantın İKİNCİ bloğu (tasokey#72) — yalnız ÖLÇEK, kabul boyutu 844x390. Varyant üç kabul
+   boyutunu birden kapsar ama ölçek kademe başına ÖLÇÜLÜR (ADR-022/5) ve ölçüm 800x360 ile
+   844x390 için FARKLI tavan verdi (1,30 ↔ 1,50) — madde 9 gereği kademe o zaman bölünür, yoksa
+   geniş olan dar olanın bedelini öder. Sorgu, varyantın yukarıdaki bandının 361 px'ten yüksek
+   dilimidir; 900x600 de uyar ama aşağıdaki üçüncü blok onu geçersiz kılar (devralma sırası).
+   Bölgenin parçasıdır — bölgeyi silmek ölçeği de taban kademeye geri verir.
+
+   ÖLÇÜLDÜ (tasokey#72 4. çekim turu, `is/tasokey-72/ekran/muaf-*-telefon-yatay.png`):
+     · `durum=el`    **2,00** — aramanın tavanı; gerçek sınır daha yukarıda olabilir.
+     · `durum=rakip` **1,50** — ADR-022 madde 10'dan SONRA. 1,45'te ölçülen tek yeni çift
+       `#merkez ∩ #kenarUstTaslar`tı; madde 10 onu kaldırır, kalan sınır SAYFA TAŞMASIDIR
+       (`tasma0` **1,50**; 1,55'te `#masa` dikeyde 1 px, taşan öğe `#koseSagAltSayac` +
+       `#koseSolAltSayac`).
+   Üç terimin en küçüğü (madde 9): 2,00 · 1,50 · 1,50 → **1,50**. */
+@media (orientation: landscape) and (min-height: 361px) and (max-height: 700px) {
+  :root {
+    --istaka-olcek: 1.5;
+  }
+}
+
+/* Varyantın ÜÇÜNCÜ bloğu (tasokey#72) — yalnız ÖLÇEK, kabul boyutu 900x600. Varyantın üst dilimi
+   (501…700 px yükseklik); 900x600'ün tabanı daha büyüktür (42x60; telefonda 25x36), bu yüzden
+   aynı yatay bütçe orada daha küçük bir ölçeğe izin verir. Blok yukarıdaki ikisinden SONRA durur:
+   devralma sırası budur.
    Bölgenin parçasıdır — bölgeyi silmek ölçeği de taban kademeye (900px → 1,05) geri verir. */
 @media (orientation: landscape) and (min-height: 501px) and (max-height: 700px) {
   :root {
-    /* Kabul boyutu 900x600. ÖLÇÜLDÜ (tasokey#72 1. çekim turu,
-       `is/tasokey-72/ekran/olcum-*-kademe-900.png` "ARAMA enCok" satırı):
-         · `durum=el`    **1,25** — 1,30'da sayfa YATAYDA 13 px taşıyor. Bütçe de aynı yönü ve aynı
-           değeri veriyor (bkz. --sigdirma-raf-baslik-payi) — ölçülen kazanır.
-         · `durum=rakip` **1,10** — 1,15'te ıstaka kendi bandını aşıp yan açık yığınlara giriyor
-           (`#rafAlani ∩ #kenarSol/SagTaslar`).
-       Yukarıdaki blokla aynı kural: yazılan değer iki durumun en küçüğüdür. Aynı açık soru burada
-       da var (el okumasıyla değer 1,25 olurdu) — Sahip kapısı, tasokey#72 raporu. */
-    --istaka-olcek: 1.1;
+    /* ÖLÇÜLDÜ (tasokey#72 4. çekim turu, `is/tasokey-72/ekran/muaf-*-kademe-900.png`):
+         · `durum=el`    **1,25** — 1,30'da sayfa YATAYDA 13 px taşıyor; taşan öğe ÖLÇÜLDÜ:
+           `#kenarSagAd` 9 px + `#kenarSag` 6 px (rakip ADI çubuktan kalın, tasokey#33 madde 1).
+           Bütçe de aynı yönü ve aynı değeri veriyor (bkz. --sigdirma-raf-baslik-payi).
+         · `durum=rakip` **1,20** — aşağıdaki muaf küçültmeden SONRA (ADR-022 madde 8). Burada
+           bağlayıcı çift #merkez DEĞİL `#rafAlani ∩ #kenarSol/SagTaslar`tır, yani madde 10 bu
+           boyutta bir şey kazandırmaz; kazanç yığının KENDİ ölçeğinden gelir.
+       Üç terimin en küçüğü (madde 9): 1,25 · 1,20 · taşma 1,25 → **1,20**. */
+    --istaka-olcek: 1.2;
+    /* ADR-022 madde 8 — muaf açık el yığınının KENDİ ölçeği bu kademede küçülür. Ölçülen merdiven
+       (4. çekim turu "MUAF" satırları, her basamakta ölçek araması yeniden koşuldu):
+         0,60 → 1,10 · 0,55 → 1,15 · **0,50 → 1,20** · 0,45 → 1,20 (kazanç bitti).
+       Tavanı gerçekten yükselten EN BÜYÜK değer yazılır (gereksiz küçültme yok) → **0,50**.
+       Açık taş 21x30 px ve rakamın taşa kalan payı ölçüldü (`rk=2,5` px, artı) → rakam kırpılmıyor.
+       Telefon dilimlerinde bu değişken YAZILMAZ: orada madde 10 zaten tavanı taşmaya kadar
+       açıyor, yığını küçültmek gereksiz olurdu. `:root` değeri 0,6 kalır (kapatma anahtarı). */
+    --rakip-acik-olcek: 0.5;
   }
 }
 /* ===== KISA YATAY DÜZEN VARYANTI — BİTİŞ (tasokey#71, ölçekler tasokey#72) ===== */

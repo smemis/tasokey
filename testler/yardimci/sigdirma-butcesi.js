@@ -69,17 +69,21 @@ export function olculenVaryant(ad) {
  * orada oyun alanı hiç çizilmez (ADR-012, "telefonu yan çevir" uyarısı) → sığdırılacak masa yok.
  * Anahtarlar `css-olcu.js`in kademe adlarıdır (`@media` sorgusu birebir).
  *
- * tasokey#72: kısa yatay DÜZEN VARYANTININ iki bloğu da listeye girdi, çünkü ölçeği artık ORADA
+ * tasokey#72: kısa yatay DÜZEN VARYANTININ blokları da listeye girdi, çünkü ölçeği artık ORADA
  * yazılı (varyantın kazancı ölçülebilir hâle geldi). Kabul boyutları, ölçeği KAZANAN bloğa göre
- * gruplanır: 800x360/844x390 varyantın birinci bloğundan, 900x600 ikinci (501…700 px) bloğundan
- * okur. Taban kademelerin (`max-width: 900px`, `max-height: 500px`) kendi değerleri VARYANTSIZ
- * hâlin ölçüsü olarak durur — kapatma anahtarı — ve artık hiçbir kabul boyutunda kazanmaz.
+ * gruplanır ve varyantın her dilimi kendi TEK kabul boyutunu taşır: 800x360 birinci bloktan,
+ * 844x390 ikinci (361…700 px) bloktan, 900x600 üçüncü (501…700 px) bloktan okur. Kademenin
+ * bölünme sebebi ÖLÇÜMDÜR (ADR-022 madde 9): 800x360 ile 844x390 farklı tavan ölçtü (1,30 ↔ 1,50),
+ * yani tek blokta kalsalardı geniş olan dar olanın bedelini öderdi.
+ * Taban kademelerin (`max-width: 900px`, `max-height: 500px`) kendi değerleri VARYANTSIZ hâlin
+ * ölçüsü olarak durur — kapatma anahtarı — ve artık hiçbir kabul boyutunda kazanmaz.
  */
 export const KADEME_KABUL_BOYUTLARI = Object.freeze({
   'temel (:root)': Object.freeze(['masaustu']),
   '@media (max-width: 1300px)': Object.freeze(['dizustu', 'tablet']),
-  '@media (orientation: landscape) and (max-height: 700px)': Object.freeze([
-    'telefon-yatay', 'telefon-kucuk',
+  '@media (orientation: landscape) and (max-height: 700px)': Object.freeze(['telefon-kucuk']),
+  '@media (orientation: landscape) and (min-height: 361px) and (max-height: 700px)': Object.freeze([
+    'telefon-yatay',
   ]),
   '@media (orientation: landscape) and (min-height: 501px) and (max-height: 700px)': Object.freeze([
     'kademe-900',
@@ -114,61 +118,78 @@ export const OLCEK_BASAMAGI = 0.05;
  *   · 800x360 `el` 1 → **1,95** (tasokey#68'de taban zaten ihlalliydi, `buyumez0` yoktu)
  *   · 844x390 `el` 1,05 → **2,00** (aramanın tavanı; gerçek sınır daha yukarıda olabilir)
  *   · 900x600 `el` 1,05 → **1,25**
- * `durum=rakip` de üç boyutta birden yükseldi (1,05/1,05 → 1,40/1,20 · 1,05 → 1,10) ve masaüstünde
- * ADR-022/6'nın muafiyetinden sonra `el` ile eşitlendi (1,85 / 1,35 / 1,40).
+ * `durum=rakip` de üç boyutta birden yükseldi ve masaüstünde ADR-022/6'nın muafiyetinden sonra
+ * `el` ile eşitlendi (1,85 / 1,35 / 1,40). Varyantın üç diliminde `rakip` tavanı 4. çekim turunda
+ * madde 8 ve 10'dan sonra YENİDEN ölçüldü (aşağıda).
  *
- * `yeni0`/`buyumez0` zaten TAŞMASIZ basamaklardan seçilir. Aynı turda ölçülen ayrı bir sınır da
- * var ve tabloya GİRMEZ, çünkü ölçek seçimini bağlamaz — ama bir üst sınırdır: `durum=rakip`te
- * sayfa taşması 800x360'ta **1,30**, 844x390'ta **1,50**, 900x600'de **1,25** basamağından sonra
- * başlar (`ARAMA enCok tasma0`). Yani çakışmalar tümüyle çözülse bile bu kademelerde ölçek o
- * değerlerin üstüne çıkamaz; "telefonda ölçek >= 1,6" ancak DÜZEN değişikliğiyle mümkündür
- * (tasokey#72 raporu §11 — Sahip/Mimar kapısı).
+ * **ÜÇÜNCÜ TERİM (tasokey#72, ADR-022 madde 9):** sayfa taşmasının başladığı basamak (`tasma0`)
+ * artık tabloda ÖLÇÜLEN bir alandır. Ölçüm aracı `yeni0`/`buyumez0`u zaten taşmasız basamaklardan
+ * seçer, yani sayı olarak `tasma0` çoğu kademede bağlayıcı değildir; tabloya girme sebebi
+ * **tek kaynak**tır: ölçeğin tavanı üç ölçülen terimin en küçüğüdür ve üçü de burada, yan yana
+ * okunur (aracın seçim kuralı değişse bile tavan yerinde kalır). Kısa yatay varyantın telefon
+ * dilimlerinde bağlayıcı olan GERÇEKTEN bu terimdir: ADR-022 madde 10 çakışmayı kaldırınca geriye
+ * yalnız taşma kalıyor (800x360 **1,30** · 844x390 **1,50**; taşan öğe de ölçüldü — alt iki
+ * köşenin sayaç kutuları, `#koseSagAltSayac` + `#koseSolAltSayac`).
+ *
+ * tasokey#72 (4. çekim turu, `is/tasokey-72/ekran/muaf-*.png`): varyantın üç boyutu `durum=rakip`
+ * için YENİDEN ölçüldü — ADR-022 madde 8 (muafın kendi ölçeği, 900x600'de `--rakip-acik-olcek`
+ * 0,6 → 0,5; ölçülen merdiven 0,60 → 1,10 · 0,55 → 1,15 · 0,50 → 1,20 · 0,45 → 1,20) ve madde 10
+ * (el bitince `#merkez` gizlenir) sonrası. Masaüstü üç boyut BİREBİR aynı kaldı.
  */
 export const OLCULEN_OLCEK_TAVANI = Object.freeze({
   masaustu: Object.freeze({
-    el: Object.freeze({ yeni0: 1.85, buyumez0: 1.85 }),
-    rakip: Object.freeze({ yeni0: 1.85, buyumez0: 1.85 }),
+    el: Object.freeze({ yeni0: 1.85, buyumez0: 1.85, tasma0: 2.00 }),
+    rakip: Object.freeze({ yeni0: 1.85, buyumez0: 1.85, tasma0: 2.00 }),
   }),
   dizustu: Object.freeze({
-    el: Object.freeze({ yeni0: 1.35, buyumez0: 1.35 }),
-    rakip: Object.freeze({ yeni0: 1.35, buyumez0: 1.35 }),
+    el: Object.freeze({ yeni0: 1.35, buyumez0: 1.35, tasma0: 1.65 }),
+    rakip: Object.freeze({ yeni0: 1.35, buyumez0: 1.35, tasma0: 1.65 }),
   }),
   tablet: Object.freeze({
-    el: Object.freeze({ yeni0: 1.40, buyumez0: 1.40 }),
-    rakip: Object.freeze({ yeni0: 1.40, buyumez0: 1.40 }),
+    el: Object.freeze({ yeni0: 1.40, buyumez0: 1.40, tasma0: 1.50 }),
+    rakip: Object.freeze({ yeni0: 1.40, buyumez0: 1.40, tasma0: 1.50 }),
   }),
   'kademe-900': Object.freeze({
-    el: Object.freeze({ yeni0: 1.25, buyumez0: 1.25 }),
-    rakip: Object.freeze({ yeni0: 1.10, buyumez0: 1.10 }),
+    // `el`: 1,30'da sayfa yatayda 13 px taşıyor (taşan öğe `#kenarSagAd` 9 + `#kenarSag` 6).
+    el: Object.freeze({ yeni0: 1.25, buyumez0: 1.25, tasma0: 1.25 }),
+    // `rakip`: ADR-022 madde 8'in muaf küçültmesinden (0,5) SONRA; bağlayıcı çift #merkez değil
+    // `#rafAlani ∩ #kenarSol/SagTaslar` olduğu için madde 10 bu boyutta kazanç vermez.
+    rakip: Object.freeze({ yeni0: 1.20, buyumez0: 1.20, tasma0: 1.25 }),
   }),
   'telefon-yatay': Object.freeze({
-    el: Object.freeze({ yeni0: 2.00, buyumez0: 2.00 }),
-    rakip: Object.freeze({ yeni0: 1.40, buyumez0: 1.40 }),
+    el: Object.freeze({ yeni0: 2.00, buyumez0: 2.00, tasma0: 2.00 }),
+    // `rakip`: madde 10'dan sonra çakışma sınırı kalkar (ölçümde 1,45'teki TEK yeni çift
+    // `#merkez ∩ #kenarUstTaslar`tı ve 2,00'ye kadar başka çift çıkmadı) → sınır taşmadır.
+    rakip: Object.freeze({ yeni0: 1.50, buyumez0: 1.50, tasma0: 1.50 }),
   }),
   'telefon-kucuk': Object.freeze({
-    el: Object.freeze({ yeni0: 1.95, buyumez0: 1.95 }),
-    rakip: Object.freeze({ yeni0: 1.20, buyumez0: 1.20 }),
+    el: Object.freeze({ yeni0: 1.95, buyumez0: 1.95, tasma0: 1.95 }),
+    // `rakip`: aynı gerekçe (ölçümde 1,25'teki TEK yeni çift `#merkez ∩ #kenarUstTaslar`).
+    rakip: Object.freeze({ yeni0: 1.30, buyumez0: 1.30, tasma0: 1.30 }),
   }),
 });
 
 /**
  * Ölçümün kademeye izin verdiği en büyük ölçek: kademenin BÜTÜN kabul boyutlarında, verilen
- * durumlarda `buyumez0`un en küçüğü. `buyumez0` yoksa (taban zaten ihlalli) o boyut ölçeğin
- * büyümesine izin vermez → 1.
+ * durumlarda ÜÇ ÖLÇÜLEN TERİMİN en küçüğü (ADR-022 madde 9) — çakışma tavanı (`buyumez0`) ve
+ * sayfa taşması tavanı (`tasma0`). `buyumez0` yoksa (taban zaten ihlalli) o boyut ölçeğin
+ * büyümesine izin vermez → 1. `tasma0` her kayıtta ZORUNLUDUR: eksikse sessizce sonsuz sayılıp
+ * denetimsiz kalmasın diye hata verilir.
  *
- * `durumlar` varsayılanı yalnız `el`dir: `rakip` (el bittiğinde açılan rakip ıstakası) ölçümünde
- * bağlayıcı çiftler `#kenarSolTaslar`/`#kenarSagTaslar` ile köşe yığınlarıdır, yani ölçeğin
- * büyüttüğü `--rakip-acik-tas-*` ile ölçeğe BAĞLANMAYAN `--rakip-raf-*` kutusunun çelişkisi —
- * ADR-022/6'nın açık bırakığı sorudur, `tasokey#68` raporunda Mimar'a soruluyor.
+ * `durumlar` varsayılanı yalnız `el`dir; iki durumun birlikte okunduğu bağlayıcı denetim
+ * `sigdirma-butcesi.test.js` kabul-d10'dadır (orada ölçek üç terimin en küçüğüne EŞİT olmalıdır).
+ * `tablo` yalnız öz-testin eksik alan denetimi için vardır; üretimde tek kaynak yukarıdaki sabittir.
  */
-export function olculenTavan(kademeAdi, kabulBoyutlari, durumlar = ['el']) {
+export function olculenTavan(kademeAdi, kabulBoyutlari, durumlar = ['el'], tablo = OLCULEN_OLCEK_TAVANI) {
   let enKucuk = Infinity;
   for (const boyutAdi of kabulBoyutlari) {
-    const kayit = OLCULEN_OLCEK_TAVANI[boyutAdi];
+    const kayit = tablo[boyutAdi];
     if (!kayit) throw new Error(`ölçülen ölçek tavanı yok: ${boyutAdi} (${kademeAdi})`);
     for (const durum of durumlar) {
       if (!kayit[durum]) throw new Error(`ölçülen durum yok: ${boyutAdi}/${durum}`);
-      enKucuk = Math.min(enKucuk, kayit[durum].buyumez0 ?? 1);
+      const { buyumez0, tasma0 } = kayit[durum];
+      if (typeof tasma0 !== 'number') throw new Error(`ölçülen taşma tavanı yok: ${boyutAdi}/${durum}`);
+      enKucuk = Math.min(enKucuk, buyumez0 ?? 1, tasma0);
     }
   }
   return Math.max(1, enKucuk);

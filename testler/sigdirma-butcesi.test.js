@@ -292,10 +292,21 @@ test('kabul-d6: her kademenin ölçeği TARAYICIDA ÖLÇÜLEN tavanı aşmıyor 
   // tasokey#68'de 800x360'ın tabanı ZATEN ihlalliydi (`buyumez0` yok) → tavan 1'de kalıyordu;
   // kısa yatay düzen varyantı o iki çakışmayı kaldırdı, ölçüm 1,95 dedi (tasokey#72).
   assert.equal(olculenTavan('x', ['telefon-kucuk']), 1.95);
-  // Bağlayıcı olan en dar boyuttur: 844x390 2,00 verse de kademe 800x360'ın 1,95'inde kalır.
+  // Bağlayıcı olan en dar boyuttur: 844x390 2,00 verse de iki boyut aynı kademeyi paylaşsaydı
+  // 800x360'ın 1,95'inde kalırlardı. (tasokey#72'de kademe bölündü — bkz. KADEME_KABUL_BOYUTLARI.)
   assert.equal(olculenTavan('x', ['telefon-yatay', 'telefon-kucuk']), 1.95);
   // `durum=rakip` daha dar bir sınır verir (el sonunda açılan rakip ıstakası) — ADR-022/6.
-  assert.equal(olculenTavan('x', ['kademe-900'], ['el', 'rakip']), 1.10);
+  // tasokey#72: madde 8'in muaf küçültmesinden sonra 900x600'de 1,10 → 1,20.
+  assert.equal(olculenTavan('x', ['kademe-900'], ['el', 'rakip']), 1.20);
+  // ÜÇÜNCÜ TERİM (madde 9): taşma tavanı da bağlar. Masaüstünde çakışma 1,85'te durduğu için
+  // taşma (2,00) görünmez; telefon dilimlerinde madde 10 çakışmayı kaldırınca BAĞLAYICI olan odur.
+  assert.equal(olculenTavan('x', ['telefon-kucuk'], ['rakip']), 1.30);
+  assert.equal(olculenTavan('x', ['telefon-yatay'], ['rakip']), 1.50);
+  // `tasma0` eksik bir kayıt sessizce sonsuz sayılmaz (üçüncü terim denetimsiz kalmasın).
+  assert.throws(
+    () => olculenTavan('x', ['masaustu'], ['el'], { masaustu: { el: { buyumez0: 1.85 } } }),
+    /ölçülen taşma tavanı yok/,
+  );
 });
 
 /* ------------------------------------ kabul-d7…d9: kısa yatay DÜZEN VARYANTININ bütçesi (#72) */
@@ -401,8 +412,9 @@ test('kabul-d10: kademenin ölçeği İKİ DURUMUN ölçülen tavanlarının en 
   // tasokey#68'de bu kural YAZILAMAZDI: masaüstü üç kademede `rakip` tavanı `el`in çok altındaydı
   // (1,85 / 1,30) ve seçim `el`e dayanıyordu. ADR-022/6 `--rakip-acik-tas-*`ı ölçekten ayırınca
   // o fark kapandı — bu turda ölçüldü: masaüstü üç boyutta iki durum AYNI (1,85 / 1,35 / 1,40).
-  // Fark yalnız kısa yatay varyantın iki kademesinde sürüyor (1,95→1,20 ve 1,25→1,10); oradaki
-  // bağlayıcı çiftler el sonunda açılan rakip ıstakasıyladır (ADR-022/6'nın açık ucu).
+  // Fark yalnız kısa yatay varyantın üç dilimde sürüyor (el 1,95 / 2,00 / 1,25 ↔ rakip 1,30 /
+  // 1,50 / 1,20); ADR-022 madde 8 ve 10'dan sonra oradaki bağlayıcı terim artık çoğunlukla
+  // çakışma değil SAYFA TAŞMASIDIR (madde 9'un üçüncü terimi).
   for (const [kademeAdi, boyutAdlari] of Object.entries(KADEME_KABUL_BOYUTLARI)) {
     const olcek = butceGirdisi(olculenBoyut(boyutAdlari[0])).olcek;
     assert.equal(

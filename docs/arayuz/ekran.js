@@ -312,6 +312,10 @@ function masaCiz() {
   eleman.gosterge.appendChild(tasElemaniOlustur(durum.gosterge, durum.okeyTasi));
 
   const rakipEliAcik = rakipEliAcikMi(durum);
+  // ADR-022 madde 10 (Masa kararı, Sahip adına 2026-11-22): el bitince masa "rakip eli açık"
+  // durumuna geçer. Buradaki tek iş masaya durum sınıfını yazmaktır — o durumda NEYİN gizleneceği
+  // bir düzen kuralıdır ve stil.css'te, kademesinin içinde durur (kısa yatay varyantta #merkez).
+  eleman.masa.classList.toggle('rakip-eli-acik', rakipEliAcik);
   for (const oyuncu of [1, 2, 3]) {
     const { kutu, ad, taslar } = KENAR_ELEMAN_ADLARI[KENAR_HARITASI[oyuncu]];
     eleman[ad].textContent = oyuncuAdi(oyuncu);

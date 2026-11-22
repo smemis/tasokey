@@ -51,6 +51,11 @@ const BUGUNKU_MERDIVEN = [
     arka: [36, 52],
   },
   {
+    kademe: '@media (orientation: landscape) and (min-height: 361px) and (max-height: 700px)',
+    tas: [58, 82],
+    arka: [36, 52],
+  },
+  {
     kademe: '@media (orientation: landscape) and (min-height: 501px) and (max-height: 700px)',
     tas: [58, 82],
     arka: [36, 52],
