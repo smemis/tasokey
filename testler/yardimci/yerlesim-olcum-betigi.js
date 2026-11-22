@@ -31,8 +31,16 @@ export const GEOMETRI_ADLARI = Object.freeze([
   'ESIK_PX', 'HALKA_EKI', 'CIFT_ISTISNALARI',
   'kutuAlani', 'kutuBosMu', 'kutuGenislet', 'kesisim', 'ataCocukMu',
   'cakisanCiftler', 'ciftleriAyir', 'muafListesi', 'halkaCiftleriniAyir', 'tasmaIhlalleri',
-  'olcuMetni', 'ozetSatirlari', 'markdownTablosu', 'olcumSatiri', 'TABLO_BASLIKLARI',
+  'olcuMetni', 'ozetSatirlari', 'yaziKatmaniBicimi', 'markdownTablosu', 'olcumSatiri',
+  'TABLO_BASLIKLARI',
 ]);
+
+/**
+ * Ekran görüntüsü yolunda yazı katmanına yazılan en çok ihlal satırı. "Önce" ölçümünde en kötü
+ * boyutta 14 ihlal çıktı; liste KIRPILMASIN diye bunun üstünde tutulur (katman satır sayısına
+ * göre kendini küçültür, `yaziKatmaniBicimi`).
+ */
+export const EKRAN_EN_COK_CIFT = 24;
 
 /** ES modül kaynağını tarayıcıya gömülebilir düz koda çevirir (`export` atılır, `import` yasak). */
 export function gomulebilirKaynak(kaynak) {
@@ -45,7 +53,7 @@ export function gomulebilirKaynak(kaynak) {
 }
 
 /** İki kaynağı okur ve sayfada çalışacak async gövdeyi döndürür. */
-export function sayfaBetigi({ durum = 'el', gosterim = 'json', esik = null } = {}) {
+export function sayfaBetigi({ durum = 'el', gosterim = 'json', esik = null, enCokCift = null } = {}) {
   if (!DURUMLAR.includes(durum)) throw new Error(`sayfaBetigi: bilinmeyen durum ${durum}`);
   const geometri = gomulebilirKaynak(readFileSync(GEOMETRI_DOSYASI, 'utf8'));
   const sayfa = gomulebilirKaynak(readFileSync(SAYFA_DOSYASI, 'utf8'));
@@ -58,6 +66,7 @@ export function sayfaBetigi({ durum = 'el', gosterim = 'json', esik = null } = {
     `  durum: ${JSON.stringify(durum)},`,
     `  gosterim: ${JSON.stringify(gosterim)},`,
     `  esik: ${esik === null ? 'undefined' : Number(esik)},`,
+    `  enCokCift: ${enCokCift === null ? 'undefined' : Number(enCokCift)},`,
     `  geometri: { ${GEOMETRI_ADLARI.join(', ')} },`,
     '});',
     'return OLCUM;',
@@ -77,7 +86,7 @@ export function planNesnesi({ bekle = 1.5, jsBekle = 1.2 } = {}) {
       ad: `olcum-${durum}`,
       sayfa: 'index.html',
       bekle,
-      js: sayfaBetigi({ durum, gosterim: 'ekran' }),
+      js: sayfaBetigi({ durum, gosterim: 'ekran', enCokCift: EKRAN_EN_COK_CIFT }),
       js_bekle: jsBekle,
     })),
   };

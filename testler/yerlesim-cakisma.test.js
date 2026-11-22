@@ -7,11 +7,11 @@ import {
   ESIK_PX, CIFT_ISTISNALARI, TABLO_BASLIKLARI,
   kutuAlani, kutuBosMu, kutuGenislet, kesisim, ataCocukMu,
   cakisanCiftler, ciftleriAyir, muafListesi, halkaCiftleriniAyir, tasmaIhlalleri,
-  olcuMetni, ozetSatirlari, markdownTablosu, olcumSatiri,
+  olcuMetni, ozetSatirlari, yaziKatmaniBicimi, markdownTablosu, olcumSatiri,
 } from './yardimci/yerlesim-cakisma.js';
 import * as geometriModulu from './yardimci/yerlesim-cakisma.js';
 import {
-  BOYUTLAR, GEOMETRI_ADLARI, gomulebilirKaynak, sayfaBetigi, planNesnesi,
+  BOYUTLAR, GEOMETRI_ADLARI, EKRAN_EN_COK_CIFT, gomulebilirKaynak, sayfaBetigi, planNesnesi,
 } from './yardimci/yerlesim-olcum-betigi.js';
 import { DURUMLAR, OGE_TANIMLARI, HALKA_TANIMLARI } from './yardimci/yerlesim-olcum-sayfa.js';
 
@@ -259,6 +259,40 @@ test('özet satırları ekran görüntüsünden okunabilir biçimde yazılır', 
   assert.ok(ozetSatirlari(cokIhlal, { enCokCift: 3 }).some((satir) => satir.includes('+17 cift daha')));
 });
 
+test('yazı katmanı ekrana sığar: uzun liste başa çekilir, gerekirse yazı küçülür', () => {
+  const sigar = (satirSayisi, yukseklik, bicim) => (
+    Math.ceil(satirSayisi * bicim.yazi * bicim.satirPayi) + 12 <= yukseklik - bicim.ustPx
+  );
+
+  // (a) Kısa liste: katman masanın üstünde durur (sayfa da görünsün), yazı küçülmez.
+  const kisa = yaziKatmaniBicimi(8, 1080);
+  assert.equal(kisa.yazi, 12);
+  assert.ok(kisa.ustPx > 0);
+  assert.ok(sigar(8, 1080, kisa));
+
+  // (b) "Önce" ölçümünün en kötü hâli (800x360, 14 ihlal + 3 kasıtlı + 4 başlık): başa çekilir,
+  //     yazı 12 px kalır ve liste KIRPILMAZ.
+  const enKotu = yaziKatmaniBicimi(21, 360);
+  assert.equal(enKotu.yazi, 12);
+  assert.equal(enKotu.ustPx, 0);
+  assert.ok(sigar(21, 360, enKotu));
+
+  // (c) Başa çekmek de yetmezse yazı küçülür ve liste yine sığar.
+  const cokUzun = yaziKatmaniBicimi(30, 360);
+  assert.ok(cokUzun.yazi < 12);
+  assert.ok(sigar(30, 360, cokUzun));
+
+  // (d) Okunurluk tabanı yazıyı küçültmekten önce gelir: 7 px'in altına inilmez (bu durumda
+  //     katman ekranı taşar — kırpılan satır, okunmayan satırdan iyidir).
+  assert.equal(yaziKatmaniBicimi(400, 360).yazi, 7);
+  assert.ok(!sigar(400, 360, yaziKatmaniBicimi(400, 360)));
+
+  // (e) Ekran yolunun sınırı, ölçülen en kötü ihlal sayısının üstünde (liste kırpılmasın).
+  assert.ok(EKRAN_EN_COK_CIFT > 14);
+  const enKotuSinir = yaziKatmaniBicimi(EKRAN_EN_COK_CIFT + 8, 360);
+  assert.ok(sigar(EKRAN_EN_COK_CIFT + 8, 360, enKotuSinir));
+});
+
 test('markdown tablosu ve ölçüm satırı', () => {
   const tablo = markdownTablosu(['a', 'b'], [[1, 'x'], [2, 'y']]);
   assert.equal(tablo, '| a | b |\n| --- | --- |\n| 1 | x |\n| 2 | y |');
@@ -377,6 +411,8 @@ test('sayfa betiği geçerli bir async gövdedir ve iki yol aynı metni kullanı
   for (const cekim of plan.cekimler) {
     assert.equal(cekim.sayfa, 'index.html');
     assert.ok(cekim.js.includes("gosterim: \"ekran\""));
+    // Ekran yolu ihlal listesini kırpmaz: sınır betiğe yazılı geçer.
+    assert.ok(cekim.js.includes(`enCokCift: ${EKRAN_EN_COK_CIFT}`));
     assert.doesNotThrow(() => new Function(`return (async () => {\n${cekim.js}\n});`));
   }
 });

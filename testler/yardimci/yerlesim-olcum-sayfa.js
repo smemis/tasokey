@@ -274,12 +274,18 @@ function tasmaOlcumu() {
   };
 }
 
-/** Ekran görüntüsü yolunda ölçüm sayfanın üstüne yazı katmanı olarak basılır (tasokey#63 deseni). */
+/**
+ * Ekran görüntüsü yolunda ölçüm sayfanın üstüne yazı katmanı olarak basılır (tasokey#63 deseni).
+ * Yer ve yazı boyu satır sayısına göre saf çekirdekten gelir: uzun ihlal listesi küçük görünümde
+ * de kırpılmadan okunabilsin.
+ */
 function ekranaYaz(satirlar) {
+  const bicim = G.yaziKatmaniBicimi(satirlar.length, window.innerHeight);
   const katman = document.createElement('div');
   katman.id = 'olcumKatmani';
-  katman.style.cssText = 'position:fixed;left:0;top:24%;right:0;z-index:99999;'
-    + 'background:#000000ee;color:#ffffff;font:12px/1.35 Consolas,monospace;'
+  katman.style.cssText = `position:fixed;left:0;top:${bicim.ustPx}px;right:0;z-index:99999;`
+    + 'background:#000000ee;color:#ffffff;'
+    + `font:${bicim.yazi}px/${bicim.satirPayi} Consolas,monospace;`
     + 'padding:6px 8px;white-space:pre;';
   katman.textContent = satirlar.join('\n');
   document.body.appendChild(katman);
@@ -287,10 +293,11 @@ function ekranaYaz(satirlar) {
 
 /**
  * Tek ölçüm: durumu kurar, en kötü metni uygular, kutuları toplar, saf çekirdekle hesaplar.
- * `gosterim === 'ekran'` ise özet sayfaya basılır (ekran görüntüsünden okunmak için).
- * `geometri`: `yardimci/yerlesim-cakisma.js`in dışa verdikleri (tek kaynak).
+ * `gosterim === 'ekran'` ise özet sayfaya basılır (ekran görüntüsünden okunmak için);
+ * `enCokCift` yazı katmanına kaç ihlal satırı yazılacağını söyler (verilmezse çekirdeğin
+ * varsayılanı). `geometri`: `yardimci/yerlesim-cakisma.js`in dışa verdikleri (tek kaynak).
  */
-export async function olcumYap({ durum = 'el', gosterim = 'json', esik, geometri } = {}) {
+export async function olcumYap({ durum = 'el', gosterim = 'json', esik, enCokCift, geometri } = {}) {
   if (!geometri) throw new Error('olcumYap: geometri (saf çekirdek) verilmedi');
   if (!DURUMLAR.includes(durum)) throw new Error(`olcumYap: bilinmeyen durum ${durum}`);
   G = geometri;
@@ -321,6 +328,8 @@ export async function olcumYap({ durum = 'el', gosterim = 'json', esik, geometri
     zorlanan,
     ogeler,
   };
-  if (gosterim === 'ekran') ekranaYaz(G.ozetSatirlari(olcum));
+  if (gosterim === 'ekran') {
+    ekranaYaz(G.ozetSatirlari(olcum, enCokCift == null ? undefined : { enCokCift }));
+  }
   return olcum;
 }

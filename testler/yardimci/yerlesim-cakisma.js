@@ -193,6 +193,23 @@ export function ozetSatirlari(olcum, { enCokCift = 6 } = {}) {
   return satirlar;
 }
 
+/**
+ * Ekran görüntüsündeki yazı katmanının sığdırma biçimi: satır sayısı + görünüm yüksekliğinden
+ * yazı boyunu ve üst payı verir. Kısa listede katman masanın üstünde durur (sayfa da görünsün),
+ * uzun listede önce başa çekilir, yine sığmıyorsa yazı küçültülür — ihlal listesi KIRPILMASIN
+ * diye. Saf: DOM yok, yalnız sayı.
+ */
+export function yaziKatmaniBicimi(satirSayisi, gorunumYuksekligi, {
+  yazi = 12, satirPayi = 1.35, ustOran = 0.24, enKucukYazi = 7, dolgu = 12,
+} = {}) {
+  const gerekli = (boy) => Math.ceil(satirSayisi * boy * satirPayi) + dolgu;
+  const ustPx = Math.round(gorunumYuksekligi * ustOran);
+  if (gerekli(yazi) <= gorunumYuksekligi - ustPx) return { yazi, ustPx, satirPayi };
+  if (gerekli(yazi) <= gorunumYuksekligi) return { yazi, ustPx: 0, satirPayi };
+  const sigan = Math.floor((gorunumYuksekligi - dolgu) / (satirSayisi * satirPayi));
+  return { yazi: Math.max(enKucukYazi, sigan), ustPx: 0, satirPayi };
+}
+
 /** Markdown tablosu (başlıklar + satırlar; hücreler metne çevrilir). */
 export function markdownTablosu(basliklar, satirlar) {
   const ciz = (hucreler) => `| ${hucreler.join(' | ')} |`;
