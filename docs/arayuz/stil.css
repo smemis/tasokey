@@ -1236,8 +1236,9 @@ html, body {
 /* Varyantın İKİNCİ bloğu (tasokey#72) — yalnız ÖLÇEK. Varyant üç kabul boyutunu birden kapsar ama
    ölçek kademe başına ÖLÇÜLÜR (ADR-022/5) ve 900x600'ün tabanı daha büyüktür (42x60; telefonda
    25x36), bu yüzden aynı yatay bütçe orada daha küçük bir ölçeğe izin verir. Sorgu, varyantın
-   yukarıdaki bandının YALNIZ üst dilimidir (501…700 px yükseklik) → telefon yatay (<= 500) 1,95'te
-   kalır, 900x600 buradan 1,25 okur. Blok yukarıdakinden SONRA durur: devralma sırası budur.
+   yukarıdaki bandının YALNIZ üst dilimidir (501…700 px yükseklik) → telefon yatay (<= 500)
+   yukarıdaki blokta (1,2) kalır, 900x600 buradan okur. Blok yukarıdakinden SONRA durur: devralma
+   sırası budur.
    Bölgenin parçasıdır — bölgeyi silmek ölçeği de taban kademeye (900px → 1,05) geri verir. */
 @media (orientation: landscape) and (min-height: 501px) and (max-height: 700px) {
   :root {
