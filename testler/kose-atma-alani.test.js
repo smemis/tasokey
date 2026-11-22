@@ -179,6 +179,57 @@ test('ASIL KABUL (c2): satır içerikleri kalan yüksekliğe sığar (kesin yük
   }
 });
 
+/* --------------------------------------------------------------- TARAYICIDA ÖLÇÜLEN karşılık */
+
+/**
+ * `tasokey#74`, 2026-11-22 — gerçek tarayıcı turu (`is/tasokey-74/ekran/surukle-hedef-*.png`,
+ * ADR-023 `ekran_gerek` yolu, gerçek Pointer Events). Yukarıdaki kabuller CSS'ten HESAPLAR;
+ * burası o hesabın tarayıcıda ne çıktığını yazar ve ikisini karşılaştırır.
+ *
+ * Neden burada: `tasokey#71` düzeni iki varyanta böldü, bant modeli de ölçülen tablodan geliyor
+ * (`olculenBantlar`). Model ile gerçek arasında sessiz bir kayma olursa yukarıdaki beş kabul
+ * YANLIŞ bir masada "geçti" der. Bu sav modeli gerçeğe çiviler; savlar gevşemedi, bir sav eklendi.
+ *
+ * | Boyut     | Düzen     | Ölçek | Köşe  | Hücre (px) | Boş bölge | İsabet 5×5 | `cubukArtigi` |
+ * |-----------|-----------|-------|-------|------------|-----------|------------|---------------|
+ * | 1920×1080 | paylaşılan| 1,85  | üst   | `246×224`  | `270×248` | 25/25 %100 | `0,0 px`      |
+ * | 1920×1080 | paylaşılan| 1,85  | alt   | `246×224`  | `270×248` | 25/25 %100 | `0,0 px`      |
+ * | 900×600   | varyant   | 1,25  | üst   | `65×138`   | `79×152`  | 25/25 %100 | `25,8 px`     |
+ * | 900×600   | varyant   | 1,25  | alt   | `65×116`   | `79×130`  | 25/25 %100 | `0,0 px`      |
+ * | 800×360   | varyant   | 1,45  | üst   | `141×82`   | `147×88`  | 25/25 %100 | `23,8 px`     |
+ * | 800×360   | varyant   | 1,45  | alt   | `141×68`   | `147×74`  | 25/25 %100 | `0,0 px`      |
+ *
+ * `cubukArtigi` = dikey ıstaka çubuğunun dış kenarı ile köşe sütununun çizgisi arasında kalan
+ * artık şerit (`yardimci/surukleme-olcum-sayfa.js`). Varyantta ÜST köşelerde sıfır değildir:
+ * üst köşe iki bandı kaplar (ADR-024/2) ve üst bandın hizasında yan çubuk henüz başlamamıştır —
+ * yani şerit köşenin KENDİ alanıdır, isabeti düşürmez (üstte de 25/25 ölçüldü). Statik modelde
+ * karşılığı yoktur (çubuğun kendi kutusunu ölçmez), bu yüzden burada yalnız BELGELENİR.
+ */
+const TARAYICI_OLCUMU = [
+  { ad: '1920x1080 (masaüstü)', genislik: 1920, yukseklik: 1080, pay: 12, koseler: { üst: [246, 224, 270, 248], alt: [246, 224, 270, 248] } },
+  { ad: '900x600 (kısa yatay — geniş)', genislik: 900, yukseklik: 600, pay: 7, koseler: { üst: [65, 138, 79, 152], alt: [65, 116, 79, 130] } },
+  { ad: '800x360 (telefon yatay — Sahip ölçümü)', genislik: 800, yukseklik: 360, pay: 3, koseler: { üst: [141, 82, 147, 88], alt: [141, 68, 147, 74] } },
+];
+
+test('ASIL KABUL (a3): statik iz modeli TARAYICIDA ölçülen köşe kutusunu birebir üretir', () => {
+  for (const satir of TARAYICI_OLCUMU) {
+    const olcu = masaOlcusu(satir);
+    assert.equal(olcu.hedefPayi, satir.pay, `${satir.ad}: hedef payı modelde ${olcu.hedefPayi}px, tarayıcıda ${satir.pay}px`);
+    for (const kose of olcu.koseler) {
+      const [genislik, yukseklik, bolgeGenislik, bolgeYukseklik] = satir.koseler[kose.ad];
+      const esit = (hesap, olculen, neyin) => assert.ok(
+        Math.abs(hesap - olculen) <= 1,
+        `${satir.ad} ${kose.ad} köşe ${neyin}: model ${hesap.toFixed(1)} px, tarayıcı ${olculen} px — `
+        + 'iz modeli ile gerçek masa ayrışmış; yukarıdaki kabuller artık gerçek olmayan bir masayı ölçüyor',
+      );
+      esit(olcu.koseGenislik, genislik, 'hücre genişliği');
+      esit(kose.yukseklik, yukseklik, 'hücre yüksekliği');
+      esit(olcu.bosBolgeGenislik, bolgeGenislik, 'boş bölge genişliği');
+      esit(kose.bosBolgeYukseklik, bolgeYukseklik, 'boş bölge yüksekliği');
+    }
+  }
+});
+
 /* ------------------------------------------------- yapısal kurallar (ölçümün dayandığı düzen) */
 
 /**
