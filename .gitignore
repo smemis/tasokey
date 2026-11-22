@@ -5,6 +5,10 @@
 # durur; hiçbiri kaynak değildir, hepsi tek komutla yeniden üretilir.
 android/cikti/
 
+# Yerleşim çakışma ölçüm aracının çıktısı (tasokey#67): `--cikti` varsayılanı. Markdown tablo,
+# JSON ve ekran görüntüleri; hiçbiri kaynak değildir, araç tek komutla yeniden üretir.
+olcum-cikti/
+
 # İmza anahtarı ve parolası depoya ASLA girmez (donmuş alan; anahtar Masa'da durur).
 # Ofis denemelerinde keytool ile üretilen geçici anahtar da bu kalıba düşer.
 *.jks
