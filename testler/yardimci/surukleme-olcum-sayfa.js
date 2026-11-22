@@ -177,7 +177,11 @@ async function oyunuBaslat() {
   if (gorunurMu('baslangicPaneli')) throw new Error('başlangıç penceresi kapanmadı');
 }
 
-/** Sıra insana gelene kadar bekler (bot gecikmeleri çökertilmiş olmalı). */
+/**
+ * Sıra insana gelene kadar bekler (bot gecikmeleri çökertilmiş olmalı). ATMAZ: sıra gelmezse
+ * `false` döner ki o ana kadar toplanan gözlemler kaybolmasın — ölçülmeyen yol zaten `olculmedi`
+ * olarak raporlanır (A9).
+ */
 async function sirayiBekle(cekilebilirKose, { enCok = 400 } = {}) {
   for (let i = 0; i < enCok; i += 1) {
     bilgiyiKapat();
@@ -185,7 +189,15 @@ async function sirayiBekle(cekilebilirKose, { enCok = 400 } = {}) {
     if (insanSirasiMi(cekilebilirKose)) return true;
     await uyu(5);
   }
-  throw new Error('sıra insana gelmedi (bot turu bitmedi)');
+  return false;
+}
+
+/** Sırayı bekler ve gelmezse ATAR: ölçümü sıraya bağlı olan adımlar bunu kullanır. */
+async function sirayiBekleZorunlu(cekilebilirKose) {
+  if (await sirayiBekle(cekilebilirKose)) return;
+  throw new Error(gorunurMu('sonucPaneli')
+    ? 'el bitti (sonuç penceresi açık), sıra insana gelmeyecek'
+    : 'sıra insana gelmedi (bot turu bitmedi)');
 }
 
 // ——— yol 1 + yol 4: ıstakaya bırakma ve çekme ——————————————————————————————————————————————
@@ -657,7 +669,8 @@ async function hedefSahnesi(moduller) {
       koseler: koseOlcumu.koseler,
       esik: S.ESIK_PX,
       bosluk: degiskenPx('--masa-bosluk'),
-      atma: await ucNoktadanAtmayiOlc(kendiKose),
+      // Atma hamledir: sıra bizde olmalı (isabet taramaları sıraya bağlı değil, yukarıda koştu).
+      atma: await sirayiBekleZorunlu(cekilebilirKose).then(() => ucNoktadanAtmayiOlc(kendiKose)),
     };
   });
   if (koseOlcumu) isaretler.push(...koseIsaretleri(koseOlcumu.koseler));
@@ -672,8 +685,8 @@ async function hedefSahnesi(moduller) {
   }
 
   // 4. Çekme: yasak köşe (sıra bizdeyken, çekilmemişken) → deste → sonraki turda komşu köşe.
-  await sirayiBekle(cekilebilirKose);
   await sar('cekme', async () => {
+    await sirayiBekleZorunlu(cekilebilirKose);
     const yasak = KOSE_TANIMLARI
       .map((tanim) => tanim.kose)
       .filter((kose) => kose !== cekilebilirKose && kose !== kendiKose)
@@ -699,8 +712,10 @@ async function hedefSahnesi(moduller) {
   el(koseId(kendiKose)).click();
   await uyu(30);
   bilgiyiKapat();
-  await sirayiBekle(cekilebilirKose);
-  await sar('cekme', async () => ({ komsuKose: await kosedenCekmeyiOlc(cekilebilirKose) }));
+  await sar('cekme', async () => {
+    await sirayiBekleZorunlu(cekilebilirKose);
+    return { komsuKose: await kosedenCekmeyiOlc(cekilebilirKose) };
+  });
 
   return { gozlemler, isaretler };
 }
