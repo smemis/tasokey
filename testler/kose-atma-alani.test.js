@@ -37,6 +37,10 @@ const EN_AZ_KAPSAMA = 0.8;
 // Yazı ölçüsüne bağlı, burada ölçülemeyen yükseklikler için sınırlar:
 // #ustCubuk + #durumSatiri birlikte en çok bu kadar yer kaplar (masa yüksekliğinden düşülür).
 const KABUK_YUKSEKLIGI_UST_SINIRI_PX = 160;
+// Aynı kabuğun ALT sınırı: düğme dolgusu (2x4px) + tek satır metin + durum satırı dolgusu.
+// "Masa viewport'a sığıyor mu?" sorusunda bu kullanılır — kabuk küçük varsayılınca masaya en çok
+// yer kalır, yani taşma iddiası en TEMKİNLİ biçimde kurulur (yanlış alarm vermez).
+const KABUK_YUKSEKLIGI_ALT_SINIRI_PX = 48;
 // Tek satır metnin (başlık, sayaç, ipucu — 0,75…1,1rem) kaplayabileceği en büyük yükseklik.
 const METIN_SATIRI_UST_SINIRI_PX = 32;
 // #rafAlani ve #merkez içindeki dikey boşlukların üst sınırı (stil.css: 8px / 6px, dar kademede 4px).
@@ -184,11 +188,28 @@ function izOlculeri(izAdlari, { toplamOlcu, bosluk, icerikler }) {
 }
 
 /**
+ * Aynı eksenin İÇERİK TABANLI ölçüsü: kabın o eksendeki ölçüsü belirsizse (`auto` yükseklikli bir
+ * kapta) tarayıcı esnek izleri serbest yerden değil İÇERİKTEN çözer — esneklik birimi, esnek
+ * izlerin `içerik / pay` oranlarının EN BÜYÜĞÜDÜR (CSS Grid §12.7.2). Yani tek bir dolu iz
+ * (oyuncunun ıstakası) bütün ızgarayı kendi payının katına çeker: `1fr 2fr 1fr` düzeninde ıstaka
+ * satırı masayı ıstakanın DÖRT KATI yapar.
+ */
+function izOlculeriIcerikten(izAdlari, { bosluk, icerikler }) {
+  const birim = Math.max(
+    ...izAdlari.map((iz, i) => (iz === 'auto' ? 0 : icerikler[i] / Number.parseFloat(iz))),
+  );
+  const olculer = izAdlari.map((iz, i) => (
+    iz === 'auto' ? icerikler[i] : Math.max(icerikler[i], Number.parseFloat(iz) * birim)
+  ));
+  return olculer.reduce((toplam, olcu) => toplam + olcu, 0) + 2 * bosluk;
+}
+
+/**
  * Bir boyutta masanın ölçüleri: köşe kutusu, köşeyi çevreleyen boş bölge ve yığın merkezleri.
  * Yazı ölçüsüne bağlı yükseklikler `altSinir`/`ustSinir` ile verilir; `altSinir` seçildiğinde
  * köşe kutusu en küçük, boş bölge en büyük çıkar (oranın aleyhine → sonuç alt sınırdır).
  */
-function masaOlcusu(boyut) {
+function masaIcerikleri(boyut) {
   const sozluk = sozlukAl(boyut);
   const bosluk = degisken('--masa-bosluk', sozluk);
   const dolgu = degisken('--masa-dolgu', sozluk);
@@ -203,8 +224,6 @@ function masaOlcusu(boyut) {
 
   const koseEnKucukGenislik = tasGenislik + 2 * kaydirma;
   const koseEnKucukYukseklik = tasYukseklik + 2 * kaydirma;
-  const masaIcGenislik = boyut.genislik - 2 * (dolgu + cerceve);
-  const masaIcYukseklik = boyut.yukseklik - KABUK_YUKSEKLIGI_UST_SINIRI_PX - 2 * (dolgu + cerceve);
 
   // Satır içerikleri (alt sınır = en küçük olabileceği, üst sınır = en büyük olabileceği).
   const istakaYukseklikAlt = 2 * tasYukseklik + 2 * panelDolgu;
@@ -213,21 +232,37 @@ function masaOlcusu(boyut) {
   const merkezYukseklikUst = tasYukseklik + 4 * METIN_SATIRI_UST_SINIRI_PX + 3 * IC_BOSLUK_UST_SINIRI_PX;
   const cubukTaban = px(bildirim('.kenar-raf-dikey', 'min-height', boyut), sozluk);
 
-  const sutunIcerik = [
-    Math.max(koseEnKucukGenislik, cubukKalinlik),
+  return {
+    sozluk,
+    bosluk,
+    dolgu,
+    cerceve,
     istakaGenislik,
-    Math.max(koseEnKucukGenislik, cubukKalinlik),
-  ];
-  const satirIcerikAlt = [
-    Math.max(koseEnKucukYukseklik, cubukKalinlik),
-    Math.max(cubukTaban, merkezYukseklikAlt),
-    Math.max(koseEnKucukYukseklik, istakaYukseklikAlt),
-  ];
-  const satirIcerikUst = [
-    Math.max(koseEnKucukYukseklik, cubukKalinlik),
-    Math.max(cubukTaban, merkezYukseklikUst),
-    Math.max(koseEnKucukYukseklik, istakaYukseklikUst),
-  ];
+    cerceveVeDolgu: 2 * (dolgu + cerceve),
+    sutunIcerik: [
+      Math.max(koseEnKucukGenislik, cubukKalinlik),
+      istakaGenislik,
+      Math.max(koseEnKucukGenislik, cubukKalinlik),
+    ],
+    satirIcerikAlt: [
+      Math.max(koseEnKucukYukseklik, cubukKalinlik),
+      Math.max(cubukTaban, merkezYukseklikAlt),
+      Math.max(koseEnKucukYukseklik, istakaYukseklikAlt),
+    ],
+    satirIcerikUst: [
+      Math.max(koseEnKucukYukseklik, cubukKalinlik),
+      Math.max(cubukTaban, merkezYukseklikUst),
+      Math.max(koseEnKucukYukseklik, istakaYukseklikUst),
+    ],
+  };
+}
+
+function masaOlcusu(boyut) {
+  const {
+    sozluk, bosluk, istakaGenislik, cerceveVeDolgu, sutunIcerik, satirIcerikAlt, satirIcerikUst,
+  } = masaIcerikleri(boyut);
+  const masaIcGenislik = boyut.genislik - cerceveVeDolgu;
+  const masaIcYukseklik = boyut.yukseklik - KABUK_YUKSEKLIGI_UST_SINIRI_PX - cerceveVeDolgu;
 
   const sutunlar = izOlculeri(izler('#masa', 'grid-template-columns', boyut, sozluk), {
     toplamOlcu: masaIcGenislik, bosluk, icerikler: sutunIcerik,
@@ -245,7 +280,10 @@ function masaOlcusu(boyut) {
   // doldurmuyorsa satırın iki ucunda artan boşluk, köşenin DIŞINDA kalan boş alandır.
   const cubukYuzde = Number.parseFloat(bildirim('.kenar-raf-dikey', 'height', boyut)) / 100;
   const ortaSatir = satirAltSiniri[1];
-  const cubukUzunluk = Math.max(Math.min(ortaSatir, cubukYuzde * ortaSatir), cubukTaban);
+  const cubukUzunluk = Math.max(
+    Math.min(ortaSatir, cubukYuzde * ortaSatir),
+    px(bildirim('.kenar-raf-dikey', 'min-height', boyut), sozluk),
+  );
   const satirArtigi = Math.max(0, (ortaSatir - cubukUzunluk) / 2);
 
   // Boş bölge (masa kenarından komşu ıstakaya kadar): yatayda ıstaka masada ortalandığı için
@@ -332,6 +370,63 @@ test('ASIL KABUL (b): atılan taş yığını boş bölgenin ortasında (sapma e
         + `${dikeyKayma.toFixed(0)} px kayık (en çok ${olcu.bosluk} px olmalı)`,
       );
     }
+  }
+});
+
+/**
+ * Masanın tarayıcıda KULLANACAĞI yükseklik. #masa, #uygulama'nın (sütun esnek kutu, min-height
+ * 100vh) bir öğesidir:
+ *  - Esneme tabanı `auto` ve en küçük yüksekliği `auto` ise öğe kendi İÇERİĞİNDEN kısa olamaz —
+ *    içerik kalan yerden büyükse kap büyür ve sayfa viewport'u taşar (R-014 bozulur).
+ *  - Esneme tabanı 0 ve `min-height: 0` ise yükseklik tamamen kaptan gelir (KESİN): esnek izler
+ *    kalan yeri paylaşır, masa viewport'u taşmaz.
+ */
+function masaKullanilanYukseklik(boyut) {
+  const { bosluk, cerceveVeDolgu, satirIcerikAlt } = masaIcerikleri(boyut);
+  const kullanilabilir = boyut.yukseklik - KABUK_YUKSEKLIGI_ALT_SINIRI_PX - cerceveVeDolgu;
+  const esneme = (bildirim('#masa', 'flex', boyut) ?? '').trim().split(/\s+/);
+  const taban = esneme.length === 3 ? esneme[2] : null;
+  const enKucuk = (bildirim('#masa', 'min-height', boyut) ?? 'auto').trim();
+  const kesin = taban !== null && Number.parseFloat(taban) === 0 && Number.parseFloat(enKucuk) === 0;
+  // İçerik tabanlı yükseklik, satır içeriklerinin ALT sınırıyla hesaplanır: gerçek yükseklik
+  // bundan ancak büyük olabilir, yani taşma iddiası temkinlidir.
+  const icerikten = izOlculeriIcerikten(izler('#masa', 'grid-template-rows', boyut, sozlukAl(boyut)), {
+    bosluk, icerikler: satirIcerikAlt,
+  });
+  return {
+    kullanilabilir,
+    icerikten,
+    satirTabanlari: satirIcerikAlt.reduce((t, o) => t + o, 0) + 2 * bosluk,
+    kullanilan: kesin ? kullanilabilir : Math.max(kullanilabilir, icerikten),
+  };
+}
+
+test('ASIL KABUL (c): büyüyen köşe satırları masayı viewport dışına itmez (R-014 sığdırma)', () => {
+  // tasokey#63'ün satır düzeni (`1fr 2fr 1fr`) köşeleri büyütür; ama #masa yüksekliğini
+  // İÇERİĞİNDEN alıyorsa tek dolu satır (oyuncunun ıstakası) masayı kendi dört katına çeker
+  // (CSS Grid §12.7.2) ve ıstaka ekranın dışında kalır — Sahip'in 800x360 ölçümünde masa 416 px.
+  for (const boyut of OLCUM_BOYUTLARI) {
+    const { kullanilabilir, kullanilan, icerikten } = masaKullanilanYukseklik(boyut);
+    assert.ok(
+      kullanilan <= kullanilabilir + 0.5,
+      `${boyut.ad}: masa ${kullanilan.toFixed(0)} px yer istiyor, oysa ${kullanilabilir.toFixed(0)} px `
+      + `var (içerikten çözülen yükseklik ${icerikten.toFixed(0)} px) — sayfa taşar, oyuncunun `
+      + 'ıstakası ekranın dışında kalır. #masa yüksekliğini esnek kaptan almalı (esneme tabanı 0 + '
+      + 'min-height: 0), yoksa esnek izler kalan yerden değil içerikten çözülür',
+    );
+  }
+});
+
+test('ASIL KABUL (c2): satır içerikleri kalan yüksekliğe sığar (kesin yükseklik sıkıştırma gizlemez)', () => {
+  // (c)'deki çözüm masayı viewport'a KESİN olarak oturtur; bu tek başına "ıstaka görünür" demek
+  // değildir — satırların içerik tabanları toplamı da sığmalı, yoksa içerik hücresinden taşar.
+  for (const boyut of OLCUM_BOYUTLARI) {
+    const { kullanilabilir, satirTabanlari } = masaKullanilanYukseklik(boyut);
+    assert.ok(
+      satirTabanlari <= kullanilabilir + 0.5,
+      `${boyut.ad}: satırların içerik tabanı ${satirTabanlari.toFixed(0)} px, kalan yükseklik `
+      + `${kullanilabilir.toFixed(0)} px — ıstaka/çubuk kendi satırından taşar`,
+    );
   }
 });
 
