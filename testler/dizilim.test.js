@@ -7,6 +7,8 @@ import { tasOlustur, sahteOkeyOlustur } from '../docs/cekirdek/tas.js';
 // burada test edilen, o ayarları okuyan `cekirdek/dizilim.js`'in saf mantığı.
 // tasokey#37 (ADR-017, GDD §1 kural 6/7): per artık seri + **sayı peri**; çift yalnız iki
 // **birebir aynı** taş. "Aynı sayı, farklı renk" artık çift değil, sayı perinin parçasıdır.
+// tasokey#66 (ADR-008 sürüm 3, GDD §1 kural 6a): seri 13'ten 1'e **döner** — `12-13-1` per sayılır;
+// ayar kapatılınca düz sıra kuralı geri gelir (aşağıda iki yönlü ölçülür).
 
 const OKEY_TASI = { renk: 'mavi', sayi: 7 }; // gösterge mavi-6 varsayımıyla okey taşı.
 const t = (renk, sayi, nusha = 1) => tasOlustur(renk, sayi, nusha);
@@ -26,7 +28,8 @@ const TABLO = [
   { ad: 'per geçersiz: 2 taş (en az 3 şartı)', tur: 'per', taslar: [t('kirmizi', 3), t('kirmizi', 4)], beklenen: false },
   { ad: 'per geçersiz: renk karışık (kirmizi-siyah-mavi, sayı ardışık olsa da)', tur: 'per', taslar: [t('kirmizi', 3), t('siyah', 4), t('mavi', 5)], beklenen: false },
   { ad: 'per geçersiz: ardışık değil (kirmizi 3-5-7)', tur: 'per', taslar: [t('kirmizi', 3), t('kirmizi', 5), t('kirmizi', 7)], beklenen: false },
-  { ad: 'per geçersiz: 12-13-1 geçişi (K1 kararı, GDD kural 6 — tur yapmaz)', tur: 'per', taslar: [t('sari', 12), t('sari', 13), t('sari', 1)], beklenen: false },
+  { ad: 'per geçersiz: aynı renk ardışık değil, dönüşlü de değil (sari 11-12-1)', tur: 'per', taslar: [t('sari', 11), t('sari', 12), t('sari', 1)], beklenen: false },
+  { ad: 'per geçersiz: 13 taşlık seriye 14. taş (joker) eklenemez (sayı aralığı 13)', tur: 'per', taslar: [...Array.from({ length: 13 }, (_, i) => t('mavi', i + 1)), sOkey(1)], beklenen: false },
   { ad: 'per geçersiz: aynı sayının iki nüshası (ardışık sayılamaz)', tur: 'per', taslar: [t('kirmizi', 5, 1), t('kirmizi', 5, 2), t('kirmizi', 6)], beklenen: false },
   { ad: 'per geçersiz: boş dizi', tur: 'per', taslar: [], beklenen: false },
 
@@ -69,8 +72,17 @@ const TABLO = [
   { ad: 'çift geçerli: birebir aynı iki taş, gösterge başka bir taş', tur: 'cift', taslar: [t('kirmizi', 5, 1), t('kirmizi', 5, 2)], gosterge: t('mavi', 9, 1), beklenen: true },
   { ad: 'çift geçerli: gösterge parametresi verilmeyince kural 9 uygulanmaz', tur: 'cift', taslar: [t('kirmizi', 5, 1), t('kirmizi', 5, 2)], beklenen: true },
 
-  // --- Kural ayarı tek kaynaktan okunuyor (ADR-008): 12-13-1 açılırsa geçerli olur ---
-  { ad: 'per geçerli: onUcBirGecisiPerSayilir açılırsa 12-13-1 geçerli olur', tur: 'per', taslar: [t('sari', 12), t('sari', 13), t('sari', 1)], kural: { onUcBirGecisiPerSayilir: true }, beklenen: true },
+  // --- Dönüşlü seri varsayılan olarak GEÇERLİ (Sahip kararı tasokey#66, ADR-008 sürüm 3) ---
+  { ad: 'per geçerli: 12-13-1 geçişi (sari)', tur: 'per', taslar: [t('sari', 12), t('sari', 13), t('sari', 1)], beklenen: true },
+  { ad: 'per geçerli: 13-1-2 geçişi (siyah)', tur: 'per', taslar: [t('siyah', 13), t('siyah', 1), t('siyah', 2)], beklenen: true },
+  { ad: 'per geçerli: 12-13-1-2 (dönüşlü, uzunluk 4)', tur: 'per', taslar: [t('kirmizi', 12), t('kirmizi', 13), t('kirmizi', 1), t('kirmizi', 2)], beklenen: true },
+  { ad: 'per geçerli: dönüşlü serinin boşluğunu joker dolduruyor (siyah 13-_-2)', tur: 'per', taslar: [t('siyah', 13), sOkey(1), t('siyah', 2)], beklenen: true },
+  { ad: 'per geçerli: 13 taşlık tam seri (1..13, sayı aralığının tamamı)', tur: 'per', taslar: Array.from({ length: 13 }, (_, i) => t('mavi', i + 1)), beklenen: true },
+  { ad: 'per geçersiz: dönüşlü görünse de renk karışık (sari-12, sari-13, kirmizi-1)', tur: 'per', taslar: [t('sari', 12), t('sari', 13), t('kirmizi', 1)], beklenen: false },
+
+  // --- Kural ayarı tek kaynaktan okunuyor (ADR-008): kapatma anahtarı düz sıra kuralına döner ---
+  { ad: 'per geçersiz: onUcBirGecisiPerSayilir kapatılırsa 12-13-1 yine geçersiz olur', tur: 'per', taslar: [t('sari', 12), t('sari', 13), t('sari', 1)], kural: { onUcBirGecisiPerSayilir: false }, beklenen: false },
+  { ad: 'per geçerli: ayar kapalıyken düz seri etkilenmez (kirmizi 3-4-5)', tur: 'per', taslar: [t('kirmizi', 3), t('kirmizi', 4), t('kirmizi', 5)], kural: { onUcBirGecisiPerSayilir: false }, beklenen: true },
 ];
 
 test(`per/çift doğrulayıcı tablo testi (${TABLO.length} örnek)`, () => {
