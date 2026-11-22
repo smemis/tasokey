@@ -33,11 +33,15 @@ const KOK = join(import.meta.dirname, '..');
 const ONCEKI = ['a', 'b', null, 'c', null, null];
 const SONRAKI_ITME = [null, 'b', null, 'a', 'c', null];
 
-function koseKaydi(anahtar, { isabet = 9, disX = 0.2, disY = 0, icX = 12.1 } = {}) {
+function koseKaydi(anahtar, {
+  isabet = 9, disX = 0.2, disY = 0, icX = 12.1, cubukArtigi = 0,
+} = {}) {
   return {
     anahtar,
     kutu: { sol: 0, ust: 0, sag: 200, alt: 100 },
-    kenarlar: { disX, disY, icX, icY: 30 },
+    kenarlar: {
+      disX, disY, icX, icY: 30, cubukArtigi,
+    },
     hucre: { toplam: 9, isabet, noktalar: [], kacanlar: [] },
     bolge: {
       kutu: { sol: 0, ust: 0, sag: 240, alt: 120 },
@@ -260,9 +264,25 @@ test('özet satırları ekran görüntüsünden okunabilir biçimde yazılır', 
 
 test('bölge satırları oranı ve kaçan noktaların dökümünü yazar (döküm, kararı yolda)', () => {
   const satirlar = bolgeSatirlari([koseKaydi('solAlt')]);
-  assert.match(satirlar[0], /^BOLGE solAlt hucre 200x100 bosBolge 240x120 isabet 20\/25 \(80%\)$/);
+  assert.match(
+    satirlar[0],
+    /^BOLGE solAlt hucre 200x100 bosBolge 240x120 isabet 20\/25 \(80%\) cubukArtigi 0px$/,
+  );
   assert.match(satirlar[1], /kacan: #masa x1/);
   assert.deepEqual(bolgeSatirlari([]), []);
+});
+
+test('çubuk artığı ÖLÇÜLÜR ve döküm satırında durur (karar üretmez — tasokey#74)', () => {
+  // Üst çubuk orta sütundan dar kalırsa köşenin dışında, gerçekte boş bir şerit oluşur. Bu şerit
+  // bir ÖLÇÜDÜR: hiçbir denetim onu eşikle karşılaştırmaz, ama ekran görüntüsünden okunur ki
+  // "köşe atma alanı boş bölgenin tamamıdır" iddiası sessizce aşınmasın.
+  const [satir] = bolgeSatirlari([koseKaydi('solUst', { cubukArtigi: 26.4 })]);
+  assert.match(satir, /cubukArtigi 26\.4px$/);
+  const denetimAdlari = yolTanimi('koseAtmaAlani').denetimler.map((d) => d.ad);
+  assert.ok(
+    !denetimAdlari.some((ad) => ad.toLowerCase().includes('cubuk')),
+    'çubuk artığı bir denetime dönüşmüş: ölçü eşik değildir, kararı Mimar verir',
+  );
 });
 
 test('köşe isabeti ölçütü TEK SABİTTEN okunur ve ekran görüntüsünde yazılı (tasokey#74)', () => {

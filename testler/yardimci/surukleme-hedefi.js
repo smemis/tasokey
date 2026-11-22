@@ -231,11 +231,15 @@ export const YOLLAR = Object.freeze([
       {
         // Uç noktadan (hücrenin köşesine yakın) atma GERÇEKTEN hamle üretir: el bir taş azalır,
         // o köşenin yığını bir taş artar.
+        // Sayılar BIRAKMA ANINDA okunur (sayfa katmanı `dropteOlc`): sıra hemen bota geçtiği için
+        // beklemeden sonra okunan yığın, botun o taşı çekmiş olmasını da içerir (R-012) — o bizim
+        // hamlemizin ölçüsü değildir. Bot sonrası yığın ölçülür ve ÖLÇÜ metninde durur (A9).
         ad: 'ucNoktadanAtmaCalisti',
         gecti: (g) => g.atma.elSonra === g.atma.elOnce - 1
           && g.atma.yiginSonra === g.atma.yiginOnce + 1,
         olcu: (g) => `kose=${g.atma.kose} nokta=${g.atma.nokta}`
-          + ` el=${g.atma.elOnce}->${g.atma.elSonra} yigin=${g.atma.yiginOnce}->${g.atma.yiginSonra}`,
+          + ` el=${g.atma.elOnce}->${g.atma.elSonra} yigin=${g.atma.yiginOnce}->${g.atma.yiginSonra}`
+          + (g.atma.yiginBotSonrasi === undefined ? '' : ` botSonrasi=${g.atma.yiginBotSonrasi}`),
       },
     ]),
   },
@@ -391,7 +395,8 @@ export function bolgeSatirlari(koseler = []) {
     const bolge = kose.bolge ?? {};
     satirlar.push(`BOLGE ${kose.anahtar} hucre ${olcuMetni(kose.kutu)}`
       + ` bosBolge ${olcuMetni(bolge.kutu)} isabet ${bolge.isabet ?? '?'}/${bolge.toplam ?? '?'}`
-      + ` (${Math.round((bolge.oran ?? 0) * 100)}%)`);
+      + ` (${Math.round((bolge.oran ?? 0) * 100)}%)`
+      + ` cubukArtigi ${sayi(kose.kenarlar?.cubukArtigi)}px`);
     const kacanlar = bolge.kacanlar ?? [];
     if (kacanlar.length > 0) {
       const dokum = new Map();

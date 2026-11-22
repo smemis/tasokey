@@ -142,8 +142,16 @@ function isaretciGonder(dugum, tip, nokta, isaretciId) {
  * `#raf`/`#masa` dinleyicisine çıkar, `surukle.js`in iki kapısı da orada durur); bırakma kararını
  * `document.elementFromPoint(clientX, clientY)` verdiği için ölçüm gerçek isabet testini kullanır.
  * `sirasindaOlc`: ilk hareketten SONRA (sürükleme sürerken) okunacak gözlem.
+ * `dropteOlc`: `pointerup` gönderildikten HEMEN SONRA, hiç `await` edilmeden okunacak gözlem —
+ * yani hamlenin KENDİ sonucu. `surukle.js` `birak()` bırakma geri çağrısını olay gönderimi içinde
+ * SENKRON çağırır ve `ekran.js` çizimi de senkron biter; bot turu ise `setTimeout` ile sıraya
+ * girer (ölçümde 0 ms'ye çökertili). Beklemeden sonra okunan sayı bu yüzden bizim hamlemizi değil
+ * "hamle + botların tepkisi"ni ölçer (tasokey#74: 1920x1080 turunda bot, köşeye attığımız taşı
+ * hemen çekti → yığın 0→1→0 göründü ve ölçüm elde olmayan bir sebeple kaldı).
  */
-async function surukleBirak({ kaynakDugum, baslangic, bitis, adim = 4, sirasindaOlc = null }) {
+async function surukleBirak({
+  kaynakDugum, baslangic, bitis, adim = 4, sirasindaOlc = null, dropteOlc = null,
+}) {
   isaretciSayaci += 1;
   const isaretciId = isaretciSayaci;
   let sirasinda = null;
@@ -158,10 +166,11 @@ async function surukleBirak({ kaynakDugum, baslangic, bitis, adim = 4, sirasinda
     await uyu(0);
   }
   isaretciGonder(kaynakDugum, 'pointerup', bitis, isaretciId);
+  const dropte = dropteOlc ? dropteOlc() : null;
   await uyu(60);
   bilgiyiKapat();
   await uyu(20);
-  return sirasinda;
+  return { sirasinda, dropte };
 }
 
 // ——— sahne kurulumu ———————————————————————————————————————————————————————————————————————
@@ -305,7 +314,7 @@ async function gecersizBirakmayiOlc() {
   const tas = tasOgesi(suruklenenId);
   const hedef = el('ustCubuk');
   const hedefKutu = kutu(hedef);
-  const sirasinda = await surukleBirak({
+  const { sirasinda } = await surukleBirak({
     kaynakDugum: tas,
     baslangic: merkez(kutu(tas)),
     bitis: { x: merkez(hedefKutu).x, y: merkez(hedefKutu).y },
@@ -351,9 +360,10 @@ function masaIcKutusu() {
  *   · `hucre`: köşe ızgara hücresinin İÇİNDEN seçilen 9 noktanın isabeti (hepsi o köşe olmalı),
  *   · `kenarlar`: hücrenin dış kenarı masanın içerik kutusuna, iç yatay kenarı ıstaka SÜTUNUNA
  *     (`#rafAlani` şeridi — ADR-012 iz kuralı) ne kadar uzakta,
- *   · `bolge`: "iki ıstaka arasındaki boş bölge" (dış kenarlar masa içerik kutusu, iç kenarlar
- *     komşu iki ıstakanın yüzü) 5x5 taranır; kaçan noktanın neye düştüğü adıyla yazılır.
- *     Bu tarama ÖLÇÜMDÜR, eşiği yoktur (A9): oran rapora yazılır.
+ *   · `bolge`: "iki ıstaka arasındaki boş bölge" (dış kenarlar masa içerik kutusu, iç yatay kenar
+ *     ızgaranın orta SÜTUN çizgisi, iç dikey kenar komşu yan çubuğun yüzü) 5x5 taranır; kaçan
+ *     noktanın neye düştüğü adıyla yazılır. Oran burada yalnız ÖLÇÜLÜR; ölçütle karşılaştırma
+ *     saf çekirdekteki `bolgeIsabetiEnAz80` denetimindedir (tek kaynak `EN_AZ_BOLGE_ORANI`).
  */
 function koseleriOlc() {
   const masaIc = masaIcKutusu();
@@ -370,17 +380,20 @@ function koseleriOlc() {
     }));
     const beklenen = `kose:${tanim.kose}`;
 
+    // Boş bölgenin YATAY sınırı dört köşede de ızgaranın ORTA SÜTUN çizgisidir (`#rafAlani`in
+    // kenarları; ızgara sütunu bütün satırlarda ortaktır). tasokey#74'e kadar üst köşelerde sınır
+    // üst çubuğun YÜZÜ alınıyordu; tasokey#73 çubuğu daralttığı için o yüz artık sütun çizgisinin
+    // İÇİNDE kalıyor ve kutu orta sütuna taşıyordu — ölçülen kaçan noktalar bunu adıyla söyledi
+    // (900x600 solUst: `#merkez x2`, `#yerDestesiBaslik x1`). Taşan kutu, projenin kendi statik
+    // modeliyle de çelişiyordu: `kose-atma-alani.test.js` kabul-a2 boş bölge ile köşe kutusu
+    // arasındaki açığı EN ÇOK BİR ızgara boşluğu sayar, yani bölgeyi sütun çizgisinden türetir.
+    // Çubuk ile sütun çizgisi arasında kalan artık şerit aşağıda AYRICA ölçülür (`cubukArtigi`).
     const bolgeKutusu = {
       sol: tanim.yatay === 'sol' ? masaIc.sol : raf.sag,
       sag: tanim.yatay === 'sol' ? raf.sol : masaIc.sag,
       ust: tanim.dikey === 'ust' ? masaIc.ust : yan.alt,
       alt: tanim.dikey === 'ust' ? yan.ust : masaIc.alt,
     };
-    if (tanim.dikey === 'ust') {
-      // Üst köşenin orta sütun komşusu ince üst çubuktur: boş bölgenin iç yatay sınırı onun yüzü.
-      bolgeKutusu.sol = tanim.yatay === 'sol' ? masaIc.sol : orta.sag;
-      bolgeKutusu.sag = tanim.yatay === 'sol' ? orta.sol : masaIc.sag;
-    }
     const bolgeNoktalari = S.izgaraNoktalari(bolgeKutusu, { bolme: BOLGE_BOLMESI })
       .map((nokta) => ({ ...nokta, bulunan: noktadakiAd(nokta) }));
     const bolgeIsabet = bolgeNoktalari.filter((nokta) => nokta.bulunan === beklenen);
@@ -398,6 +411,13 @@ function koseleriOlc() {
         // İç dikey kenar: orta satır komşusunun (yan çubuk) yüzüne uzaklık — ÖLÇÜLÜR, eşiği
         // yoktur: orta satır `align-items: center` olduğu için çubuk satırını doldurmaz.
         icY: tanim.dikey === 'ust' ? yan.ust - hucre.alt : hucre.ust - yan.alt,
+        // Orta sütun çizgisi ile o sütundaki komşunun yüzü arasında kalan ARTIK şerit (px):
+        // köşenin dışında kalan ama gerçekte boş duran masa. ÖLÇÜLÜR, eşiği yoktur (A9) — alt
+        // köşelerde komşu `#rafAlani`in kendisidir, bu yüzden yapısal olarak 0'dır; üst köşelerde
+        // üst çubuğun genişliği (`--rakip-ust-genislik`, Sahip'in ıstakasıyla aynı formül) orta
+        // sütundan dar kalırsa büyür. stil.css'in kendi yorumu (`.kenar-raf-yatay` üstü) dikey
+        // çubuk için bu artığı tasokey#63 koşulu sayıyor; yatay çubuk için karar Mimar'da.
+        cubukArtigi: tanim.yatay === 'sol' ? orta.sol - raf.sol : raf.sag - orta.sag,
       },
       hucre: {
         toplam: hucreNoktalari.length,
@@ -437,6 +457,11 @@ function atilabilirTasId(yerlesim) {
  * Uç noktadan atma (tasokey#63 kazancının kanıtı): taş, kendi köşesinin hücre KÖŞESİNE yakın bir
  * noktaya bırakılır — eski düzende orada taş ölçüsünde küçük bir kutu vardı, hücre o kadar
  * büyümediği için bu nokta hedefin dışında kalıyordu.
+ *
+ * Sonuç BIRAKMA ANINDA okunur (`dropteOlc`), beklemeden sonra değil: atılan taş bizim köşemize
+ * düşer ve sıra hemen soldaki bota geçer — bot o taşı komşu köşesinden ÇEKEBİLİR (R-012), o zaman
+ * yığın 0→1→0 olur ve bizim hamlemiz hiç olmamış gibi görünür. Ölçülen şey hamlenin kendi
+ * sonucudur; botun sonraki kararı bu yolun ölçütü değildir (tasokey#74).
  */
 async function ucNoktadanAtmayiOlc(kendiKose, noktaAdi = 'solUst') {
   const dugum = el(koseId(kendiKose));
@@ -453,9 +478,16 @@ async function ucNoktadanAtmayiOlc(kendiKose, noktaAdi = 'solUst') {
     elOnce: yerlesim.filter((id) => id !== null).length,
     yiginOnce: yiginAdedi(sayacId),
   };
-  await surukleBirak({ kaynakDugum: tas, baslangic: merkez(kutu(tas)), bitis: nokta });
-  gozlem.elSonra = elSayisi();
-  gozlem.yiginSonra = yiginAdedi(sayacId);
+  const { dropte } = await surukleBirak({
+    kaynakDugum: tas,
+    baslangic: merkez(kutu(tas)),
+    bitis: nokta,
+    dropteOlc: () => ({ el: elSayisi(), yigin: yiginAdedi(sayacId) }),
+  });
+  gozlem.elSonra = dropte.el;
+  gozlem.yiginSonra = dropte.yigin;
+  // Bekleme sonrası durum ÖLÇÜLÜR ama ölçüt değildir: yığın eksildiyse taşı bot çekmiştir.
+  gozlem.yiginBotSonrasi = yiginAdedi(sayacId);
   return gozlem;
 }
 
