@@ -97,6 +97,11 @@
   --durum-font-boyutu: 0.95rem;
   --durum-dolgu-dikey: 6px;
   --durum-dolgu-yatay: 16px;
+  /* Küçültülmüş sonuç penceresinin (tasokey#65) rozet dolgusu ve üst çubuğa olan payı — rozet
+     masanın DIŞINDA, üst çubuğun boş ortasında durur, bu yüzden pay üst çubuk ölçüsünden değil
+     sabit küçük bir boşluktan gelir; kuralın içine sayı yazılmaz. */
+  --sonuc-kucuk-dolgu: 2px 10px;
+  --sonuc-kucuk-ust-pay: 6px;
 
   /* Yığılma kademeleri — TEK KAYNAK (ADR-015, tasokey#38). Hiçbir kuralda çıplak z-index sayısı
      yazılmaz; her kural buradan okur (testler/yigilma-kademeleri.test.js tarar). Sıra:
@@ -812,6 +817,49 @@ html, body {
 }
 
 .acilir-baslik[aria-expanded='true']::after { transform: rotate(180deg); }
+
+/* Sonuç penceresini küçültme düğmesi (tasokey#65): pencere masanın ortasında durduğu için üst
+   kenardaki rakibin ıstakasını örtüyordu. Düğme kutunun ilk çocuğudur ve sağa yaslanır (pencere
+   denetimi gibi); metni dil anahtarından gelir, basılı durumu `aria-pressed`tedir. */
+.kucult-dugmesi {
+  background: transparent;
+  border: none;
+  color: var(--metin);
+  font: inherit;
+  font-size: 0.9rem;
+  opacity: 0.85;
+  padding: 2px 6px;
+  cursor: pointer;
+  align-self: flex-end;
+}
+
+/* Küçültülmüş pencere: karartma zemini kalkar ve tıklamayı geçirir (masa görünür ve erişilebilir
+   kalır), kutuda yalnız geri büyüten düğme durur. Pencere KAPANMAZ — "Yeni el" / "Başlangıç
+   ekranı" seçimi büyütünce olduğu gibi geri gelir.
+   Konum: küçülünce kutu ÜSTE yaslanır (`align-items: flex-start`), yani masanın değil üst çubuğun
+   boş ortasının üstüne düşer — masadaki hiçbir şeyi örtmez. Önce ortada kalıyordu; çekilen ekran
+   görüntüsünde (is/tasokey-65/ekran/sonuc-kucultulmus-genis-masaustu.png) rozet tam destenin ve
+   "Yer destesi"/"Gösterge" yazılarının üstüne oturuyordu.
+   Görünüm: masa zemini (--masa-zemin #0f3d2e) ile panel rengi (--panel #123a2c) birbirine çok
+   yakın; küçük kutu masanın üstünde zeminsiz bir yazı gibi görünüyordu. Kenar çizgisi + gölge onu
+   tıklanabilir bir rozet yapar. */
+#sonucPaneli.kucuk {
+  background: transparent;
+  pointer-events: none;
+  align-items: flex-start;
+}
+
+#sonucPaneli.kucuk #sonucKutusu {
+  pointer-events: auto;
+  padding: var(--sonuc-kucuk-dolgu);
+  gap: 0;
+  margin-top: var(--sonuc-kucuk-ust-pay);
+  border: 1px solid var(--metin);
+  border-radius: 999px;
+  box-shadow: 0 2px 6px #00000066;
+}
+
+#sonucPaneli.kucuk #sonucKutusu > :not(#kucultAcKapaButonu) { display: none; }
 
 #sonucDugmeleri,
 #onayDugmeleri,

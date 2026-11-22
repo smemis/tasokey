@@ -33,6 +33,8 @@
   "sonuc.berabere": "Draw — the pile ran out.",
   "sonuc.turSiniri": "Turn limit reached.",
   "sonuc.oyuncuTaslari": "Players' remaining tiles",
+  "sonuc.kucult": "Minimise window",
+  "sonuc.buyut": "Restore window",
   "sonuc.kalanTas": "{0}: {1} tiles left",
   "sonuc.dokumPer": "{0} groups ({1} tiles)",
   "sonuc.dokumCift": "{0} pairs ({1} tiles)",
