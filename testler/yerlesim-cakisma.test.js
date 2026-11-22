@@ -14,6 +14,7 @@ import {
   BOYUTLAR, GEOMETRI_ADLARI, EKRAN_EN_COK_CIFT, gomulebilirKaynak, sayfaBetigi, planNesnesi,
 } from './yardimci/yerlesim-olcum-betigi.js';
 import { DURUMLAR, OGE_TANIMLARI, HALKA_TANIMLARI } from './yardimci/yerlesim-olcum-sayfa.js';
+import { KULLANIM, seceneklerioku } from './yerlesim-cakisma.olcum.js';
 
 // tasokey#67 (üst iş tasokey#64) — yerleşim çakışma ölçüm aracının saf çekirdeği.
 // İstek (Sahip): ıstaka/taş büyütülürken "hiçbir öğe çifti çakışmasın" ölçülebilir olsun.
@@ -407,6 +408,7 @@ test('sayfa betiği geçerli bir async gövdedir ve iki yol aynı metni kullanı
   }
   const plan = planNesnesi();
   assert.equal(plan.cekimler.length, DURUMLAR.length);
+  // ADR-023: plan yolu betiğe "ekran" gösterimini verir, sunucu/tarayıcı kipine hiç girmez.
   assert.equal(plan.boyutlar.length, BOYUTLAR.length);
   for (const cekim of plan.cekimler) {
     assert.equal(cekim.sayfa, 'index.html');
@@ -415,4 +417,78 @@ test('sayfa betiği geçerli bir async gövdedir ve iki yol aynı metni kullanı
     assert.ok(cekim.js.includes(`enCokCift: ${EKRAN_EN_COK_CIFT}`));
     assert.doesNotThrow(() => new Function(`return (async () => {\n${cekim.js}\n});`));
   }
+});
+
+// --- 6. Sürücünün argüman okuması (ADR-023 iki yolun girişi) ----------------------------------
+// Sürücünün sunucu/tarayıcı kipi ofiste koşmaz (ADR-023: Masa yolu); okunabilen ve ölçülebilen
+// parçası argüman çözümüdür. Belirti: `--port` değersiz ya da sayı olmayan verilince `Number(…)`
+// NaN üretiyor, hata ölçümün ortasında anlaşılmaz bir yerde çıkıyordu (Denetçi bulgusu).
+// `seceneklerioku`yu import etmek sürücüyü ÇALIŞTIRMAZ: dosyanın ana girişi doğrudan çağrı
+// koruması arkasındadır — bu testin kendisi o korumanın ölçümüdür (import sırasında sunucu,
+// tarayıcı ya da plan yazımı tetiklenirse test koşusu burada çakılır).
+
+const ARGUMAN_TABLOSU = [
+  {
+    ad: 'boş argüman: varsayılanlar (8777 / 9333 / tohum 20261122, bütün boyut ve durumlar)',
+    argv: [],
+    beklenen: { port: 8777, cdpPort: 9333, tohum: 20261122, plan: null, sunucuYok: false },
+    boyutSayisi: BOYUTLAR.length,
+    durumlar: [...DURUMLAR],
+  },
+  {
+    ad: 'geçerli küme: sayılar okunur, boyut/durum süzgeci birikir',
+    argv: ['--port', '9000', '--cdp-port', '9444', '--tohum', '0', '--cikti', 'cikti/olcum',
+      '--boyut', '800x360', '--durum', 'rakip', '--sunucu-yok'],
+    beklenen: { port: 9000, cdpPort: 9444, tohum: 0, cikti: 'cikti/olcum', sunucuYok: true },
+    boyutSayisi: 1,
+    durumlar: ['rakip'],
+  },
+  {
+    ad: 'plan yolu: sunucu/tarayıcı açmayan kip (ADR-023 ofis yolu)',
+    argv: ['--plan', 'is/tasokey-67/plan.json'],
+    beklenen: { plan: 'is/tasokey-67/plan.json', port: 8777 },
+    boyutSayisi: BOYUTLAR.length,
+    durumlar: [...DURUMLAR],
+  },
+  { ad: 'sayı olmayan port', argv: ['--port', 'abc'], hata: /--port tam sayı bekler: abc/ },
+  { ad: 'ondalık/bilimsel tohum tam sayı değildir', argv: ['--tohum', '1e3'], hata: /--tohum tam sayı bekler/ },
+  { ad: 'eksik değer: port', argv: ['--port'], hata: /--port bir değer bekler/ },
+  { ad: 'eksik değer: cdp-port (son argüman)', argv: ['--cikti', 'x', '--cdp-port'], hata: /--cdp-port bir değer bekler/ },
+  { ad: 'aralık dışı port (0)', argv: ['--cdp-port', '0'], hata: /--cdp-port 1…65535/ },
+  { ad: 'aralık dışı port (65536)', argv: ['--port', '65536'], hata: /--port 1…65535/ },
+  { ad: 'değer yerine sonraki bayrak gelmişse metin argümanı da reddedilir', argv: ['--cikti', '--durum', 'el'], hata: /--cikti bir değer bekler/ },
+  { ad: 'eksik değer: plan', argv: ['--plan'], hata: /--plan bir değer bekler/ },
+  { ad: 'tanınmayan durum', argv: ['--durum', 'orta'], hata: /--durum el\|rakip bekler/ },
+  { ad: 'boyut biçimi', argv: ['--boyut', '800'], hata: /--boyut GENISLIKxYUKSEKLIK bekler/ },
+  { ad: 'bilinmeyen seçenek', argv: ['--hizli'], hata: /bilinmeyen seçenek: --hizli/ },
+];
+
+test('sürücü argümanları: tablo testi (geçerli / sayı olmayan / eksik değer)', () => {
+  for (const satir of ARGUMAN_TABLOSU) {
+    if (satir.hata) {
+      assert.throws(() => seceneklerioku(satir.argv), satir.hata, satir.ad);
+      continue;
+    }
+    const secenekler = seceneklerioku(satir.argv);
+    for (const [alan, deger] of Object.entries(satir.beklenen)) {
+      assert.deepEqual(secenekler[alan], deger, `${satir.ad}: ${alan}`);
+    }
+    assert.equal(secenekler.boyutlar.length, satir.boyutSayisi, `${satir.ad}: boyut sayısı`);
+    assert.deepEqual(secenekler.durumlar, satir.durumlar, `${satir.ad}: durumlar`);
+    // Hiçbir sayısal alan NaN kalmaz (sessiz NaN bu testin asıl belirtisiydi).
+    for (const alan of ['port', 'cdpPort', 'tohum']) assert.ok(Number.isInteger(secenekler[alan]), alan);
+  }
+});
+
+test('kullanım metni her bayrağı anlatır (tek kaynak: hatalı argümanda basılan metin)', () => {
+  const surucuKaynagi = readFileSync(
+    join(import.meta.dirname, 'yerlesim-cakisma.olcum.js'), 'utf8',
+  );
+  const bayraklar = [...surucuKaynagi.matchAll(/case '(--[a-z-]+)'/g)].map(([, bayrak]) => bayrak);
+  assert.ok(bayraklar.length >= 9, `bayrak taraması bozuldu: ${bayraklar.join(', ')}`);
+  for (const bayrak of bayraklar) {
+    assert.ok(KULLANIM.includes(`${bayrak} `), `${bayrak} kullanım metninde yok`);
+  }
+  // ADR-023: ofis yolunun hangisi olduğu kullanım metninden okunur.
+  assert.match(KULLANIM, /--plan .*AÇMAZ/);
 });

@@ -7,18 +7,13 @@
 // Saf çekirdek `yardimci/yerlesim-cakisma.js`tedir ve `npm test` ile ölçülür; bu dosya yalnız
 // sunucu + tarayıcı sürücüsüdür (ölçüm kuralı burada ikinci kez yazılmaz).
 //
-// Tek komut (ADR-004: yerel statik sunucu 8777 — yalnız 127.0.0.1'e bağlı —, boş profilli başsız
-// Edge/CDP; ikisi de manifestte yazılı olmalı):
-//     node testler/yerlesim-cakisma.olcum.js --cikti <klasor>
-// Seçenekler:
-//     --port 8777            yerel statik sunucu portu
-//     --cdp-port 9333        tarayıcının hata ayıklama portu
-//     --tarayici <yol>       msedge.exe / chrome.exe yolu (yoksa bilinen yollarda aranır)
-//     --boyut 800x360        yalnız bu boyut (birden çok kez verilebilir)
-//     --durum el|rakip       yalnız bu durum (birden çok kez verilebilir)
-//     --tohum 20261122       dağıtım tohumu (yineleyebilmek için)
-//     --sunucu-yok           sunucuyu başlatma (zaten koşuyorsa)
-//     --plan <dosya>         SUNUCU/TARAYICI AÇMADAN plan.json yazar (ofisin ekran görüntüsü yolu)
+// İKİ YOL (ADR-023):
+//   (a) `--plan <dosya>` → sunucu/tarayıcı AÇMAZ, yalnız plan.json yazar. **Ofisin yolu budur**:
+//       ölçümü ofisin penceresiz tarayıcısı `ekran_gerek` turuyla çeker.
+//   (b) Sunucu + başsız Edge/CDP kipi (aşağıdaki öbür seçenekler) → **Masa yolu**: ADR-004'ün
+//       yerel statik sunucusu (8777, yalnız 127.0.0.1'e bağlı) ve boş profilli tarayıcı açılır.
+//       Ofisteki ajan bunu koşmaz, port bağlamaz, izin de istemez.
+// Seçeneklerin tek kaynağı aşağıdaki `KULLANIM` metnidir (hatalı argümanda da o basılır).
 //
 // Sahip'in telefonu/tarayıcısı hiç kullanılmaz: profil geçici klasörde açılır, iş bitince silinir;
 // yalnız bu betiğin başlattığı süreçler (PID'leri kaydedilmiş) kapatılır.
@@ -57,7 +52,39 @@ const TARAYICI_BAYRAKLARI = [
   '--hide-scrollbars',
 ];
 
-function seceneklerioku(argv) {
+export const KULLANIM = [
+  'kullanım: node testler/yerlesim-cakisma.olcum.js [seçenekler]',
+  '  --plan <dosya>         plan.json yazar, SUNUCU/TARAYICI AÇMAZ (ofis yolu — ADR-023)',
+  '  --cikti <klasor>       ölçüm çıktısının klasörü (varsayılan olcum-cikti)',
+  '  --port <sayi>          yerel statik sunucu portu (varsayılan 8777)',
+  '  --cdp-port <sayi>      tarayıcının hata ayıklama portu (varsayılan 9333)',
+  '  --tarayici <yol>       msedge.exe / chrome.exe yolu (yoksa bilinen yollarda aranır)',
+  '  --boyut GENISLIKxYUKSEKLIK   yalnız bu boyut (birden çok kez verilebilir)',
+  '  --durum el|rakip       yalnız bu durum (birden çok kez verilebilir)',
+  '  --tohum <sayi>         dağıtım tohumu (varsayılan 20261122)',
+  '  --sunucu-yok           sunucuyu başlatma (zaten koşuyorsa)',
+].join('\n');
+
+/**
+ * Sayısal argüman: değersiz ya da sayı olmayan girdi SESSİZCE geçmez.
+ * (`Number(undefined)` = NaN, `Number('abc')` = NaN; ikisi de aşağıda port/tohum olarak kullanılıp
+ * ölçümü anlaşılmaz bir yerde düşürüyordu — Denetçi bulgusu, tasokey#67.)
+ */
+function sayiOku(bayrak, deger, { enAz = 1, enCok = Number.MAX_SAFE_INTEGER } = {}) {
+  if (deger === undefined) throw new Error(`${bayrak} bir değer bekler`);
+  if (!/^\d+$/.test(deger)) throw new Error(`${bayrak} tam sayı bekler: ${deger}`);
+  const sayi = Number(deger);
+  if (sayi < enAz || sayi > enCok) throw new Error(`${bayrak} ${enAz}…${enCok} aralığında olmalı: ${deger}`);
+  return sayi;
+}
+
+/** Değer bekleyen metin argümanı (boş geçilirse sonraki bayrak değer sanılmasın). */
+function metinOku(bayrak, deger) {
+  if (deger === undefined || deger.startsWith('--')) throw new Error(`${bayrak} bir değer bekler`);
+  return deger;
+}
+
+export function seceneklerioku(argv) {
   const secenekler = {
     port: 8777,
     cdpPort: 9333,
@@ -73,12 +100,12 @@ function seceneklerioku(argv) {
     const bayrak = argv[i];
     const deger = argv[i + 1];
     switch (bayrak) {
-      case '--port': secenekler.port = Number(deger); i += 1; break;
-      case '--cdp-port': secenekler.cdpPort = Number(deger); i += 1; break;
-      case '--cikti': secenekler.cikti = deger; i += 1; break;
-      case '--tarayici': secenekler.tarayici = deger; i += 1; break;
-      case '--tohum': secenekler.tohum = Number(deger); i += 1; break;
-      case '--plan': secenekler.plan = deger; i += 1; break;
+      case '--port': secenekler.port = sayiOku(bayrak, deger, { enAz: 1, enCok: 65535 }); i += 1; break;
+      case '--cdp-port': secenekler.cdpPort = sayiOku(bayrak, deger, { enAz: 1, enCok: 65535 }); i += 1; break;
+      case '--cikti': secenekler.cikti = metinOku(bayrak, deger); i += 1; break;
+      case '--tarayici': secenekler.tarayici = metinOku(bayrak, deger); i += 1; break;
+      case '--tohum': secenekler.tohum = sayiOku(bayrak, deger, { enAz: 0 }); i += 1; break;
+      case '--plan': secenekler.plan = metinOku(bayrak, deger); i += 1; break;
       case '--sunucu-yok': secenekler.sunucuYok = true; break;
       case '--boyut': {
         const eslesme = /^(\d+)x(\d+)$/.exec(deger ?? '');
@@ -249,9 +276,13 @@ class Cdp {
   }
 }
 
+/**
+ * Konsol/sayfa hatalarını toplar. `kaldir()` ÇAĞRILMALIDIR: her ölçüm turu kendi dinleyicisini
+ * kurduğu için kaldırılmazsa 10 çekimde 10 dinleyici birikir (Denetçi bulgusu, tasokey#67).
+ */
 function konsolKaydet(cdp, sessionId) {
   const kayitlar = [];
-  cdp.dinle((ileti) => {
+  const kaldir = cdp.dinle((ileti) => {
     if (ileti.sessionId && ileti.sessionId !== sessionId) return;
     if (ileti.method === 'Runtime.consoleAPICalled' && ['error', 'warning'].includes(ileti.params.type)) {
       kayitlar.push(`konsol.${ileti.params.type}: ${(ileti.params.args ?? []).map((a) => a.value ?? a.description ?? a.type).join(' ')}`);
@@ -261,7 +292,7 @@ function konsolKaydet(cdp, sessionId) {
       kayitlar.push(`sayfa hatası: ${ayrinti.exception?.description ?? ayrinti.text}`);
     }
   });
-  return kayitlar;
+  return { kayitlar, kaldir };
 }
 
 async function olcumAl({ cdp, sessionId, boyut, durum, adres, tohum }) {
@@ -285,7 +316,11 @@ async function olcumAl({ cdp, sessionId, boyut, durum, adres, tohum }) {
     throw new Error(`${boyutAdi} ${durum}: ${ayrinti.exception?.description ?? ayrinti.text}`);
   }
   const olcum = { ...yanit.result.value, boyutAdi };
-  const goruntu = await cdp.gonder('Page.captureScreenshot', { format: 'png' }, sessionId);
+  const goruntu = await sinirli(
+    cdp.gonder('Page.captureScreenshot', { format: 'png' }, sessionId),
+    60000,
+    `${boyutAdi} ${durum}: ekran görüntüsü`,
+  );
   return { olcum, png: Buffer.from(goruntu.data, 'base64') };
 }
 
@@ -351,10 +386,16 @@ async function olcumuKos(secenekler) {
     for (const boyut of secenekler.boyutlar) {
       for (const durum of secenekler.durumlar) {
         const konsol = konsolKaydet(cdp, sessionId);
-        const { olcum, png } = await olcumAl({
-          cdp, sessionId, boyut, durum, adres, tohum: secenekler.tohum,
-        });
-        olcum.konsol = [...konsol];
+        let olcum;
+        let png;
+        try {
+          ({ olcum, png } = await olcumAl({
+            cdp, sessionId, boyut, durum, adres, tohum: secenekler.tohum,
+          }));
+        } finally {
+          konsol.kaldir();
+        }
+        olcum.konsol = [...konsol.kayitlar];
         const dosyaAdi = `olcum-${durum}-${olcum.boyutAdi}.png`;
         writeFileSync(join(ciktiKok, dosyaAdi), png);
         olcum.goruntu = dosyaAdi;
@@ -393,12 +434,26 @@ function planiYaz(yol) {
   console.log('bu kip sunucu ya da tarayıcı AÇMAZ: ofisin penceresiz tarayıcısı çeker.');
 }
 
-const secenekler = seceneklerioku(process.argv.slice(2));
-if (secenekler.plan) {
-  planiYaz(secenekler.plan);
-} else {
-  const ihlal = await olcumuKos(secenekler);
-  if (ihlal > 0) {
-    console.log(`\n${ihlal} ihlal (çakışan çift + taşma) ölçüldü — "önce" ölçümünde bu beklenebilir.`);
+// Yalnız doğrudan çağrıldığında koşar: `seceneklerioku`/`KULLANIM` öz-testten import edilirken
+// sunucu, tarayıcı ya da plan yazımı tetiklenmez.
+const dogrudanCagri = process.argv[1] !== undefined
+  && resolve(process.argv[1]) === resolve(import.meta.filename);
+
+if (dogrudanCagri) {
+  let secenekler;
+  try {
+    secenekler = seceneklerioku(process.argv.slice(2));
+  } catch (hata) {
+    console.error(`hata: ${hata.message}\n`);
+    console.error(KULLANIM);
+    process.exit(2);
+  }
+  if (secenekler.plan) {
+    planiYaz(secenekler.plan);
+  } else {
+    const ihlal = await olcumuKos(secenekler);
+    if (ihlal > 0) {
+      console.log(`\n${ihlal} ihlal (çakışan çift + taşma) ölçüldü — "önce" ölçümünde bu beklenebilir.`);
+    }
   }
 }
