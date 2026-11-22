@@ -228,6 +228,14 @@ export function aramaSatirlari(arama, { satirBasinaDeneme = 5, enCokAyrinti = 3 
     + ` mb=${sayi(olculenler.masaBosluk)} rb=${sayi(olculenler.rafBosluk)}`
     + ` yb=${sayi(olculenler.yuvaBosluk)} taban=${olculenler.taban ?? '—'}`
     + ` n=${olculenler.sutun ?? '—'}`,
+    // tasokey#72: kısa yatay varyantın ÖLÇÜLEN bütçe terimleri (plan §4). İki satır, çünkü yazı
+    // katmanı `white-space: pre`dir ve uzun satır 800px görünümde yatayda kırpılır.
+    `BUTCE-V yanMetinPayi=${sayi(olculenler.yanMetinPayi)}`
+    + ` yanMetinGen=${sayi(olculenler.yanMetinGenislik)}`
+    + ` rafBaslikPayi=${sayi(olculenler.rafBaslikPayi)}`
+    + ` rafBaslik=${sayi(olculenler.rafBaslikGenislik)}x${sayi(olculenler.rafBaslikYukseklik)}`,
+    `BUTCE-V merkezGen=${sayi(olculenler.merkezGenislik)}`
+    + ` bant=${(olculenler.bantlar ?? '—').replace(/px/g, '')}`,
     `ARAMA taban(olcek 1) ihlal=${taban?.ihlal ?? '?'} tasma=${taban?.tasma ?? '?'}`
     + '  satir bicimi: olcek:yeni/buyuyen/tasma',
   ];

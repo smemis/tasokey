@@ -356,6 +356,14 @@ test('arama özeti ekrandan okunur: ölçülen bütçe terimleri + deneme tablos
       yuvaBosluk: 0,
       taban: '25x36',
       sutun: 12,
+      // tasokey#72 — kısa yatay varyantın ölçülen terimleri (plan §4).
+      yanMetinPayi: 17,
+      yanMetinGenislik: 120,
+      rafBaslikPayi: 0,
+      rafBaslikGenislik: 48,
+      rafBaslikYukseklik: 17,
+      merkezGenislik: 215,
+      bantlar: '8px 58px 117px 80px',
     },
     taban: { ihlal: 2, tasma: 0 },
     denemeler: [
@@ -386,7 +394,11 @@ test('arama özeti ekrandan okunur: ölçülen bütçe terimleri + deneme tablos
   const satirlar = aramaSatirlari(arama);
   assert.match(satirlar[0], /BUTCE masaIc=784x281 rafBaslik=17 merkez=132 tas=36 metinPayi=113/);
   assert.match(satirlar[1], /pd=4 kk=5 mb=6 rb=4 yb=0 taban=25x36 n=12/);
-  assert.match(satirlar[2], /ARAMA taban\(olcek 1\) ihlal=2 tasma=0/);
+  // Varyantın ölçülen terimleri de ekrandan okunur (tasokey#72): CSS'e yazılan payların kaynağı
+  // bu satırlardır, bu yüzden görüntüde ad ad durmaları zorunludur.
+  assert.match(satirlar[2], /BUTCE-V yanMetinPayi=17 yanMetinGen=120 rafBaslikPayi=0 rafBaslik=48x17/);
+  assert.match(satirlar[3], /BUTCE-V merkezGen=215 bant=8 58 117 80/);
+  assert.match(satirlar[4], /ARAMA taban\(olcek 1\) ihlal=2 tasma=0/);
   assert.ok(satirlar.some((satir) => satir.includes('1.05:0/0/0 1.10:0/1/0 1.15:1/1/0 1.20:1/2/1')));
   // İlk BOZULAN deneme adıyla yazılır: ölçeği sınırlayan çift sayı değil, ÖĞE olarak okunur
   // (tasokey#68 — "2 yeni çift" hangi öğenin bağlayıcı olduğunu söylemiyordu).
@@ -417,7 +429,7 @@ test('arama özeti ekrandan okunur: ölçülen bütçe terimleri + deneme tablos
       olcek: Math.round((1.05 + i * 0.05) * 100) / 100, yeni: 0, buyuyen: 0, tasma: 0,
     })),
   });
-  assert.equal(uzun.length, 3 + 4 + 1);
+  assert.equal(uzun.length, 5 + 4 + 1);
   // 96 karakter = 12px Consolas'ta ~635 px: en küçük görünümde (800 px) yatayda kırpılmaz.
   for (const satir of uzun) assert.ok(satir.length <= 96, `arama satırı çok uzun: ${satir.length}`);
 });

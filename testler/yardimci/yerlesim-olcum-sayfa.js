@@ -279,6 +279,46 @@ function olculeriAl() {
 }
 
 /**
+ * Kısa yatay DÜZEN VARYANTININ (tasokey#71) bütçe terimleri — tasokey#72, plan §4.
+ *
+ * Varyantta `.yigin` ve `#rafAlani` YATAY akar: metin taşın yanındadır. Dikey zincirde metin
+ * satırı payı düşer, yatayda metnin genişliği eklenir. İkisi de `rem` tabanlı yazı ölçüsünden
+ * gelir, yani CSS içinde px'e çevrilemez → ÖLÇÜLÜR (ADR-022/5; tahmin yazılmaz):
+ *   · `yanMetinPayi`     — deste/gösterge yığınında taş DIŞINDAKİ en yüksek öğe. Yığın yatay
+ *     aktığı için yığının yüksekliği `max(taş, bu pay)`tır → dikey eşitsizliğin üst bant terimi.
+ *   · `yanMetinGenislik` — yığının genişliğinden taş alanının genişliği düşülmüş hâli (esnek
+ *     boşluklar dahil): üst bandın YATAY denetiminin metin payı.
+ *   · `rafBaslikPayi`    — "Istakam" başlığı taşların yanına geçtiğinde ıstaka bandına eklediği
+ *     DİKEY pay: başlık iki sıra taştan kısaysa 0'dır, ama 0 yazılıp geçilmez, ölçülür.
+ *   · `rafBaslikGenislik`/`merkezGenislik` — yatay denetimin ölçülen karşılıkları (modeldeki üst
+ *     sınırlarla karşılaştırmak için; `masa-izleri.js` YAN_BASLIK_GENISLIK_UST_SINIRI_PX).
+ *   · `bantlar`          — `#masa`nın ÇÖZÜLEN bant ölçüleri (grid-template-rows, px): varyantın
+ *     etkin olduğunun ve bant modelinin doğruluğunun doğrudan kanıtı.
+ */
+function varyantOlcumu({ yuksek, genis }) {
+  const yiginlar = [...document.querySelectorAll('.yigin')];
+  const metinOlculeri = yiginlar.map((yigin) => {
+    const tasAlani = yigin.querySelector('.yigin-tas-alani');
+    const metinler = [...yigin.children].filter((cocuk) => cocuk !== tasAlani);
+    return {
+      pay: Math.max(0, ...metinler.map((cocuk) => yuksek(cocuk))),
+      genislik: Math.max(0, genis(yigin) - genis(tasAlani)),
+    };
+  });
+  const rafBaslikYukseklik = yuksek(el('rafBaslik'));
+  const rafYukseklik = yuksek(el('raf'));
+  return {
+    yanMetinPayi: Math.max(0, ...metinOlculeri.map((o) => o.pay)),
+    yanMetinGenislik: Math.max(0, ...metinOlculeri.map((o) => o.genislik)),
+    rafBaslikPayi: Math.max(0, rafBaslikYukseklik - rafYukseklik),
+    rafBaslikGenislik: genis(el('rafBaslik')),
+    rafBaslikYukseklik,
+    merkezGenislik: genis(el('merkez')),
+    bantlar: getComputedStyle(el('masa')).gridTemplateRows,
+  };
+}
+
+/**
  * Sığdırma bütçesinin (plan §4) ÖLÇÜLEN terimleri (tasokey#68). İki şey ölçülür:
  *   (1) `--sigdirma-metin-payi` = ıstaka başlığının yüksekliği + merkez sütununun taş boyunu aşan
  *       payı (deste başlığı/sayaç/ipucu satırları + `.yigin` boşlukları). Bu terim `rem` tabanlı
@@ -290,6 +330,7 @@ function olculeriAl() {
  */
 function sigdirmaOlcumu() {
   const yuksek = (dugum) => (dugum ? kutu(dugum).alt - kutu(dugum).ust : 0);
+  const genis = (dugum) => (dugum ? kutu(dugum).sag - kutu(dugum).sol : 0);
   const rafBaslik = yuksek(el('rafBaslik'));
   const merkez = yuksek(el('merkez'));
   const tasYukseklik = degiskenPx('--tas-yukseklik');
@@ -299,6 +340,7 @@ function sigdirmaOlcumu() {
     merkez,
     tasYukseklik,
     metinPayi: rafBaslik + Math.max(0, merkez - tasYukseklik),
+    ...varyantOlcumu({ yuksek, genis }),
     panelDolgu: degiskenPx('--panel-dolgu'),
     koseKaydirma: degiskenPx('--kose-kaydirma'),
     masaBosluk: degiskenPx('--masa-bosluk'),
