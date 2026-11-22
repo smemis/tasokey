@@ -129,6 +129,20 @@ export function olculenBoyut(ad) {
 }
 
 /**
+ * Görünüm ölçüsüne karşılık gelen ÖLÇÜLEN masa içerik kutusu `[genislik, yukseklik]`.
+ * tasokey#71: ızgara bant modeli (`yardimci/masa-izleri.js`) bunu okur — masanın yüksekliği esnek
+ * kaptan gelir (tasokey#63), CSS'ten okunamaz, ve "görünüm eksi üst sınır" tahmini kısa ekranlarda
+ * bandı sıfıra sıkıştırdığı için savları yanıltıyordu (A9: ölç, tahmin etme).
+ */
+export function olculenMasaKutusu({ genislik, yukseklik }) {
+  const kayit = OLCULEN_MASA_KUTUSU.find(
+    (satir) => satir.boyut[0] === genislik && satir.boyut[1] === yukseklik,
+  );
+  if (!kayit) throw new Error(`ölçülen masa kutusu yok: ${genislik}x${yukseklik}`);
+  return [...kayit.masaIc];
+}
+
+/**
  * Yatay eşitsizlik: orta sütun ıstaka şeridi (N·w + 2·panel-dolgu), yan sütunlar köşenin en küçük
  * genişliği (w + 2·kose-kaydirma), aralarında iki ızgara boşluğu.
  * Döner: `{ pay, enCokTasGenislik }` — `pay` taşlara kalan yer, ikincisi izin verilen en büyük `w`.
