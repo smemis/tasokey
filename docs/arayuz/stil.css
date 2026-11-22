@@ -56,11 +56,12 @@
   --raf-yuva-bosluk: 0px;
   /* Rakip ıstakası artık yalnız ince ahşap sırt (taş çizilmez — Sahip ek bilgisi, 2026-11-20):
      --rakip-raf-kalinlik çubuğun gerçek inceliğidir (sol/sağda genişlik, üstte yükseklik).
-     --rakip-raf-uzunluk sol/sağ çubuğun taban (min-height) uzunluğu; gerçek uzunluk ızgaranın orta
-     satırının %86'sı olarak büyür (dar kademelerde %96 — aşağıdaki 1300px sorgusu; orta satır
-     orada masanın daha küçük bir parçası kalıyor), bkz. .kenar-raf-dikey, madde 1 tasokey#33. Orta satır masa
-     yüksekliğinin ~%60'ı olduğundan bu, "masa yüksekliğinin yaklaşık yarısı"na denk gelir —
-     1. tur ekran görüntüsünde %60 denenmiş, ölçülen sonuç masanın yalnız %34'ü çıkmıştı. */
+     --rakip-raf-uzunluk sol/sağ çubuğun taban (min-height) uzunluğu; gerçek uzunluk artık ızgaranın
+     orta SATIRININ TAMAMIDIR (.kenar-raf-dikey height: 100%, tasokey#63 — önceden satırın %86/%96'sı
+     idi). Orta satır masa yüksekliğinin ~yarısını aldığından (--masa-orta-satir) bu, madde 1
+     tasokey#33'ün "masa yüksekliğinin yaklaşık yarısı" ölçüsünü korur; satır sınırı ile çubuğun ucu
+     artık ÇAKIŞIR, yani çubuğun bittiği yerden masanın kenarına kadar olan boş alanın tamamı köşe
+     hücresine düşer (tasokey#63 kabul ölçütü). */
   --rakip-raf-uzunluk: 240px;
   --rakip-raf-kalinlik: 26px;
   /* Üst rakibin çubuğu Sahip'in kendi ıstakası kadar geniş olsun diye #raf'ın genişlik formülüyle
@@ -73,6 +74,12 @@
   --masa-doku-olcu: 240px;
   --kose-kaydirma: 5px;
   --masa-bosluk: 24px;
+  /* Masa ızgarasının ORTA SATIRI (sol/sağ rakip çubuklarının satırı) köşe satırlarının kaç katı —
+     TEK KAYNAK (tasokey#63). Sütunlarda karşılığı yoktur: orta sütunun genişliğini içerik belirler
+     (oyuncunun ıstakası), dikeyde ise "çubuk masa yüksekliğinin yaklaşık yarısı" bir ORAN kararıdır
+     (madde 1, tasokey#33) — `2fr` ile köşe satırları çubuk satırının yarısı kadar olur.
+     Değer birimiyle tutulur: `fr` calc() içinde çarpılamaz, `calc(2 * 1fr)` geçersizdir. */
+  --masa-orta-satir: 2fr;
   /* Bırakma/tıklama hedef payı — TEK KAYNAK (ADR-014, tasokey#39). Köşe yığınının ve yer destesinin
      hedef alanı, taşın görünen ölçüsünden BAĞIMSIZ olarak her yanından bu kadar genişler (aşağıda
      .kose::after / #yerDestesi::after; taşın kendi width/height'ı değişmez). Değer masa ızgarasının
@@ -175,12 +182,27 @@ html, body {
 #durumSatiri.ret { color: #ffb4a0; font-weight: bold; }
 
 /* Dört kenar + dört köşe + merkez ızgara (ADR-012, tasokey#29): hangi oyuncu hangi kenarda/köşede
-   olduğunu `arayuz/yerlesim.js` saf mantığı hesaplar, burada yalnız grid-area adlarına yerleşir. */
+   olduğunu `arayuz/yerlesim.js` saf mantığı hesaplar, burada yalnız grid-area adlarına yerleşir.
+   İzler masayı "ıstakaların kapladığı ORTA ŞERİT + dört köşe dikdörtgeni" olarak böler (tasokey#63):
+   orta sütun yalnız ıstaka genişliğindedir (`auto` = oyuncunun ıstakası / üst rakibin çubuğu, aynı
+   formül), orta satır da yalnız sol/sağ çubukların boyundadır (--masa-orta-satir). Dış izler esnek
+   olduğundan geri kalan BÜTÜN boş alan dört köşe hücresine düşer — köşe = iki komşu ıstaka
+   arasındaki boş bölge (Sahip isteği, tasokey#63). Önceki `auto 1fr auto` düzeninde bunun tersi
+   oluyordu: köşe izleri taş ölçüsünde kalıyor, boş alanın tamamı ortadaki esnek ize gidiyordu
+   (ölçüm: 1920x1080 üst köşe 68x92 px / boş bölge 566x149 px = %7,4). */
 #masa {
-  flex: 1 1 auto;
+  /* Yükseklik tamamen esnek kaptan gelir, masanın İÇERİĞİNDEN değil (tasokey#63, R-014 sığdırma):
+     esneme tabanı 0 + `min-height: 0`. Yoksa #masa kendi içeriğinden kısa olamaz ve esnek satır
+     izleri kalan yerden değil içerikten çözülür (CSS Grid §12.7.2: esneklik birimi, esnek izlerin
+     `içerik / pay` oranlarının en büyüğüdür) — `1fr 2fr 1fr` düzeninde tek dolu satır (oyuncunun
+     ıstakası) masayı ıstakanın DÖRT KATI yapar, sayfa viewport'u taşar ve ıstaka ekranın dışında
+     kalır (ölçüm: 800x360'ta masa 416 px, 1280x800'de 840 px). Taban 0 olunca satırlar kalan
+     yüksekliği paylaşır: köşe satırları yine büyür, masa yine sığar. */
+  flex: 1 1 0;
+  min-height: 0;
   display: grid;
-  grid-template-columns: auto 1fr auto;
-  grid-template-rows: auto 1fr auto;
+  grid-template-columns: 1fr auto 1fr;
+  grid-template-rows: 1fr var(--masa-orta-satir) 1fr;
   grid-template-areas:
     "solUst ust sagUst"
     "sol merkez sag"
@@ -207,14 +229,19 @@ html, body {
   border-image-repeat: stretch;
 }
 
+/* Dört ıstaka kendi kenarına YAPIŞIR (tasokey#63): orta izler artık yalnız ıstaka şeridi kadar
+   olduğundan ızgaranın `align-items/justify-items: center` ortalaması ıstakayı kendi hücresinin
+   ortasına çekmez — çeken bir şey kalmadı, ama köşe satırları/sütunları büyüdüğü için üst/alt
+   ıstaka ile sol/sağ çubuğun masanın dış kenarına dayanması gerekir: boş bölgenin sınırı ıstakanın
+   masa tarafındaki yüzüdür ve köşe hücresi tam oraya kadar uzanır. */
 #koseSolUst { grid-area: solUst; }
-#kenarUst { grid-area: ust; }
+#kenarUst { grid-area: ust; align-self: start; }
 #koseSagUst { grid-area: sagUst; }
 #kenarSol { grid-area: sol; }
 #merkez { grid-area: merkez; }
 #kenarSag { grid-area: sag; }
 #koseSolAlt { grid-area: solAlt; }
-#rafAlani { grid-area: alt; }
+#rafAlani { grid-area: alt; align-self: end; }
 #koseSagAlt { grid-area: sagAlt; }
 
 .yigin {
@@ -286,9 +313,13 @@ html, body {
   justify-content: center;
 }
 
-/* Sol/sağ kenar hücresi ızgara satırının tam yüksekliğini kaplar ki çubuk (aşağıda %60 + taban
-   değer) o yükseklik içinde ortalanıp "masa yüksekliğinin yaklaşık yarısı" uzunluğa erişebilsin. */
+/* Sol/sağ kenar hücresi ızgara satırının tam yüksekliğini kaplar ki çubuk (aşağıda %100 + taban
+   değer) "masa yüksekliğinin yaklaşık yarısı" uzunluğa erişebilsin. Yatayda masanın dış kenarına
+   dayanır (tasokey#63): köşe sütunu artık ıstakaya kadar uzandığı için çubuk hücresinin ortasında
+   kalsaydı masanın ortasına doğru kayardı. */
 .kenar-sol, .kenar-sag { align-self: stretch; height: 100%; }
+.kenar-sol { justify-self: start; }
+.kenar-sag { justify-self: end; }
 
 .kenar.aktif .kenar-raf-yatay,
 .kenar.aktif .kenar-raf-dikey { outline: 2px solid #e8c547; }
@@ -314,8 +345,10 @@ html, body {
 
 /* Rakip ıstakası (ince ahşap sırt): boş kutu, hiç taş/çocuk öğe basılmaz (ekran.js masaCiz).
    Üst: genişlik Sahip'in kendi ıstakasıyla (#raf) aynı formülden (--rakip-ust-genislik, tek
-   kaynak). Sol/sağ: dikey durur, uzunluk satırın %60'ı (taban değer --rakip-raf-uzunluk; çok
-   kısa satırlarda bu taban devreye girer). */
+   kaynak). Sol/sağ: dikey durur, uzunluk ORTA SATIRIN TAMAMIDIR (taban değer --rakip-raf-uzunluk;
+   çok kısa satırlarda bu taban devreye girer). Satırın yüzdesi değil tamamı olması tasokey#63'ün
+   koşuludur: çubuğun ucu ile satır sınırı çakışmazsa aradaki artık, köşe hücresinin dışında kalan
+   ama gerçekte boş olan bir şerit olur (eskiden satırın %86/%96'sıydı). */
 .kenar-raf-yatay {
   width: var(--rakip-ust-genislik);
   height: var(--rakip-raf-kalinlik);
@@ -325,7 +358,7 @@ html, body {
 
 .kenar-raf-dikey {
   width: var(--rakip-raf-kalinlik);
-  height: 86%;
+  height: 100%;
   min-height: var(--rakip-raf-uzunluk);
   background-image: url('../gorsel/istaka-dikey.svg');
   background-size: 100% 100%;
@@ -392,11 +425,13 @@ html, body {
    simetrisi): köşe başına kural yazılmaz, hücreleri ayıran tek şey ızgara satır/sütun ölçüsüdür
    (#koseSolUst… kuralları yalnız grid-area taşır).
    `stretch`, #masa'nın `align-items/justify-items: center` ortalamasını bu öğe için geçersiz kılar.
-   min-width/min-height DEĞİŞMEDİ: `auto` ölçülü satır/sütunun ızgara izini hâlâ yalnız taş ölçüsü
-   belirler, yani hücre bu yüzden büyümez (ADR-014'ün B seçeneğinin reddedilme gerekçesi korunur) —
-   kutu yalnız var olan boşluğu kaplar ve kademe değişince taşla birlikte küçülür. Kutu hücrenin
-   dışına taşmadığı (kenar boşluğu olmadığı) için ADR-014'ün hedef halkası yine yalnız ızgara
-   boşluğuna girer, komşu kutuya değil. */
+   tasokey#63: hücrenin KENDİSİ artık boş bölgenin tamamıdır (#masa iz ölçüleri), bu yüzden aynı iki
+   satır kuralı (`stretch`) köşeyi masa kenarından komşu ıstakaya kadar büyütür ve yığın o bölgenin
+   ortasına oturur. min-width/min-height hâlâ taş ölçüsünden türer ve hâlâ yalnız ALT SINIRDIR —
+   ızgara izini belirlemezler (izler esnek), yani ADR-014'ün B seçeneğinin reddedilme gerekçesi
+   (hücreyi taş/dolgu ile büyütmek) korunur; dar kademede hücre yine taşın altına inemez.
+   Kutu hücrenin dışına taşmadığı (kenar boşluğu olmadığı) için ADR-014'ün hedef halkası yine yalnız
+   ızgara boşluğuna girer, komşu kutuya değil. */
 .kose {
   position: relative;
   justify-self: stretch;
@@ -830,15 +865,10 @@ html, body {
     --rakip-raf-uzunluk: 190px;
     --rakip-raf-kalinlik: 22px;
   }
-
-  /* Yan çubuk oranı (denetçi bulgusu, tasokey#33): çubuk ızgaranın ORTA satırının yüzdesidir, orta
-     satır da masanın ne kadarını kapladığına göre kademeden kademeye değişir. Geniş masaüstünde
-     orta satır masanın ~%60'ı (çubuk %86 → masanın %51'i = "yaklaşık yarısı"), dar kademelerde ise
-     ıstaka paneli ve köşe satırları aynı kalıp masa kısaldığı için orta satır masanın ancak
-     ~%50'si; aynı %86 orada masanın yalnız %43'ünü veriyordu (4 ekran görüntüsünde ölçüldü).
-     Bu kademelerde çubuk satırı neredeyse tamamen doldurur; satırın dışına taşmaz, köşe
-     yığınları ayrı ızgara satırlarında durduğu için çakışma olmaz. */
-  .kenar-raf-dikey { height: 96%; }
+  /* Yan çubuk oranı artık kademeye göre ayarlanmıyor (tasokey#63): çubuk her kademede orta satırın
+     TAMAMIDIR (.kenar-raf-dikey height: 100%), satırın masa içindeki payı da tek kaynaktan gelir
+     (--masa-orta-satir). Önceden burada %96, tabanda %86 yazıyordu (denetçi bulgusu, tasokey#33);
+     o fark köşe hücresinin dışında kalan boş şeridi büyüttüğü için kaldırıldı. */
 }
 
 @media (max-width: 900px) {
@@ -900,9 +930,10 @@ html, body {
 
   /* Rafım/Yer destesi/Gösterge panelindeki dikey boşluk da bu kademede daralır (844x390'da
      iki satırlık ıstaka + panel dolgusu + başlık toplamı viewport'a taşıyordu — tasokey#32).
-     Sol/sağ rakip çubuğu bu en dar kademede taban uzunluğunu (min-height) bırakır: yüzde yükseklik
-     satırın dışına taşamaz, ama min-height satırı büyütüp Sahip'in kendi ıstakasını sıkıştırabilir
-     (R-014/#32 düzeltmesini bozmamak için — Sahip'in kendi ıstakası öncelikli, tasokey#33). */
+     Sol/sağ rakip çubuğu bu en dar kademede taban uzunluğunu (min-height) bırakır: çubuk satırın
+     tamamı olduğundan (height: 100%, tasokey#63) satırın dışına taşamaz, ama min-height satırı
+     büyütüp Sahip'in kendi ıstakasını sıkıştırabilir (R-014/#32 düzeltmesini bozmamak için —
+     Sahip'in kendi ıstakası öncelikli, tasokey#33). */
   #rafAlani, .yigin { gap: 4px; }
   .kenar-raf-dikey { min-height: 0; }
 }
