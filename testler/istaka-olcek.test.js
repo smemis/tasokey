@@ -39,6 +39,27 @@ const BUGUNKU_MERDIVEN = [
     tas: [25, 36],
     arka: [13, 20],
   },
+  // tasokey#71 — kısa yatay DÜZEN VARYANTININ iki bloğu (tasokey#70 planı §3; ölçekler #72).
+  // Taban taş merdivenine DOKUNMAZLAR: varyantın kazancı yapısaldır (masanın bant listesi), ölçü
+  // değil — yalnız `--istaka-olcek` ölçülerek geçersiz kılınır (ADR-022/5). Bu yüzden kendi
+  // sözlüklerinde temel (`:root`) taban değerleri görünür ve ölçek 1'e zorlandığında ikisi de
+  // bugünkü merdiveni birebir verir. Gerçek kademe değerleri tarayıcıdaki devralmayla gelir
+  // (bütçe öz-testi `boyutSozlugu` ile uyan BÜTÜN blokları birleştirir).
+  {
+    kademe: '@media (orientation: landscape) and (max-height: 700px)',
+    tas: [58, 82],
+    arka: [36, 52],
+  },
+  {
+    kademe: '@media (orientation: landscape) and (min-height: 361px) and (max-height: 700px)',
+    tas: [58, 82],
+    arka: [36, 52],
+  },
+  {
+    kademe: '@media (orientation: landscape) and (min-height: 501px) and (max-height: 700px)',
+    tas: [58, 82],
+    arka: [36, 52],
+  },
 ];
 
 const TURETILENLER = [

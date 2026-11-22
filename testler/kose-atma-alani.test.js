@@ -3,9 +3,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { yorumlariAt } from './yardimci/css-olcu.js';
 import {
-  degiskenleriTopla, ifadeHesapla, kuralGovdeleri, sozlukleriBirlestir, varCoz, yorumlariAt,
-} from './yardimci/css-olcu.js';
+  alanSatirlari, bildirim as beyan, izlerCoz, masaKullanilanYukseklik, masaModeli,
+} from './yardimci/masa-izleri.js';
+import { olculenBantlar, olculenMasaKutusu } from './yardimci/sigdirma-butcesi.js';
+import { EN_AZ_BOLGE_ORANI } from './yardimci/surukleme-hedefi.js';
 import { RAF_SUTUN_SAYISI } from '../docs/arayuz/raf.js';
 
 // tasokey#63 (sınıf K) — Sahip'in `tasokey#47`e düzeltmesi:
@@ -22,6 +25,14 @@ import { RAF_SUTUN_SAYISI } from '../docs/arayuz/raf.js';
 // yapışır ve dikey çubuk satırının TAMAMIDIR. Böylece köşe hücresi = iki komşu ıstaka arasındaki
 // boş dikdörtgen eksi birer ızgara boşluğu; kural dört köşe için tektir (ADR-010 simetrisi).
 //
+// tasokey#71: masa düzeni artık İKİ VARYANTLIDIR (**ADR-024**, karar maddesi 2 — numarası
+// tasokey#74'te MIMARI.md'ye yazıldı) — paylaşılan düzende ÜÇ iz, kısa yatay varyantta DÖRT bant
+// (üst köşeler ilk iki bandı kaplar).
+// Bu dosyanın savları GEVŞETİLMEDİ: aynı kapsama/ortalama/sığdırma ölçütleri iki düzende de
+// ayrı ayrı denetlenir; "izler üç tanedir" varsayımı yerine düzen başına beklenen bant listesi
+// ölçülür (aşağıda `kabul-c`). Bant modeli `yardimci/masa-izleri.js`e taşındı (tek kaynak: ince
+// sırt oranı öz-testi de aynı bant ölçülerini okuyor).
+//
 // Ölçüm: DOM yürütmesi yok (bu projenin arayüz testleri deseni) — ızgara iz ölçüleri CSS
 // değişkenlerinden GERÇEKTEN hesaplanır ("find the size of an fr" döngüsü dahil). Yazı ölçüsüne
 // bağlı yükseklikler için alt/üst sınır kullanılır; sınırlar oranın ALEYHİNE seçilir, bu yüzden
@@ -31,278 +42,40 @@ const DOCS_KOK = join(import.meta.dirname, '..', 'docs');
 const STIL_CSS = readFileSync(join(DOCS_KOK, 'arayuz', 'stil.css'), 'utf8');
 const YORUMSUZ_STIL = yorumlariAt(STIL_CSS);
 
-// Sahip'in kabul ölçütü: boş bölgenin en az %80'i atma alanı olacak.
-const EN_AZ_KAPSAMA = 0.8;
+// Sahip'in kabul ölçütü: boş bölgenin en az %80'i atma alanı olacak. tasokey#74: sayı artık burada
+// YAZILMAZ — tarayıcı ölçümünün kendi denetimi (`yardimci/surukleme-hedefi.js`
+// `bolgeIsabetiEnAz80`) aynı ölçütü kullandığı için sabit TEK KAYNAKTAN okunur; statik hesap ile
+// tarayıcı ölçümü aynı çıtadan geçer, biri gevşerse ikisi birden gevşemek zorunda kalır.
+const EN_AZ_KAPSAMA = EN_AZ_BOLGE_ORANI;
 
-// Yazı ölçüsüne bağlı, burada ölçülemeyen yükseklikler için sınırlar:
-// #ustCubuk + #durumSatiri birlikte en çok bu kadar yer kaplar (masa yüksekliğinden düşülür).
-const KABUK_YUKSEKLIGI_UST_SINIRI_PX = 160;
-// Aynı kabuğun ALT sınırı: düğme dolgusu (2x4px) + tek satır metin + durum satırı dolgusu.
-// "Masa viewport'a sığıyor mu?" sorusunda bu kullanılır — kabuk küçük varsayılınca masaya en çok
-// yer kalır, yani taşma iddiası en TEMKİNLİ biçimde kurulur (yanlış alarm vermez).
-const KABUK_YUKSEKLIGI_ALT_SINIRI_PX = 48;
-// Tek satır metnin (başlık, sayaç, ipucu — 0,75…1,1rem) kaplayabileceği en büyük yükseklik.
-const METIN_SATIRI_UST_SINIRI_PX = 32;
-// #rafAlani ve #merkez içindeki dikey boşlukların üst sınırı (stil.css: 8px / 6px, dar kademede 4px).
-const IC_BOSLUK_UST_SINIRI_PX = 16;
+// --raf-sutun-sayisi CSS'te değil `arayuz/raf.js`te tanımlıdır (ADR-019, tek kaynak).
+const EKLER = new Map([['--raf-sutun-sayisi', [String(RAF_SUTUN_SAYISI)]]]);
 
+// tasokey#71: 900x600 artık "arama ek boyutu" değil ASIL ölçüm boyutudur (plan §5) ve kısa yatay
+// varyantın en geniş kabul boyutudur → köşe oranı orada da ölçülür.
 const OLCUM_BOYUTLARI = [
   { ad: '1920x1080 (masaüstü)', genislik: 1920, yukseklik: 1080 },
   { ad: '1280x800 (dizüstü)', genislik: 1280, yukseklik: 800 },
   { ad: '1180x820 (tablet yatay)', genislik: 1180, yukseklik: 820 },
+  { ad: '900x600 (kısa yatay — geniş)', genislik: 900, yukseklik: 600 },
   { ad: '844x390 (telefon yatay)', genislik: 844, yukseklik: 390 },
   { ad: '800x360 (telefon yatay — Sahip ölçümü)', genislik: 800, yukseklik: 360 },
 ];
 
-/* ---------------------------------------------------------------- CSS kademesi (boyuta göre) */
-
-/** `@media` blokları çıkarılmış CSS (yalnız taban kurallar). */
-function medyasizCss(metin) {
-  let sonuc = '';
-  let i = 0;
-  for (let bas = metin.indexOf('@media'); bas !== -1; bas = metin.indexOf('@media', i)) {
-    sonuc += metin.slice(i, bas);
-    let derinlik = 0;
-    i = metin.indexOf('{', bas);
-    for (; i < metin.length; i += 1) {
-      if (metin[i] === '{') derinlik += 1;
-      else if (metin[i] === '}' && (derinlik -= 1) === 0) { i += 1; break; }
-    }
-  }
-  return sonuc + metin.slice(i);
-}
-
-/** `@media` bloklarının `{ sorgu, govde }` listesi (geliş sırasıyla). */
-function medyaBloklariSirali(metin) {
-  const bloklar = [];
-  for (let bas = metin.indexOf('@media'); bas !== -1; bas = metin.indexOf('@media', bas + 1)) {
-    const acilis = metin.indexOf('{', bas);
-    if (acilis === -1) break;
-    let derinlik = 0;
-    let son = acilis;
-    for (; son < metin.length; son += 1) {
-      if (metin[son] === '{') derinlik += 1;
-      else if (metin[son] === '}' && (derinlik -= 1) === 0) break;
-    }
-    bloklar.push({
-      sorgu: metin.slice(bas, acilis).trim().replace(/\s+/g, ' '),
-      govde: metin.slice(acilis + 1, son),
-    });
-  }
-  return bloklar;
-}
-
-const TABAN_CSS = medyasizCss(YORUMSUZ_STIL);
-const MEDYA_BLOKLARI = medyaBloklariSirali(YORUMSUZ_STIL);
-
-function sorguUyuyor(sorgu, { genislik, yukseklik }) {
-  const yon = genislik >= yukseklik ? 'landscape' : 'portrait';
-  for (const [, ozellik, ham] of sorgu.matchAll(/\(\s*([a-z-]+)\s*:\s*([^)]+)\)/g)) {
-    const sayi = Number.parseFloat(ham);
-    if (ozellik === 'max-width' && !(genislik <= sayi)) return false;
-    if (ozellik === 'min-width' && !(genislik >= sayi)) return false;
-    if (ozellik === 'max-height' && !(yukseklik <= sayi)) return false;
-    if (ozellik === 'min-height' && !(yukseklik >= sayi)) return false;
-    if (ozellik === 'orientation' && ham.trim() !== yon) return false;
-  }
-  return true;
-}
-
-/** Bu boyutta geçerli CSS kaynakları: taban + uyan `@media` gövdeleri (geliş sırasıyla). */
-function gecerliKaynaklar(boyut) {
-  return [TABAN_CSS, ...MEDYA_BLOKLARI.filter((b) => sorguUyuyor(b.sorgu, boyut)).map((b) => b.govde)];
-}
-
-/** Bu boyutta geçerli değişken sözlüğü (kademe geçersiz kılmaları uygulanmış). */
-function sozlukAl(boyut) {
-  const sozlukler = gecerliKaynaklar(boyut).map((kaynak) => {
-    const kokBasi = kaynak.indexOf(':root');
-    if (kokBasi === -1) return new Map();
-    return degiskenleriTopla(kaynak.slice(kokBasi, kaynak.indexOf('}', kokBasi)));
-  });
-  // --raf-sutun-sayisi CSS'te değil `arayuz/raf.js`te tanımlıdır (ADR-019, tek kaynak).
-  return sozlukleriBirlestir(...sozlukler, new Map([['--raf-sutun-sayisi', [String(RAF_SUTUN_SAYISI)]]]));
-}
-
-/** Seçicinin bu boyutta GEÇERLİ (en son kazanan) bildirimi; yoksa null. */
-function bildirim(secici, ozellik, boyut) {
-  let sonuc = null;
-  for (const kaynak of gecerliKaynaklar(boyut)) {
-    for (const govde of kuralGovdeleri(kaynak, secici)) {
-      const eslesme = new RegExp(`(?:^|;)\\s*${ozellik}\\s*:\\s*([^;]+)`).exec(govde);
-      if (eslesme) sonuc = eslesme[1].trim();
-    }
-  }
-  return sonuc;
-}
-
-/** Uzunluk ölçüsü (px); değişkenler çözülür, calc() gerçekten hesaplanır. Birimsiz sıfır geçerlidir. */
-function px(ifade, sozluk) {
-  const sonuc = ifadeHesapla(varCoz(ifade, sozluk));
-  assert.ok(
-    sonuc.birim === 'px' || sonuc.sayi === 0,
-    `"${ifade}" px uzunluk vermiyor (${sonuc.sayi}${sonuc.birim})`,
-  );
-  return sonuc.sayi;
-}
-
-function degisken(ad, sozluk) {
-  return px(`var(${ad})`, sozluk);
-}
-
-/* ------------------------------------------------------------------- ızgara iz ölçüsü modeli */
-
-/** `grid-template-*` değerini üç ize ayırır (`1fr auto 1fr` → ['1fr','auto','1fr']). */
-function izler(secici, ozellik, boyut, sozluk) {
-  const ham = bildirim(secici, ozellik, boyut);
-  assert.ok(ham, `${secici} ${ozellik} tanımlamıyor`);
-  const parcalar = varCoz(ham, sozluk).replace(/[()]/g, ' ').trim().split(/\s+/);
-  assert.equal(parcalar.length, 3, `${secici} ${ozellik} üç iz tanımlamıyor: "${ham}"`);
-  return parcalar;
-}
-
 /**
- * Üç izli bir ızgara ekseninin iz ölçüleri. `auto` iz içeriğine oturur, `Nfr` izler kalanı
- * paylaşır; bir esnek izin payı kendi içerik tabanından küçük kalırsa o iz dondurulup paylaşım
- * yeniden yapılır (CSS Grid "find the size of an fr" döngüsü).
+ * Masanın bu boyuttaki bant modeli (yardimci/masa-izleri.js — tek kaynak). Masanın İÇERİK kutusu
+ * TARAYICIDA ÖLÇÜLEN değerden gelir (yardimci/sigdirma-butcesi.js OLCULEN_MASA_KUTUSU, tasokey#68):
+ * masa yüksekliği esnek kaptan gelir (tasokey#63) ve CSS'ten okunamaz; "görünüm eksi üst sınır"
+ * tahmini 360 px yükseklikte masaya yalnız 184 px bırakıyor ve bantları yanıltıyordu.
  */
-function izOlculeri(izAdlari, { toplamOlcu, bosluk, icerikler }) {
-  const serbest = toplamOlcu - 2 * bosluk;
-  const olculer = icerikler.slice();
-  const donmus = izAdlari.map((iz) => iz === 'auto');
-  for (let tur = 0; tur < izAdlari.length + 1; tur += 1) {
-    const dolu = olculer.reduce((t, o, i) => t + (donmus[i] ? o : 0), 0);
-    const frToplam = izAdlari.reduce((t, iz, i) => t + (donmus[i] ? 0 : Number.parseFloat(iz)), 0);
-    if (frToplam === 0) break;
-    const birim = Math.max(0, serbest - dolu) / frToplam;
-    const kucukKalan = izAdlari.findIndex(
-      (iz, i) => !donmus[i] && Number.parseFloat(iz) * birim < icerikler[i],
-    );
-    if (kucukKalan === -1) {
-      izAdlari.forEach((iz, i) => { if (!donmus[i]) olculer[i] = Number.parseFloat(iz) * birim; });
-      break;
-    }
-    donmus[kucukKalan] = true;
-  }
-  return olculer;
-}
-
-/**
- * Aynı eksenin İÇERİK TABANLI ölçüsü: kabın o eksendeki ölçüsü belirsizse (`auto` yükseklikli bir
- * kapta) tarayıcı esnek izleri serbest yerden değil İÇERİKTEN çözer — esneklik birimi, esnek
- * izlerin `içerik / pay` oranlarının EN BÜYÜĞÜDÜR (CSS Grid §12.7.2). Yani tek bir dolu iz
- * (oyuncunun ıstakası) bütün ızgarayı kendi payının katına çeker: `1fr 2fr 1fr` düzeninde ıstaka
- * satırı masayı ıstakanın DÖRT KATI yapar.
- */
-function izOlculeriIcerikten(izAdlari, { bosluk, icerikler }) {
-  const birim = Math.max(
-    ...izAdlari.map((iz, i) => (iz === 'auto' ? 0 : icerikler[i] / Number.parseFloat(iz))),
-  );
-  const olculer = izAdlari.map((iz, i) => (
-    iz === 'auto' ? icerikler[i] : Math.max(icerikler[i], Number.parseFloat(iz) * birim)
-  ));
-  return olculer.reduce((toplam, olcu) => toplam + olcu, 0) + 2 * bosluk;
-}
-
-/**
- * Bir boyutta masanın ölçüleri: köşe kutusu, köşeyi çevreleyen boş bölge ve yığın merkezleri.
- * Yazı ölçüsüne bağlı yükseklikler `altSinir`/`ustSinir` ile verilir; `altSinir` seçildiğinde
- * köşe kutusu en küçük, boş bölge en büyük çıkar (oranın aleyhine → sonuç alt sınırdır).
- */
-function masaIcerikleri(boyut) {
-  const sozluk = sozlukAl(boyut);
-  const bosluk = degisken('--masa-bosluk', sozluk);
-  const dolgu = degisken('--masa-dolgu', sozluk);
-  const cerceve = degisken('--masa-cerceve-kalinlik', sozluk);
-  const tasGenislik = degisken('--tas-genislik', sozluk);
-  const tasYukseklik = degisken('--tas-yukseklik', sozluk);
-  const kaydirma = degisken('--kose-kaydirma', sozluk);
-  const cubukKalinlik = degisken('--rakip-raf-kalinlik', sozluk);
-  const panelDolgu = degisken('--panel-dolgu', sozluk);
-  // Orta sütunun içeriği: oyuncunun ıstakası = üst rakibin çubuğu (aynı formül, tek kaynak).
-  const istakaGenislik = degisken('--rakip-ust-genislik', sozluk);
-
-  const koseEnKucukGenislik = tasGenislik + 2 * kaydirma;
-  const koseEnKucukYukseklik = tasYukseklik + 2 * kaydirma;
-
-  // Satır içerikleri (alt sınır = en küçük olabileceği, üst sınır = en büyük olabileceği).
-  const istakaYukseklikAlt = 2 * tasYukseklik + 2 * panelDolgu;
-  const istakaYukseklikUst = istakaYukseklikAlt + IC_BOSLUK_UST_SINIRI_PX + METIN_SATIRI_UST_SINIRI_PX;
-  const merkezYukseklikAlt = tasYukseklik;
-  const merkezYukseklikUst = tasYukseklik + 4 * METIN_SATIRI_UST_SINIRI_PX + 3 * IC_BOSLUK_UST_SINIRI_PX;
-  const cubukTaban = px(bildirim('.kenar-raf-dikey', 'min-height', boyut), sozluk);
-
-  return {
-    sozluk,
-    bosluk,
-    dolgu,
-    cerceve,
-    istakaGenislik,
-    cerceveVeDolgu: 2 * (dolgu + cerceve),
-    sutunIcerik: [
-      Math.max(koseEnKucukGenislik, cubukKalinlik),
-      istakaGenislik,
-      Math.max(koseEnKucukGenislik, cubukKalinlik),
-    ],
-    satirIcerikAlt: [
-      Math.max(koseEnKucukYukseklik, cubukKalinlik),
-      Math.max(cubukTaban, merkezYukseklikAlt),
-      Math.max(koseEnKucukYukseklik, istakaYukseklikAlt),
-    ],
-    satirIcerikUst: [
-      Math.max(koseEnKucukYukseklik, cubukKalinlik),
-      Math.max(cubukTaban, merkezYukseklikUst),
-      Math.max(koseEnKucukYukseklik, istakaYukseklikUst),
-    ],
-  };
-}
-
 function masaOlcusu(boyut) {
-  const {
-    sozluk, bosluk, istakaGenislik, cerceveVeDolgu, sutunIcerik, satirIcerikAlt, satirIcerikUst,
-  } = masaIcerikleri(boyut);
-  const masaIcGenislik = boyut.genislik - cerceveVeDolgu;
-  const masaIcYukseklik = boyut.yukseklik - KABUK_YUKSEKLIGI_UST_SINIRI_PX - cerceveVeDolgu;
-
-  const sutunlar = izOlculeri(izler('#masa', 'grid-template-columns', boyut, sozluk), {
-    toplamOlcu: masaIcGenislik, bosluk, icerikler: sutunIcerik,
+  return masaModeli(STIL_CSS, boyut, EKLER, {
+    masaIc: olculenMasaKutusu(boyut), bant: olculenBantlar(boyut),
   });
-  const satirAdlari = izler('#masa', 'grid-template-rows', boyut, sozluk);
-  // Her satırın ALT SINIRI: o satırın içeriği en küçük, ÖBÜR satırlarınki en büyük alındığında
-  // çıkan ölçü (iz ölçüsü kendi içeriğinde artan, komşu içeriklerde azalandır).
-  const satirAltSiniri = [0, 1, 2].map((i) => izOlculeri(satirAdlari, {
-    toplamOlcu: masaIcYukseklik,
-    bosluk,
-    icerikler: satirIcerikUst.map((deger, k) => (k === i ? satirIcerikAlt[k] : deger)),
-  })[i]);
+}
 
-  // Dikey çubuğun uzunluğu: orta satırın yüzdesi (ya da taban uzunluğu). Çubuk satırı tam
-  // doldurmuyorsa satırın iki ucunda artan boşluk, köşenin DIŞINDA kalan boş alandır.
-  const cubukYuzde = Number.parseFloat(bildirim('.kenar-raf-dikey', 'height', boyut)) / 100;
-  const ortaSatir = satirAltSiniri[1];
-  const cubukUzunluk = Math.max(
-    Math.min(ortaSatir, cubukYuzde * ortaSatir),
-    px(bildirim('.kenar-raf-dikey', 'min-height', boyut), sozluk),
-  );
-  const satirArtigi = Math.max(0, (ortaSatir - cubukUzunluk) / 2);
-
-  // Boş bölge (masa kenarından komşu ıstakaya kadar): yatayda ıstaka masada ortalandığı için
-  // kenardan uzaklığı şablondan bağımsız tek formülle çıkar; dikeyde köşe satırı + ızgara
-  // boşluğu + çubuğun satır içinde bıraktığı artık.
-  const bosBolgeGenislik = (masaIcGenislik - istakaGenislik) / 2;
-  return {
-    bosluk,
-    // Bırakma hedefi kutudan her yana --hedef-pay kadar taşar (ADR-014 halkası). Boş bölgenin
-    // İÇİNDE kalan taşma yalnız ıstakaya bakan yandır; masa kenarına bakan yan zaten bölgenin
-    // dışına (masa dolgusuna) düşer.
-    hedefPayi: degisken('--hedef-pay', sozluk),
-    koseGenislik: sutunlar[0],
-    bosBolgeGenislik,
-    koseler: [
-      { ad: 'üst', yukseklik: satirAltSiniri[0], bosBolgeYukseklik: satirAltSiniri[0] + bosluk + satirArtigi },
-      { ad: 'alt', yukseklik: satirAltSiniri[2], bosBolgeYukseklik: satirAltSiniri[2] + bosluk + satirArtigi },
-    ],
-  };
+function bildirim(secici, ozellik, boyut) {
+  return beyan(STIL_CSS, secici, ozellik, boyut);
 }
 
 /* ------------------------------------------------------------------------------- ASIL KABUL */
@@ -373,40 +146,14 @@ test('ASIL KABUL (b): atılan taş yığını boş bölgenin ortasında (sapma e
   }
 });
 
-/**
- * Masanın tarayıcıda KULLANACAĞI yükseklik. #masa, #uygulama'nın (sütun esnek kutu, min-height
- * 100vh) bir öğesidir:
- *  - Esneme tabanı `auto` ve en küçük yüksekliği `auto` ise öğe kendi İÇERİĞİNDEN kısa olamaz —
- *    içerik kalan yerden büyükse kap büyür ve sayfa viewport'u taşar (R-014 bozulur).
- *  - Esneme tabanı 0 ve `min-height: 0` ise yükseklik tamamen kaptan gelir (KESİN): esnek izler
- *    kalan yeri paylaşır, masa viewport'u taşmaz.
- */
-function masaKullanilanYukseklik(boyut) {
-  const { bosluk, cerceveVeDolgu, satirIcerikAlt } = masaIcerikleri(boyut);
-  const kullanilabilir = boyut.yukseklik - KABUK_YUKSEKLIGI_ALT_SINIRI_PX - cerceveVeDolgu;
-  const esneme = (bildirim('#masa', 'flex', boyut) ?? '').trim().split(/\s+/);
-  const taban = esneme.length === 3 ? esneme[2] : null;
-  const enKucuk = (bildirim('#masa', 'min-height', boyut) ?? 'auto').trim();
-  const kesin = taban !== null && Number.parseFloat(taban) === 0 && Number.parseFloat(enKucuk) === 0;
-  // İçerik tabanlı yükseklik, satır içeriklerinin ALT sınırıyla hesaplanır: gerçek yükseklik
-  // bundan ancak büyük olabilir, yani taşma iddiası temkinlidir.
-  const icerikten = izOlculeriIcerikten(izler('#masa', 'grid-template-rows', boyut, sozlukAl(boyut)), {
-    bosluk, icerikler: satirIcerikAlt,
-  });
-  return {
-    kullanilabilir,
-    icerikten,
-    satirTabanlari: satirIcerikAlt.reduce((t, o) => t + o, 0) + 2 * bosluk,
-    kullanilan: kesin ? kullanilabilir : Math.max(kullanilabilir, icerikten),
-  };
-}
-
 test('ASIL KABUL (c): büyüyen köşe satırları masayı viewport dışına itmez (R-014 sığdırma)', () => {
   // tasokey#63'ün satır düzeni (`1fr 2fr 1fr`) köşeleri büyütür; ama #masa yüksekliğini
   // İÇERİĞİNDEN alıyorsa tek dolu satır (oyuncunun ıstakası) masayı kendi dört katına çeker
   // (CSS Grid §12.7.2) ve ıstaka ekranın dışında kalır — Sahip'in 800x360 ölçümünde masa 416 px.
   for (const boyut of OLCUM_BOYUTLARI) {
-    const { kullanilabilir, kullanilan, icerikten } = masaKullanilanYukseklik(boyut);
+    const { kullanilabilir, kullanilan, icerikten } = masaKullanilanYukseklik(
+      STIL_CSS, boyut, masaOlcusu(boyut),
+    );
     assert.ok(
       kullanilan <= kullanilabilir + 0.5,
       `${boyut.ad}: masa ${kullanilan.toFixed(0)} px yer istiyor, oysa ${kullanilabilir.toFixed(0)} px `
@@ -421,7 +168,9 @@ test('ASIL KABUL (c2): satır içerikleri kalan yüksekliğe sığar (kesin yük
   // (c)'deki çözüm masayı viewport'a KESİN olarak oturtur; bu tek başına "ıstaka görünür" demek
   // değildir — satırların içerik tabanları toplamı da sığmalı, yoksa içerik hücresinden taşar.
   for (const boyut of OLCUM_BOYUTLARI) {
-    const { kullanilabilir, satirTabanlari } = masaKullanilanYukseklik(boyut);
+    const { kullanilabilir, satirTabanlari } = masaKullanilanYukseklik(
+      STIL_CSS, boyut, masaOlcusu(boyut),
+    );
     assert.ok(
       satirTabanlari <= kullanilabilir + 0.5,
       `${boyut.ad}: satırların içerik tabanı ${satirTabanlari.toFixed(0)} px, kalan yükseklik `
@@ -430,31 +179,173 @@ test('ASIL KABUL (c2): satır içerikleri kalan yüksekliğe sığar (kesin yük
   }
 });
 
+/* --------------------------------------------------------------- TARAYICIDA ÖLÇÜLEN karşılık */
+
+/**
+ * `tasokey#74`, 2026-11-22 — gerçek tarayıcı turu (`is/tasokey-74/ekran/surukle-hedef-*.png`,
+ * ADR-023 `ekran_gerek` yolu, gerçek Pointer Events). Yukarıdaki kabuller CSS'ten HESAPLAR;
+ * burası o hesabın tarayıcıda ne çıktığını yazar ve ikisini karşılaştırır.
+ *
+ * Neden burada: `tasokey#71` düzeni iki varyanta böldü, bant modeli de ölçülen tablodan geliyor
+ * (`olculenBantlar`). Model ile gerçek arasında sessiz bir kayma olursa yukarıdaki beş kabul
+ * YANLIŞ bir masada "geçti" der. Bu sav modeli gerçeğe çiviler; savlar gevşemedi, bir sav eklendi.
+ *
+ * | Boyut     | Düzen     | Ölçek | Köşe  | Hücre (px) | Boş bölge | İsabet 5×5 | `cubukArtigi` |
+ * |-----------|-----------|-------|-------|------------|-----------|------------|---------------|
+ * | 1920×1080 | paylaşılan| 1,85  | üst   | `246×224`  | `270×248` | 25/25 %100 | `0,0 px`      |
+ * | 1920×1080 | paylaşılan| 1,85  | alt   | `246×224`  | `270×248` | 25/25 %100 | `0,0 px`      |
+ * | 900×600   | varyant   | 1,25  | üst   | `65×138`   | `79×152`  | 25/25 %100 | `25,8 px`     |
+ * | 900×600   | varyant   | 1,25  | alt   | `65×116`   | `79×130`  | 25/25 %100 | `0,0 px`      |
+ * | 800×360   | varyant   | 1,45  | üst   | `141×82`   | `147×88`  | 25/25 %100 | `23,8 px`     |
+ * | 800×360   | varyant   | 1,45  | alt   | `141×68`   | `147×74`  | 25/25 %100 | `0,0 px`      |
+ *
+ * `cubukArtigi` = dikey ıstaka çubuğunun dış kenarı ile köşe sütununun çizgisi arasında kalan
+ * artık şerit (`yardimci/surukleme-olcum-sayfa.js`). Varyantta ÜST köşelerde sıfır değildir:
+ * üst köşe iki bandı kaplar (ADR-024/2) ve üst bandın hizasında yan çubuk henüz başlamamıştır —
+ * yani şerit köşenin KENDİ alanıdır, isabeti düşürmez (üstte de 25/25 ölçüldü). Statik modelde
+ * karşılığı yoktur (çubuğun kendi kutusunu ölçmez), bu yüzden burada yalnız BELGELENİR.
+ */
+const TARAYICI_OLCUMU = [
+  { ad: '1920x1080 (masaüstü)', genislik: 1920, yukseklik: 1080, pay: 12, koseler: { üst: [246, 224, 270, 248], alt: [246, 224, 270, 248] } },
+  { ad: '900x600 (kısa yatay — geniş)', genislik: 900, yukseklik: 600, pay: 7, koseler: { üst: [65, 138, 79, 152], alt: [65, 116, 79, 130] } },
+  { ad: '800x360 (telefon yatay — Sahip ölçümü)', genislik: 800, yukseklik: 360, pay: 3, koseler: { üst: [141, 82, 147, 88], alt: [141, 68, 147, 74] } },
+];
+
+test('ASIL KABUL (a3): statik iz modeli TARAYICIDA ölçülen köşe kutusunu birebir üretir', () => {
+  for (const satir of TARAYICI_OLCUMU) {
+    const olcu = masaOlcusu(satir);
+    assert.equal(olcu.hedefPayi, satir.pay, `${satir.ad}: hedef payı modelde ${olcu.hedefPayi}px, tarayıcıda ${satir.pay}px`);
+    for (const kose of olcu.koseler) {
+      const [genislik, yukseklik, bolgeGenislik, bolgeYukseklik] = satir.koseler[kose.ad];
+      const esit = (hesap, olculen, neyin) => assert.ok(
+        Math.abs(hesap - olculen) <= 1,
+        `${satir.ad} ${kose.ad} köşe ${neyin}: model ${hesap.toFixed(1)} px, tarayıcı ${olculen} px — `
+        + 'iz modeli ile gerçek masa ayrışmış; yukarıdaki kabuller artık gerçek olmayan bir masayı ölçüyor',
+      );
+      esit(olcu.koseGenislik, genislik, 'hücre genişliği');
+      esit(kose.yukseklik, yukseklik, 'hücre yüksekliği');
+      esit(olcu.bosBolgeGenislik, bolgeGenislik, 'boş bölge genişliği');
+      esit(kose.bosBolgeYukseklik, bolgeYukseklik, 'boş bölge yüksekliği');
+    }
+  }
+});
+
 /* ------------------------------------------------- yapısal kurallar (ölçümün dayandığı düzen) */
 
+/**
+ * Paylaşılan düzende (masaüstü/tablet) ve kısa yatay varyantta beklenen bant listesi. tasokey#71:
+ * "izler üç tanedir" varsayımı GEVŞETİLMEDİ, DÜZEN BAŞINA yazıldı — paylaşılan düzende yine tam
+ * üç iz, varyantta tam dört bant ve üst köşeler ilk iki bandı kaplar (ADR-024/2).
+ *
+ * tasokey#74: düzen başına TEK boyut ölçülüyordu (ilk ve son); artık her düzen KENDİ BÜTÜN kabul
+ * boyutlarında ölçülür (3 + 3 = 6 boyut, ölçülen bant tablosuyla — `olculenBantlar`). Gerekçe:
+ * varyant üç boyutta etkin ve üçünün bant ölçüleri farklı (900x600 `8/115,5/231/115,5`,
+ * 844x390 `8/75,5/151/75,5`, 800x360 `8/68/136/68`); tek boyut ölçmek, öbür ikisinde bant
+ * listesinin sessizce bozulmasına açık kapı bırakıyordu. Savlar gevşemedi, kapsam genişledi.
+ */
+const BEKLENEN_DUZENLER = [
+  {
+    ad: 'paylaşılan düzen (masaüstü/tablet)',
+    boyutlar: OLCUM_BOYUTLARI.slice(0, 3),
+    satirSayisi: 3,
+    koseUstBantlari: [0],
+    koseAltBantlari: [2],
+    yanBant: 1,
+    ortaBant: 1,
+  },
+  {
+    ad: 'kısa yatay varyant',
+    boyutlar: OLCUM_BOYUTLARI.slice(3),
+    satirSayisi: 4,
+    koseUstBantlari: [0, 1],
+    koseAltBantlari: [3],
+    yanBant: 2,
+    ortaBant: 1,
+  },
+];
+
+/** Düzen × boyut çiftleri: yapısal savlar hepsini tek tek ölçer. */
+const DUZEN_BOYUTLARI = BEKLENEN_DUZENLER.flatMap(
+  (duzen) => duzen.boyutlar.map((boyut) => ({ duzen, boyut, ad: `${duzen.ad} · ${boyut.ad}` })),
+);
+
 test('kabul-c: masa ızgarası ortada yalnız ıstaka şeridini bırakır (dış izler esnek, simetrik)', () => {
-  const sozluk = sozlukAl(OLCUM_BOYUTLARI[0]);
-  for (const ozellik of ['grid-template-columns', 'grid-template-rows']) {
-    const [bas, orta, son] = izler('#masa', ozellik, OLCUM_BOYUTLARI[0], sozluk);
-    assert.equal(bas, son, `#masa ${ozellik}: dış izler eşit değil (${bas} / ${son}) — köşeler simetrik olmaz`);
-    assert.match(bas, /fr$/, `#masa ${ozellik}: dış iz esnek değil ("${bas}") — köşe hücresi içeriği kadar kalır`);
+  for (const { ad, boyut, duzen } of DUZEN_BOYUTLARI) {
+    const { satirAdlari, sutunAdlari } = masaOlcusu(boyut);
+    // Sütunlarda dış izler birebir eşit ve esnek (iki düzende de aynı).
+    const [ilkSutun, , sonSutun] = sutunAdlari;
+    assert.equal(ilkSutun, sonSutun, `${ad} sütunlar: dış izler eşit değil (${ilkSutun} / ${sonSutun}) — köşeler simetrik olmaz`);
+    assert.match(ilkSutun, /fr$/, `${ad} sütunlar: dış iz esnek değil ("${ilkSutun}") — köşe hücresi içeriği kadar kalır`);
+    // Satırlarda ölçüt köşe BANTLARININ esnek payıdır: üst köşe varyantta üst çubuğun `auto`
+    // bandını da kaplar (karar maddesi 2), ama artan boş alanı paylaştıran pay iki köşede eşit
+    // kalmalı — yoksa köşeler simetrik olmaz (ADR-010).
+    const frPayi = (bantlar) => bantlar.reduce(
+      (toplam, i) => toplam + (satirAdlari[i].endsWith('fr') ? Number.parseFloat(satirAdlari[i]) : 0),
+      0,
+    );
+    assert.equal(
+      frPayi(duzen.koseUstBantlari),
+      frPayi(duzen.koseAltBantlari),
+      `${ad} satırlar: üst/alt köşe bantlarının esnek payı eşit değil (${satirAdlari.join(' ')})`,
+    );
+    assert.ok(frPayi(duzen.koseUstBantlari) > 0, `${ad} satırlar: köşe bandı esnek değil — köşe hücresi içeriği kadar kalır`);
+    for (const i of [...duzen.koseUstBantlari, ...duzen.koseAltBantlari]) {
+      assert.ok(
+        satirAdlari[i] === 'auto' || satirAdlari[i].endsWith('fr'),
+        `${ad} satırlar: ${i}. bant çıplak uzunluk ("${satirAdlari[i]}") — köşe hücresi kademeyle büyüyüp küçülmez`,
+      );
+    }
+    // Orta SÜTUN içeriğe oturur: genişliğini oyuncunun ıstakası belirler, esnemez.
+    assert.equal(sutunAdlari.length, 3, `${ad}: masa üç sütun tanımlamıyor (${sutunAdlari.join(' ')})`);
+    assert.equal(
+      sutunAdlari[1],
+      'auto',
+      `${ad}: #masa orta sütunu "${sutunAdlari[1]}" — ıstaka genişliğinden büyük olursa artan yer `
+      + 'köşenin değil ortadaki hücrenin olur',
+    );
+    // Orta SATIR bir ORAN kararıdır (çubuk ~masa yüksekliğinin yarısı): esnek ve köşe
+    // satırlarından büyük olmalı, yoksa çubuk kısalır (madde 1, tasokey#33).
+    const yanIz = satirAdlari[duzen.yanBant];
+    assert.ok(
+      Number.parseFloat(yanIz) > Number.parseFloat(satirAdlari.at(-1)),
+      `${ad}: #masa yan çubuk bandı (${yanIz}) köşe bandından (${satirAdlari.at(-1)}) büyük değil — `
+      + 'dikey ıstaka çubuğu masa yüksekliğinin yaklaşık yarısı kalmaz',
+    );
   }
-  // Orta SÜTUN içeriğe oturur: genişliğini oyuncunun ıstakası belirler, esnemez.
-  const [, ortaSutun] = izler('#masa', 'grid-template-columns', OLCUM_BOYUTLARI[0], sozluk);
-  assert.equal(
-    ortaSutun,
-    'auto',
-    `#masa orta sütunu "${ortaSutun}" — ıstaka genişliğinden büyük olursa artan yer köşenin değil `
-    + 'ortadaki hücrenin olur',
-  );
-  // Orta SATIR bir ORAN kararıdır (çubuk ~masa yüksekliğinin yarısı): esnek ve köşe satırlarından
-  // büyük olmalı, yoksa çubuk kısalır (madde 1, tasokey#33).
-  const [disSatir, ortaSatir] = izler('#masa', 'grid-template-rows', OLCUM_BOYUTLARI[0], sozluk);
-  assert.ok(
-    Number.parseFloat(ortaSatir) > Number.parseFloat(disSatir),
-    `#masa orta satırı (${ortaSatir}) köşe satırlarından (${disSatir}) büyük değil — dikey ıstaka `
-    + 'çubuğu masa yüksekliğinin yaklaşık yarısı kalmaz',
-  );
+});
+
+test('kabul-c3: düzen başına bant listesi ve köşelerin kapladığı bantlar beklenen (üç iz / dört bant)', () => {
+  for (const { ad, boyut, duzen } of DUZEN_BOYUTLARI) {
+    const { satirAdlari, sablon } = masaOlcusu(boyut);
+    assert.equal(
+      satirAdlari.length,
+      duzen.satirSayisi,
+      `${ad}: ${satirAdlari.length} bant var, ${duzen.satirSayisi} bekleniyor (${satirAdlari.join(' ')})`,
+    );
+    assert.equal(sablon.length, duzen.satirSayisi, `${ad}: alan şablonu bant sayısıyla uyuşmuyor`);
+    for (const [alan, beklenen] of [
+      ['solUst', duzen.koseUstBantlari], ['sagUst', duzen.koseUstBantlari],
+      ['solAlt', duzen.koseAltBantlari], ['sagAlt', duzen.koseAltBantlari],
+      ['ust', [duzen.satirSayisi === 3 ? 0 : 0]], ['merkez', [duzen.ortaBant]],
+      ['sol', [duzen.yanBant]], ['sag', [duzen.yanBant]],
+      ['alt', [duzen.satirSayisi - 1]],
+    ]) {
+      assert.deepEqual(
+        alanSatirlari(sablon, alan),
+        beklenen,
+        `${ad}: ${alan} alanı ${alanSatirlari(sablon, alan).join(',')} bandında (beklenen ${beklenen.join(',')})`,
+      );
+    }
+    // Varyantta üst çubuk bandı içeriğe oturur (yalnız çubuğun kalınlığı), öbür bantlar esnektir.
+    if (duzen.satirSayisi === 4) {
+      assert.equal(satirAdlari[0], 'auto', `${ad}: üst çubuk bandı "auto" değil`);
+      assert.deepEqual(
+        sablon[2].filter((alanAdi) => alanAdi === '.'),
+        ['.'],
+        `${ad}: yan çubuk bandının orta sütunu boş değil — ıstakanın taşacağı yer kalmaz`,
+      );
+    }
+  }
 });
 
 test('kabul-d: dört ıstaka masanın kendi kenarına yapışır (köşe sütunu/satırı boş kalsın)', () => {
@@ -464,12 +355,16 @@ test('kabul-d: dört ıstaka masanın kendi kenarına yapışır (köşe sütunu
     ['.kenar-sol', 'justify-self', 'start'],
     ['.kenar-sag', 'justify-self', 'end'],
   ];
-  for (const [secici, ozellik, deger] of beklenen) {
-    assert.equal(
-      bildirim(secici, ozellik, OLCUM_BOYUTLARI[0]),
-      deger,
-      `${secici} ${ozellik}: ${deger} değil — ıstaka hücresinin ortasına kayar, köşe boş bölgeyi gösteremez`,
-    );
+  // İki düzende de aynı: varyant yalnız bant listesini değiştirir, yapışmayı değiştirmez.
+  for (const { ad, boyut } of DUZEN_BOYUTLARI) {
+    for (const [secici, ozellik, deger] of beklenen) {
+      assert.equal(
+        bildirim(secici, ozellik, boyut),
+        deger,
+        `${ad} · ${secici} ${ozellik}: ${deger} değil — ıstaka hücresinin ortasına kayar, köşe boş `
+        + 'bölgeyi gösteremez',
+      );
+    }
   }
 });
 
@@ -485,12 +380,17 @@ test('kabul-e: dikey ıstaka çubuğu satırın TAMAMIDIR (satır sınırı = bo
 });
 
 test('kabul-f: orta satır oranı tek kaynaktan (kuralın içine sayı yazılmaz)', () => {
-  const ham = bildirim('#masa', 'grid-template-rows', OLCUM_BOYUTLARI[0]);
-  assert.match(
-    ham,
-    /var\(--masa-orta-satir\)/,
-    `#masa grid-template-rows orta izi değişkenden okumuyor: "${ham}"`,
-  );
+  for (const { ad, boyut } of DUZEN_BOYUTLARI) {
+    const ham = bildirim('#masa', 'grid-template-rows', boyut);
+    assert.match(
+      ham,
+      /var\(--masa-orta-satir\)/,
+      `${ad}: #masa grid-template-rows yan çubuk izini değişkenden okumuyor: "${ham}"`,
+    );
+    // Değişken gerçekten bir fr payına çözülüyor (izlerCoz onu var() ile açar).
+    const izAdlari = izlerCoz(ham, masaOlcusu(boyut).sozluk);
+    assert.ok(izAdlari.every((iz) => iz === 'auto' || /^\d+(\.\d+)?fr$/.test(iz)), `${ad}: iz listesi "${izAdlari.join(' ')}"`);
+  }
   const tanimlar = [...YORUMSUZ_STIL.matchAll(/--masa-orta-satir\s*:\s*([^;}]+)/g)];
   assert.equal(tanimlar.length, 1, '--masa-orta-satir birden çok kez tanımlı; tek kaynak olmalı');
   assert.match(tanimlar[0][1].trim(), /^\d+(\.\d+)?fr$/, '--masa-orta-satir bir fr payı değil');

@@ -156,14 +156,35 @@
   /* Üst çubuk düğmelerinin (dil + oyunu bitir) yazı ölçüsü — TEK KAYNAK (tasokey#43): iki düğme de
      buradan okur, dar kademelerde yalnız bu değer küçülür, kuralların içine sayı yazılmaz. */
   --ust-dugme-font-boyutu: 0.95rem;
+  /* MASANIN DIŞINDAKİ ŞERİDİN ölçüleri — TEK KAYNAK (tasokey#73, tasokey#70 planı §6.3).
+     Şerit = üst çubuk + durum satırı; masanın yüksekliği esnek kaptan geldiği için (tasokey#63)
+     buradan düşen her px doğrudan `#masa`ya geçer. Değerler tasokey#72'deki hâliyle yazılıdır
+     (kuralların içindeki çıplak sayılar değişkene taşındı, ÇÖZÜLEN değer değişmedi — öz-test
+     `kisa-yatay-varyant` kabul-k masaüstü kademelerinde bunu birebir denetler); yalnız kısa yatay
+     düzen varyantı (aşağıda) dikey olanları küçültür. */
+  --ust-cubuk-dolgu-dikey: 8px;
+  --ust-cubuk-dolgu-yatay: 16px;
+  --ust-dugme-dolgu-dikey: 4px;
+  --ust-dugme-dolgu-yatay: 10px;
   --durum-font-boyutu: 0.95rem;
   --durum-dolgu-dikey: 6px;
   --durum-dolgu-yatay: 16px;
+  /* Durum satırının satır payı: hem en küçük yüksekliğin (min-height, em) hem de kısa yatayda
+     satır aralığının (line-height) tek kaynağı. Taban kademelerde satır aralığı yazılmaz
+     (`normal` kalır) — bu değer orada yalnız min-height'tir. */
+  --durum-satir-payi: 1.4;
   /* Küçültülmüş sonuç penceresinin (tasokey#65) rozet dolgusu ve üst çubuğa olan payı — rozet
      masanın DIŞINDA, üst çubuğun boş ortasında durur, bu yüzden pay üst çubuk ölçüsünden değil
-     sabit küçük bir boşluktan gelir; kuralın içine sayı yazılmaz. */
-  --sonuc-kucuk-dolgu: 2px 10px;
+     sabit küçük bir boşluktan gelir; kuralın içine sayı yazılmaz. Dolgu iki bileşene ayrıldı
+     (tasokey#73): rozet üst çubuğun İÇİNDE kalmak zorunda (yoksa durum satırına girer = yeni
+     çakışma), bu yüzden kısa yatayda yalnız DİKEY bileşen küçülür. */
+  --sonuc-kucuk-dolgu-dikey: 2px;
+  --sonuc-kucuk-dolgu-yatay: 10px;
+  --sonuc-kucuk-dolgu: var(--sonuc-kucuk-dolgu-dikey) var(--sonuc-kucuk-dolgu-yatay);
   --sonuc-kucuk-ust-pay: 6px;
+  /* Rozetin kendi düğmesinin yazı ölçüsü (tasokey#65'te kuralın içindeydi): rozetin yüksekliğini
+     bu belirler, bu yüzden şeridin ölçüsüyle birlikte kademelenir. */
+  --kucult-dugme-font-boyutu: 0.9rem;
 
   /* Yığılma kademeleri — TEK KAYNAK (ADR-015, tasokey#38). Hiçbir kuralda çıplak z-index sayısı
      yazılmaz; her kural buradan okur (testler/yigilma-kademeleri.test.js tarar). Sıra:
@@ -201,7 +222,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 16px;
+  padding: var(--ust-cubuk-dolgu-dikey) var(--ust-cubuk-dolgu-yatay);
   background: var(--panel);
   flex: 0 0 auto;
 }
@@ -233,7 +254,7 @@ html, body {
   color: var(--metin);
   border: 1px solid var(--metin);
   border-radius: 4px;
-  padding: 4px 10px;
+  padding: var(--ust-dugme-dolgu-dikey) var(--ust-dugme-dolgu-yatay);
   font-size: var(--ust-dugme-font-boyutu);
   white-space: nowrap;
   cursor: pointer;
@@ -241,7 +262,7 @@ html, body {
 
 #durumSatiri {
   padding: var(--durum-dolgu-dikey) var(--durum-dolgu-yatay);
-  min-height: 1.4em;
+  min-height: calc(var(--durum-satir-payi) * 1em);
   font-size: var(--durum-font-boyutu);
   flex: 0 0 auto;
 }
@@ -888,7 +909,7 @@ html, body {
   border: none;
   color: var(--metin);
   font: inherit;
-  font-size: 0.9rem;
+  font-size: var(--kucult-dugme-font-boyutu);
   opacity: 0.85;
   padding: 2px 6px;
   cursor: pointer;
@@ -995,7 +1016,11 @@ html, body {
     /* Kabul boyutu 900x600: bütçe 1,34 diyordu, TARAYICI ÖLÇÜMÜ (tasokey#68 2. tur) 1,05 —
        1,10'da ıstaka göstergeyi 4 px örtüyor. Bu kademede kazanç çok azdır; büyütmenin yolu
        orta satırın payını (--masa-orta-satir) ya da metin satırlarını değiştirmektir
-       (ADR-022 Seçenek D / Sonuçlar f — Sahip ve Mimar kararı). */
+       (ADR-022 Seçenek D / Sonuçlar f — Sahip ve Mimar kararı).
+       tasokey#72: 900x600 yatay olduğu için orada artık kısa yatay DÜZEN VARYANTI kazanıyor ve
+       ölçek oradan 1,25 geliyor. Bu değer VARYANTSIZ hâlin ölçüsü olarak kalır (kapatma anahtarı:
+       varyant bölgesi silinince 900x600 yine 1,05'e döner) ve 900px genişliğindeki yatay OLMAYAN
+       görünümlerin ölçüsüdür. */
     --istaka-olcek: 1.05;
     --masa-bosluk: 14px;
     --masa-dolgu: 10px;
@@ -1047,7 +1072,11 @@ html, body {
        → `buyumez0` yok, ölçek 1'de kalır. 844x390 ölçek 1'de temiz ve 1,05'e izin veriyor, ama
        kademenin değeri en dar kabul boyutundan gelir. O 2 çakışma TABANDAN gelir (tasokey#67
        "önce" ölçümünde de vardı), bu işin kapsamı değil — raporun Öneriler'inde.
-       Büyütmenin tek yolu metin satırlarını kaldırmak (ADR-022 Seçenek D) — ÜRÜN kararı. */
+       Büyütmenin tek yolu metin satırlarını kaldırmak (ADR-022 Seçenek D) — ÜRÜN kararı.
+       tasokey#72: o yol GEREKMEDİ. Kısa yatay DÜZEN VARYANTI (tasokey#71) metni kaldırmadan taşıdı
+       ve yan çubuk bandının orta sütununu boşalttı → 800x360'ta ölçek 1'deki 2 çakışma kalktı,
+       ölçüm 1,95'e izin verdi. Varyant aşağıda ölçeği geçersiz kılar; buradaki 1 VARYANTSIZ hâlin
+       (kapatma anahtarı) ölçüsü olarak kalır. */
     --istaka-olcek: 1;
     --raf-bosluk: 4px;
     /* Ölçülen metin payı bu kademede 79 px: `.yigin { gap: 4px }` (aşağıda) üç boşluğu 6'dan
@@ -1075,6 +1104,262 @@ html, body {
   .yigin { gap: 4px; }
   .kenar-raf-dikey { min-height: 0; }
 }
+
+/* ===== KISA YATAY DÜZEN VARYANTI — BAŞLANGIÇ (tasokey#71) =====
+   Karar: tasokey#70 planı §3 (kısa yatay düzen varyantı). Kararın NUMARASI ve metni MIMARI.md'ye
+   tasokey#70 iş 4'te girer; o güne kadar burada yalnız plan maddesine atıf yapılır (atıf taraması
+   belgede karşılığı olmayan karar numarasını haklı olarak reddeder — adr-atif-tarama.test.js).
+   Kısa yatay ekranlarda masa AYRI BİR DÜZEN VARYANTI kullanır: dikey zincir en çok ÜÇ taş boyu
+   taşır (plan §3, karar maddeleri 1-2). Yukarıdaki kademeler yalnız ÖLÇÜ değiştirir; buradaki
+   blok masanın BANT LİSTESİNİ değiştirir, bu yüzden ayrı ve adlandırılmış durur.
+
+   KAPATMA ANAHTARI = YALITIM (karar maddesi 7): varyantın BÜTÜN bildirimleri bu tek bloğun içindedir.
+   Bloğu silmek `tasokey#68` düzenini birebir geri verir — öz-test bunu ölçer
+   (`kisa-yatay-varyant.test.js` kabul-a/b: blok tektir, adlandırılmış yorumu taşır ve masaüstü
+   kademelerinde blokla bloksuz CSS'in çözdüğü değerler BİREBİR aynıdır). Çalışma zamanı anahtarı
+   yazılmaz: `grid-template-areas` bir CSS değişkeninden türetilemez, uydurma bir anahtar tek
+   kaynağı ikiye bölerdi.
+
+   Eşik 700px: varyant 800x360 · 844x390 · 900x600'te ETKİN, 1280x800 · 1180x820 · 1920x1080'de
+   ETKİN DEĞİL (öz-test kabul-c). Blok yukarıdaki `max-height: 500px` kademesinden SONRA durur:
+   iki sorgunun birden uyduğu boyutlarda (telefon yatay) varyantın değerleri kazanmalı.
+
+   ÖLÇEK DEĞERLERİ BURADADIR (tasokey#72, tasokey#70 planı §6.2). Varyantın kazancı yapısaldır ama
+   ölçülebilir: dikey zincir dört taş boyundan üçe indiği için ıstaka ve taşlar büyüyebilir. Değerler
+   ADR-022/5 gereği SEÇİLMEZ, ÖLÇÜLÜR (tasokey#72 1. çekim turu) ve VARYANTIN İÇİNDE durur — taban
+   kademeler tasokey#68'in değerlerini (900px → 1,05 · yatay+kısa → 1) korur, yani bu bölgeyi silmek
+   hem düzeni hem ölçeği birebir geri verir (kapatma anahtarı = yalıtım, karar maddesi 7).
+   Taban taş merdiveni burada yine geçersiz kılınmaz: değişen yalnız ölçektir. */
+@media (orientation: landscape) and (max-height: 700px) {
+  :root {
+    /* Bağlayıcı kabul boyutu 800x360. 844x390 artık AYRI dilimdedir (aşağıdaki `min-height: 361px`
+       bloğu): ölçüm iki boyut için FARKLI tavan verdiği sürece kademe bölünür (ADR-022 madde 9),
+       yoksa geniş olan dar olanın bedelini öder.
+       ÖLÇÜLDÜ (tasokey#73 1. çekim turu, `is/tasokey-73/ekran/arama-*-telefon-kucuk.png`,
+       "ARAMA enCok" + "MUAF" satırları; şerit sıkıştırmasından SONRA):
+         · `durum=el`    **1,95** (çakışma ve taşma aynı basamakta; 2,00'de sayfa yatayda taşıyor —
+           tasokey#72'de de 1,95'ti, bu terim bağlayıcı olmadığı için değişmedi)
+         · `durum=rakip` **1,45** — tasokey#72'de 1,30'du. Sınır yine SAYFA TAŞMASIDIR (ADR-022
+           madde 10 `#merkez`i el sonunda gizlediği için çakışma terimi bağlamıyor): 1,50'de `#masa`
+           dikeyde 2 px taşıyor ve taşan öğe de ÖLÇÜLDÜ: `#koseSagAltSayac` + `#koseSolAltSayac`.
+           KAZANCIN KAYNAĞI bu iştir: şerit 63 → 46 px inince masanın içerik kutusu 281 → 298 px
+           oldu ve dikey taşma üç basamak sonra başladı.
+       YAZILAN DEĞER ÜÇ ÖLÇÜLEN TERİMİN EN KÜÇÜĞÜDÜR (ADR-022 madde 9): el tavanı 1,95 · rakip
+       tavanı 1,45 · taşma tavanı 1,45 → **1,45**. Tek kaynak `testler/yardimci/sigdirma-butcesi.js`
+       → `OLCULEN_OLCEK_TAVANI` (öz-test `sigdirma-butcesi` kabul-d10).
+
+       NİÇİN DAHA YUKARISI ÖLÇÜLEMEZ: bağlayıcı olan artık çakışma değil TAŞMADIR — 1,50'de alt iki
+       köşenin sayaç kutuları masanın alt kenarından 2 px çıkıyor. Bunu açmak köşe sayaçlarının
+       yerleşimini değiştirmek demektir (bu işin kapsamı değil; tasokey#72 ve #73 raporu
+       "Öneriler"). "Telefonda ölçek ≥ 1,6" bu düzende ölçümle hâlâ olanaksızdır (Sahip kapısı). */
+    --istaka-olcek: 1.45;
+    /* Varyantın sığdırma bütçesi (plan §4'ün varyant karşılığı) — ÖLÇÜLEN iki terim (ADR-022/5):
+       varyant metni KALDIRMAZ, TAŞIR (yığınlar ve ıstaka paneli yatay akar), yani metnin payı
+       dikeyden yataya geçer. İkisi de rem tabanlı yazı ölçüsünden geldiği için CSS içinde px'e
+       çevrilemez → tarayıcıda ölçülüp buraya YAZILIR, tahmin yazılmaz.
+       Bu değişkenleri hiçbir CSS kuralı kullanmaz: bütçenin tek kaynağıdır, öz-test
+       (sigdirma-butcesi.test.js) buradan okur ki eşitsizliğe çıplak sayı girmesin. */
+    /* DİKEY: deste/gösterge yığınında taş DIŞINDAKİ en yüksek öğe. Yığın yatay aktığı için üst
+       içerik bandının yüksekliği max(taş, bu pay)tır — taban kademedeki dört metin satırı yerine
+       tek terim. Ölçüldü: üç varyant boyutunda da 17 (1. çekim turu, BUTCE-V satırı). */
+    --sigdirma-yan-metin-payi: 17px;
+    /* YATAY: "Istakam" başlığı taşların yanına geçince orta sütuna eklediği GENİŞLİK (karar
+       maddesi 4). Ölçüldü: 43,6 (altı boyutun hepsinde aynı — başlığın yazı boyu kademeye göre
+       değişmiyor). Varyantta bağlayıcı yön budur: 900x600'de yatay bütçe ölçeği 1,25'te durdurur
+       (12 taş + başlık + iki köşe sütunu masanın 864 px'ine ancak sığıyor), tarayıcı ölçümü de
+       1,30'da 13 px yatay taşma gördü. Dikey payı ise ÖLÇÜLDÜ ve 0'dır (başlık iki sıra taştan
+       kısa) → dikey eşitsizlikte terim yoktur; 0 varsayılmadı, ölçüldü. */
+    --sigdirma-raf-baslik-payi: 43.6px;
+    /* Yan çubuk bandı varyantta kısalır (uzunluk ızgara bandından gelir, tasokey#63) ve üst çubuk
+       bandı artık `auto`dur — bandın BÜTÜN yüksekliği bu kalınlıktır, yani buradan alınan her px
+       öbür üç banttan düşer. İnce sırt kuralı (uzunluk/kalınlık >= 6) ölçülen BANT uzunluğuyla
+       korunur: öz-test kabul-g üç boyutta bant ölçüsünü hesaplayıp oranı denetler. */
+    --rakip-raf-kalinlik: 8px;
+    /* El sonunda açılan rakip taşları (karar maddesi 6; ADR-022/6 muafiyeti aynen sürer — bu ölçüler
+       ölçeğe bağlanmaz). Yan kenar: çubuk bandı kısaldığı için 8 satırlık yığın bandı aşıp köşe
+       hücrelerine ve ADR-014 halkasına girerdi → sütun sayısı artar, yığın kısa ve geniş serilir.
+       Üst kenar: taşlar `top: 100%` ile çubuğun ALTINA, yani varyantta üst içerik bandına
+       (#merkez'in bandına) sarkar; iki satırlık yığın #merkez'e çarpıyordu → en yüksek el
+       (15 taş, dagitim.js) TEK SIRA serilir, sıra Sahip'in ıstaka genişliğini aşmaz. */
+    --rakip-acik-sutun-yatay: 15;
+    --rakip-acik-sutun-dikey: 4;
+    /* Rakip ADININ kutu kalınlığı (dikey yazıda genişlik, üstte yükseklik). Ad çubuğun ORTASINA
+       bindirilir (tasokey#33 madde 1), yani çubuktan kalınsa iki yana (ad − çubuk)/2 kadar taşar.
+       Taban kademelerde çubuk 26..14px, yani addan kalın → taşma yok; varyantta çubuk 8px olduğu
+       için ad taşıyor ve açılan taşların altına giriyordu (tasokey#68 ölçümünde 800x360/844x390'ta
+       2 px'lik `#kenarXAd ∩ #kenarXTaslar`; çubuk 10 → 8 inince 3 px'e çıkardı, 900x600'de de
+       çıkardı). Kalınlık burada TEK KAYNAK: hem `.kenar-ad`ın yazı boyutunu hem taşların uzaklığını
+       besler. Değer taban kuralın 0.85rem'inin px karşılığıdır (öz-test kabul-i ikisini eşitler);
+       rem yazılamaz, çünkü aşağıdaki pay px ile toplanıyor (calc birim denetimi, denetci-4). */
+    --rakip-ad-kalinlik: 13.6px;
+    /* Açılan taşlar çubuktan değil ADIN kenarından sonra başlar; çubuk addan kalınsa taban
+       boşluğa düşer (max). Uzaklık ölçülmez, TÜRER. */
+    --rakip-acik-ad-payi: max(
+      var(--rakip-acik-bosluk),
+      calc((var(--rakip-ad-kalinlik) - var(--rakip-raf-kalinlik)) / 2 + var(--rakip-acik-bosluk)));
+
+    /* ŞERİT SIKIŞTIRMASI (tasokey#73, tasokey#70 planı §6.3) — masanın DIŞINDAKİ üst çubuk + durum
+       satırı kısa yatayda daralır, kalan yer `#masa`ya geçer (masa `flex: 1 1 0`, tasokey#63 →
+       şeritten düşen her px doğrudan ızgaranın bantlarına dağılır ve ölçeğin tavanını yükseltir).
+       DEĞİŞEN YALNIZ ÖLÇÜDÜR: hiçbir metin, düğme ya da dil anahtarı kalkmaz; yazı ölçüleri
+       (başlık / düğme / durum) tasokey#68'den beri geçerli olan kademe değerlerinde KALIR, yalnız
+       dolgular ve durum satırının satır payı küçülür.
+       Ölçülen şerit (tasokey#72, `masaIc` tablosundan): 800x360 ve 844x390'ta 63 px · 900x600'de
+       75 px. Yeni değerler tasokey#73 1. çekim turunda ölçüldü (bkz. kabul-k tablosu).
+
+       ROZET KISITI (ölçülen, tasokey#72): küçültülmüş sonuç penceresi (tasokey#65) üst çubuğun boş
+       ortasına BİNER — `#ustCubuk ∩ #sonucKutusu` 135x30 px, çubuğun 42 px'inin 30'u. Üst çubuk
+       rozetten kısa olursa rozet DURUM SATIRINA girer, yani varyant YENİ bir çakışma doğurur
+       (iş 1'in "yeni çakışma 0" ölçütü). Bu yüzden rozetin dikey dolgusu, üst payı ve kendi
+       düğmesinin yazı ölçüsü de bu bölgede küçülür — rozet çubuğun içinde kalır. Kural değil
+       DEĞİŞKEN geçersiz kılınır: küçültülmüş pencerenin KURALLARI hiçbir kademede yeniden yazılmaz
+       (öz-test `sonuc-penceresi-kucult`, "küçültme kuralları duyarlı kademelerde de geçerli" —
+       o tarama yorum metnini de okuduğu için seçici adı buraya yazılmaz). */
+    --ust-cubuk-dolgu-dikey: 4px;
+    --ust-dugme-dolgu-dikey: 2px;
+    --durum-dolgu-dikey: 1px;
+    --durum-satir-payi: 1.25;
+    --sonuc-kucuk-dolgu-dikey: 0px;
+    --sonuc-kucuk-ust-pay: 1px;
+    --kucult-dugme-font-boyutu: var(--ust-dugme-font-boyutu);
+  }
+
+  /* Durum satırı: kutusu tam olarak satır payı kadar (min-height ile line-height aynı kaynaktan →
+     tek satır metin kutuyu TAM doldurur, boşa giden satır aralığı kalmaz). Metin KIRPILMAZ:
+     `overflow` görünür ve kutu içerikle birlikte büyür — en uzun TR/EN metin iki satıra sararsa
+     şerit o kadar yükselir, kesilmez (kabul ölçütü; çekim turu `serit-*.png`). */
+  #durumSatiri { line-height: var(--durum-satir-payi); }
+
+  /* Adın kutusu tam olarak yazı kalınlığı kadar olsun: satır aralığı payı (line-height) kutuyu
+     glif boyunun ötesinde büyütüyordu. Yazı boyu ve adın konumu DEĞİŞMEZ (aynı px), yalnız kutu
+     gerçeğe oturur — çakışma ölçümü kutuyu ölçer. */
+  .kenar-ad {
+    font-size: var(--rakip-ad-kalinlik);
+    line-height: 1;
+  }
+
+  .kenar-ust .kenar-taslar { margin-top: var(--rakip-acik-ad-payi); }
+  .kenar-sol .kenar-taslar { margin-left: var(--rakip-acik-ad-payi); }
+  .kenar-sag .kenar-taslar { margin-right: var(--rakip-acik-ad-payi); }
+
+  /* Karar maddesi 2 — varyantın TEK yapı değişikliği: masanın bant listesi. Dört bant
+     (üst çubuk `auto` / üst içerik `1fr` / yan çubuk `var(--masa-orta-satir)` / ıstaka `1fr`) ve
+     üst köşeler ilk İKİ bandı birlikte kaplar (alan adı iki satıra yazılır). Hiçbir öğenin
+     `grid-area`'sı değişmez, `.kose` kuralı değişmez, `--masa-orta-satir` tek kaynak kalır →
+     ADR-010 (dört köşede tek kural), ADR-012'nin dört kenar yerleşimi ve ADR-015 aynı kalır.
+     Üst çubuk bandı `auto`dur: içeriği yalnız çubuğun kalınlığıdır (üst köşeler esnek bir ize de
+     uzandığı için o bandın taban ölçüsünü büyütmezler — CSS Grid §11.5). Yan çubuk bandının orta
+     sütunu BOŞTUR (`.`): oyuncunun ıstakası kendi bandından taşarsa o boşluğa taşar, orta bandın
+     göstergesini değil (800x360'ın `#rafAlani ∩ #merkez` + `∩ #gosterge` çakışmalarının sebebi
+     buydu — tasokey#68 §5.3). */
+  #masa {
+    grid-template-rows: auto 1fr var(--masa-orta-satir) 1fr;
+    grid-template-areas:
+      "solUst ust sagUst"
+      "solUst merkez sagUst"
+      "sol . sag"
+      "solAlt alt sagAlt";
+  }
+
+  /* Karar maddesi 3 — deste + gösterge üst içerik bandında ve YATAY: öbek bir taş boyu yüksekliğinde
+     kalır (metin taşın yanında, aşağıdaki `.yigin`). Bandın bir ucunda durur (`justify-self`) ve
+     bandın ALT kenarına yaslanır (`align-self: end`): üst rakibin el sonunda açılan taşları
+     çubuğun altından bu banda sarkıyor, öbek bandın üst ucunda olsaydı onlara çarpardı.
+     Deste köşe hücrelerinin dışında kalır (orta sütun), atma alanına girmez. */
+  #merkez {
+    align-items: center;
+    align-self: end;
+    justify-self: start;
+  }
+
+  /* ADR-022 madde 10 (Masa kararı, Sahip adına 2026-11-22) — EL BİTİNCE #merkez GİZLENİR.
+     El sonunda üç rakibin ıstakası açılır (`etkilesim.js rakipEliAcikMi`; `ekran.js` masaya
+     `rakip-eli-acik` sınıfını yazar) ve üst rakibin açılan taşları çubuğun altından TAM BU BANDA
+     sarkar. Deste el bittikten sonra kullanılmaz, gösterge de yalnız bilgi verir → öbek gizlenince
+     o çakışma GEOMETRİK olarak kalkar; el OYNANIRKEN (durum=el) hiçbir şey değişmez.
+     Ölçülen kazanç (4. çekim turu): `durum=rakip` tavanı 800x360'ta 1,20 → 1,30 · 844x390'ta
+     1,40 → 1,50; ikisinde de sınır artık sayfa taşmasıdır.
+     `display: none` seçildi: `visibility: hidden` kutuyu yerinde bırakır, yani ızgara bandını ve
+     çakışma ölçümünü hâlâ bağlardı. Kural varyant bölgesinin İÇİNDEDİR — masaüstü/dizüstü/tablet
+     kademelerinde deste el sonunda da görünür kalır (gerilemesizlik, kabul-b).
+     Öz-test karşılığı: `kisa-yatay-varyant` kabul-h (durum ayrımı) ve kabul-j. */
+  #masa.rakip-eli-acik #merkez { display: none; }
+
+  /* Deste/gösterge yığınında metin taşın YANINDA (üstünde/altında değil) → yığının yüksekliği
+     taş boyudur. Metin KALDIRILMAZ, taşınır (ADR-022 Seçenek D ürün kararıdır, Sahip'te). */
+  .yigin {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  /* Karar maddesi 4 — "Istakam" başlığı taşların yanına: ıstaka bandından bir metin satırı + bir
+     `--raf-bosluk` düşer. Panel yatayda başlık kadar genişler (orta sütun `auto`), köşe
+     sütunları o kadar daralır — köşe atma alanı oranı öz-testle yeniden ölçülür
+     (kose-atma-alani.test.js). */
+  #rafAlani {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+/* Varyantın İKİNCİ bloğu (tasokey#72) — yalnız ÖLÇEK, kabul boyutu 844x390. Varyant üç kabul
+   boyutunu birden kapsar ama ölçek kademe başına ÖLÇÜLÜR (ADR-022/5) ve ölçüm 800x360 ile
+   844x390 için FARKLI tavan verdi (tasokey#73'ten sonra 1,45 ↔ 1,65) — madde 9 gereği bölünür, yoksa
+   geniş olan dar olanın bedelini öder. Sorgu, varyantın yukarıdaki bandının 361 px'ten yüksek
+   dilimidir; 900x600 de uyar ama aşağıdaki üçüncü blok onu geçersiz kılar (devralma sırası).
+   Bölgenin parçasıdır — bölgeyi silmek ölçeği de taban kademeye geri verir.
+
+   ÖLÇÜLDÜ (tasokey#73 1. çekim turu, `is/tasokey-73/ekran/arama-*-telefon-yatay.png`; şerit
+   sıkıştırmasından SONRA):
+     · `durum=el`    **2,00** — aramanın tavanı; gerçek sınır daha yukarıda olabilir (değişmedi).
+     · `durum=rakip` **1,65** — tasokey#72'de 1,50'ydi. Sınır yine SAYFA TAŞMASIDIR (ADR-022
+       madde 10 çakışma terimini bağlayıcı olmaktan çıkarmıştı): 1,70'te `#masa` dikeyde 2 px,
+       taşan öğe `#koseSagAltSayac` + `#koseSolAltSayac`. Kazancın kaynağı şerittir: 63 → 46 px
+       inince masanın içerik kutusu 311 → 328 px oldu.
+   Üç terimin en küçüğü (madde 9): 2,00 · 1,65 · 1,65 → **1,65**. */
+@media (orientation: landscape) and (min-height: 361px) and (max-height: 700px) {
+  :root {
+    --istaka-olcek: 1.65;
+  }
+}
+
+/* Varyantın ÜÇÜNCÜ bloğu (tasokey#72) — yalnız ÖLÇEK, kabul boyutu 900x600. Varyantın üst dilimi
+   (501…700 px yükseklik); 900x600'ün tabanı daha büyüktür (42x60; telefonda 25x36), bu yüzden
+   aynı yatay bütçe orada daha küçük bir ölçeğe izin verir. Blok yukarıdaki ikisinden SONRA durur:
+   devralma sırası budur.
+   Bölgenin parçasıdır — bölgeyi silmek ölçeği de taban kademeye (900px → 1,05) geri verir. */
+@media (orientation: landscape) and (min-height: 501px) and (max-height: 700px) {
+  :root {
+    /* ÖLÇÜLDÜ (tasokey#72 5. çekim turu, `is/tasokey-72/ekran/son-*-kademe-900.png`):
+         · `durum=el`    **1,25** — 1,30'da sayfa YATAYDA 13 px taşıyor; taşan öğe ÖLÇÜLDÜ:
+           `#kenarSagAd` 9 px + `#kenarSag` 6 px (rakip ADI çubuktan kalın, tasokey#33 madde 1).
+           Bütçe de aynı yönü ve aynı değeri veriyor (bkz. --sigdirma-raf-baslik-payi).
+         · `durum=rakip` **1,25** — aşağıdaki muaf küçültmeden SONRA (ADR-022 madde 8). Muaf
+           0,50'deyken bağlayıcı çift #merkez DEĞİL `#rafAlani ∩ #kenarSol/SagTaslar`dı (24x4 px,
+           1,25'te çıkıyordu), yani madde 10 bu boyutta tek başına kazanç vermiyor; kazanç
+           yığının KENDİ ölçeğinden geliyor. Muaf 0,45'te o çift kalkar ve geriye `el` ile AYNI
+           sınır kalır.
+       Üç terimin en küçüğü (madde 9): 1,25 · 1,25 · taşma 1,25 → **1,25**. Bu kademede tavanı
+       belirleyen çakışma değil YATAY BÜTÇEDİR (sayfa genişliği); daha büyük ölçek ancak
+       `#kenarSagAd`/`#kenarSag` yatay payı küçülürse gelir (ayrı iş).
+       tasokey#73 (1. çekim turu, `is/tasokey-73/ekran/arama-*-kademe-900.png`): şerit 75 → 52 px
+       inip masa 489 → 512 px'e çıktıktan SONRA iki durum da YENİDEN ölçüldü ve üç terim de
+       **1,25'te kaldı** — kazanç masanın bantlarına girdi (109,75 → 115,5) ama tavanı tutan sınır
+       dikey değil YATAY olduğu için ölçek yükselmedi. Değer bu yüzden DEĞİŞMEZ. */
+    --istaka-olcek: 1.25;
+    /* ADR-022 madde 8 — muaf açık el yığınının KENDİ ölçeği bu kademede küçülür. Ölçülen merdiven
+       ("MUAF" satırları, her basamakta ölçek araması yeniden koşuldu):
+         · 4. çekim turu (madde 10'dan ÖNCE): 0,60 → 1,10 · 0,55 → 1,15 · 0,50 → 1,20 · 0,45 → 1,20
+         · 5. çekim turu (madde 10 yürürlükte): 0,50 → 1,20 · **0,45 → 1,25**
+       Madde 10 `#merkez`i kaldırınca 0,45 basamağı yeniden kazanç verdi → Mimar'ın izin verdiği
+       TABAN değer (0,45) yazılır; daha aşağısı DUR VE SOR'dur (mimar-karari.md §4).
+       Açık taş 18,9x27 px ve rakamın taşa kalan payı ölçüldü (`rk=2,9` px, artı) → rakam kırpılmıyor.
+       Telefon dilimlerinde bu değişken YAZILMAZ: orada madde 10 zaten tavanı taşmaya kadar
+       açıyor, yığını küçültmek gereksiz olurdu. `:root` değeri 0,6 kalır (kapatma anahtarı). */
+    --rakip-acik-olcek: 0.45;
+  }
+}
+/* ===== KISA YATAY DÜZEN VARYANTI — BİTİŞ (tasokey#71, ölçekler tasokey#72) ===== */
 
 /* Telefon dikey uyarısı (R-014, ADR-012, tasokey#31): yön tespiti tamamen CSS ortam sorgusuyla
    yapılır (JS sabit karar vermez, bkz. ekran.js telefonUyarisiCiz — yalnız dil anahtarlı metni

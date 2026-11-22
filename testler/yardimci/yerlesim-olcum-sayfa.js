@@ -279,6 +279,46 @@ function olculeriAl() {
 }
 
 /**
+ * Kısa yatay DÜZEN VARYANTININ (tasokey#71) bütçe terimleri — tasokey#72, plan §4.
+ *
+ * Varyantta `.yigin` ve `#rafAlani` YATAY akar: metin taşın yanındadır. Dikey zincirde metin
+ * satırı payı düşer, yatayda metnin genişliği eklenir. İkisi de `rem` tabanlı yazı ölçüsünden
+ * gelir, yani CSS içinde px'e çevrilemez → ÖLÇÜLÜR (ADR-022/5; tahmin yazılmaz):
+ *   · `yanMetinPayi`     — deste/gösterge yığınında taş DIŞINDAKİ en yüksek öğe. Yığın yatay
+ *     aktığı için yığının yüksekliği `max(taş, bu pay)`tır → dikey eşitsizliğin üst bant terimi.
+ *   · `yanMetinGenislik` — yığının genişliğinden taş alanının genişliği düşülmüş hâli (esnek
+ *     boşluklar dahil): üst bandın YATAY denetiminin metin payı.
+ *   · `rafBaslikPayi`    — "Istakam" başlığı taşların yanına geçtiğinde ıstaka bandına eklediği
+ *     DİKEY pay: başlık iki sıra taştan kısaysa 0'dır, ama 0 yazılıp geçilmez, ölçülür.
+ *   · `rafBaslikGenislik`/`merkezGenislik` — yatay denetimin ölçülen karşılıkları (modeldeki üst
+ *     sınırlarla karşılaştırmak için; `masa-izleri.js` YAN_BASLIK_GENISLIK_UST_SINIRI_PX).
+ *   · `bantlar`          — `#masa`nın ÇÖZÜLEN bant ölçüleri (grid-template-rows, px): varyantın
+ *     etkin olduğunun ve bant modelinin doğruluğunun doğrudan kanıtı.
+ */
+function varyantOlcumu({ yuksek, genis }) {
+  const yiginlar = [...document.querySelectorAll('.yigin')];
+  const metinOlculeri = yiginlar.map((yigin) => {
+    const tasAlani = yigin.querySelector('.yigin-tas-alani');
+    const metinler = [...yigin.children].filter((cocuk) => cocuk !== tasAlani);
+    return {
+      pay: Math.max(0, ...metinler.map((cocuk) => yuksek(cocuk))),
+      genislik: Math.max(0, genis(yigin) - genis(tasAlani)),
+    };
+  });
+  const rafBaslikYukseklik = yuksek(el('rafBaslik'));
+  const rafYukseklik = yuksek(el('raf'));
+  return {
+    yanMetinPayi: Math.max(0, ...metinOlculeri.map((o) => o.pay)),
+    yanMetinGenislik: Math.max(0, ...metinOlculeri.map((o) => o.genislik)),
+    rafBaslikPayi: Math.max(0, rafBaslikYukseklik - rafYukseklik),
+    rafBaslikGenislik: genis(el('rafBaslik')),
+    rafBaslikYukseklik,
+    merkezGenislik: genis(el('merkez')),
+    bantlar: getComputedStyle(el('masa')).gridTemplateRows,
+  };
+}
+
+/**
  * Sığdırma bütçesinin (plan §4) ÖLÇÜLEN terimleri (tasokey#68). İki şey ölçülür:
  *   (1) `--sigdirma-metin-payi` = ıstaka başlığının yüksekliği + merkez sütununun taş boyunu aşan
  *       payı (deste başlığı/sayaç/ipucu satırları + `.yigin` boşlukları). Bu terim `rem` tabanlı
@@ -290,6 +330,7 @@ function olculeriAl() {
  */
 function sigdirmaOlcumu() {
   const yuksek = (dugum) => (dugum ? kutu(dugum).alt - kutu(dugum).ust : 0);
+  const genis = (dugum) => (dugum ? kutu(dugum).sag - kutu(dugum).sol : 0);
   const rafBaslik = yuksek(el('rafBaslik'));
   const merkez = yuksek(el('merkez'));
   const tasYukseklik = degiskenPx('--tas-yukseklik');
@@ -299,6 +340,7 @@ function sigdirmaOlcumu() {
     merkez,
     tasYukseklik,
     metinPayi: rafBaslik + Math.max(0, merkez - tasYukseklik),
+    ...varyantOlcumu({ yuksek, genis }),
     panelDolgu: degiskenPx('--panel-dolgu'),
     koseKaydirma: degiskenPx('--kose-kaydirma'),
     masaBosluk: degiskenPx('--masa-bosluk'),
@@ -322,6 +364,7 @@ function sigdirmaOlcumu() {
 function olcekAramasi({ esik, basamak = 0.05, tavan = 2 }) {
   const kokOge = document.documentElement;
   const onceki = kokOge.style.getPropertyValue('--istaka-olcek');
+  const oncekiMuaf = kokOge.style.getPropertyValue('--rakip-acik-olcek');
   const dene = () => {
     const { ogeler } = kutulariTopla();
     const { ihlaller } = G.ciftleriAyir(G.cakisanCiftler(ogeler, { esik }), G.CIFT_ISTISNALARI);
@@ -329,37 +372,112 @@ function olcekAramasi({ esik, basamak = 0.05, tavan = 2 }) {
   };
   const olcekYaz = (deger) => kokOge.style.setProperty('--istaka-olcek', String(deger));
 
+  /** Bir tam ölçek taraması: taban (ölçek 1) + basamakların denemeleri. */
+  const tarama = () => {
+    olcekYaz(1);
+    const taban = dene();
+    const denemeler = [];
+    for (let adim = 1; ; adim += 1) {
+      const olcek = Math.round((1 + adim * basamak) * 100) / 100;
+      if (olcek > tavan + 1e-9) break;
+      olcekYaz(olcek);
+      const sonuc = dene();
+      const fark = G.ciftFarki(taban.ihlaller, sonuc.ihlaller, { esik });
+      const kisa = (cift) => ({ a: cift.a, b: cift.b, kutu: cift.kutu, alan: cift.alan });
+      denemeler.push({
+        olcek,
+        yeni: fark.yeni.length,
+        buyuyen: fark.buyuyen.length,
+        tasma: sonuc.tasmalar.length,
+        // Çiftlerin ADLARI da taşınır: ölçeği seçen kısıtın hangi öğe olduğu ancak böyle okunur
+        // (tasokey#68 — 1. turda yalnız sayı yazılmıştı, bağlayıcı çift ölçülmemiş kaldı).
+        yeniCiftler: fark.yeni.map(kisa),
+        buyuyenCiftler: fark.buyuyen.map((cift) => ({ ...kisa(cift), tabanAlan: cift.tabanAlan })),
+        tasmaListesi: sonuc.tasmalar,
+      });
+    }
+    return { taban: { ihlal: taban.ihlaller.length, tasma: taban.tasmalar.length }, denemeler };
+  };
+
   olcekYaz(1);
   const olculenler = sigdirmaOlcumu();
-  const taban = dene();
-  const denemeler = [];
-  for (let adim = 1; ; adim += 1) {
-    const olcek = Math.round((1 + adim * basamak) * 100) / 100;
-    if (olcek > tavan + 1e-9) break;
-    olcekYaz(olcek);
-    const sonuc = dene();
-    const fark = G.ciftFarki(taban.ihlaller, sonuc.ihlaller, { esik });
-    const kisa = (cift) => ({ a: cift.a, b: cift.b, kutu: cift.kutu, alan: cift.alan });
-    denemeler.push({
-      olcek,
-      yeni: fark.yeni.length,
-      buyuyen: fark.buyuyen.length,
-      tasma: sonuc.tasmalar.length,
-      // Çiftlerin ADLARI da taşınır: ölçeği seçen kısıtın hangi öğe olduğu ancak böyle okunur
-      // (tasokey#68 — 1. turda yalnız sayı yazılmıştı, bağlayıcı çift ölçülmemiş kaldı).
-      yeniCiftler: fark.yeni.map(kisa),
-      buyuyenCiftler: fark.buyuyen.map((cift) => ({ ...kisa(cift), tabanAlan: cift.tabanAlan })),
-      tasmaListesi: sonuc.tasmalar,
-    });
+  const { taban, denemeler } = tarama();
+
+  // MUAF ÖLÇEK MERDİVENİ (tasokey#72, ADR-022 madde 8): el sonunda açılan rakip yığınının kendi
+  // ölçeği (`--rakip-acik-olcek`) basamak basamak küçültülür ve HER BASAMAKTA ölçek araması
+  // yeniden koşar. Böylece "muafı küçültmek ölçeğin tavanını gerçekten yükseltiyor mu?" sorusu
+  // ölçülür, tahmin edilmez (A9) — ilk basamak CSS'in kendi değeri olduğu için "önce" de aynı
+  // koşudadır. `durum=el`de açık yığın hiç çizilmez (`.kenar-taslar:empty`), yani basamaklar aynı
+  // tavanı vermelidir: o da varsayım değil ÖLÇÜMdür.
+  const muafDegeri = Number.parseFloat(
+    getComputedStyle(kokOge).getPropertyValue('--rakip-acik-olcek'),
+  );
+  const muaflar = [];
+  if (Number.isFinite(muafDegeri)) {
+    const merdiven = G.muafOlcekMerdiveni(muafDegeri);
+    for (let sira = 0; sira < merdiven.length; sira += 1) {
+      const muaf = merdiven[sira];
+      let sonuc = { taban, denemeler };
+      if (sira > 0) {
+        kokOge.style.setProperty('--rakip-acik-olcek', String(muaf));
+        sonuc = tarama();
+      }
+      olcekYaz(1);
+      muaflar.push({ muaf, ...sonuc, acikTas: acikTasOlcumu() });
+    }
   }
+  if (oncekiMuaf) kokOge.style.setProperty('--rakip-acik-olcek', oncekiMuaf);
+  else kokOge.style.removeProperty('--rakip-acik-olcek');
 
   if (onceki) olcekYaz(onceki);
   else kokOge.style.removeProperty('--istaka-olcek');
-  return {
-    olculenler,
-    taban: { ihlal: taban.ihlaller.length, tasma: taban.tasmalar.length },
-    denemeler,
+  return { olculenler, taban, denemeler, muaflar };
+}
+
+/**
+ * Bir öğenin okunur adı: kimliği varsa o, yoksa ilk sınıfı — ve adsızsa en yakın atasıyla
+ * birlikte (`#kenarUstTaslar>.tas`). Taşan öğeyi ekran görüntüsünden tanımak için (tasokey#72).
+ */
+function ogeAdi(dugum) {
+  const ad = (hedef) => {
+    if (hedef.id) return `#${hedef.id}`;
+    if (hedef.classList.length > 0) return `.${hedef.classList[0]}`;
+    return hedef.tagName.toLowerCase();
   };
+  if (dugum.id) return `#${dugum.id}`;
+  const ata = dugum.parentElement;
+  return ata ? `${ad(ata)}>${ad(dugum)}` : ad(dugum);
+}
+
+/** Kaydırma kutusunun İSTEMCİ (client) alanı: kenarlığın içi, kaydırma çubuğu hariç. */
+function istemciKutusu(dugum) {
+  const bicim = getComputedStyle(dugum);
+  const dis = kutu(dugum);
+  const sol = dis.sol + sayi(bicim.borderLeftWidth);
+  const ust = dis.ust + sayi(bicim.borderTopWidth);
+  return { sol, ust, sag: sol + dugum.clientWidth, alt: ust + dugum.clientHeight };
+}
+
+/**
+ * Kutudan TAŞAN öğe adayları (tasokey#72, ADR-022/9): soyların kutunun istemci alanını SON
+ * kenardan (sağ/alt) aştığı px. Yalnız son kenar ölçülür, çünkü kaydırılabilir taşma yalnız orada
+ * doğar (`scrollWidth`/`scrollHeight` baş kenarın ötesini saymaz) — ölçüm miktarla aynı şeyi
+ * anlatsın. Pahalı olduğu için YALNIZ gerçekten taşan kutuda koşar.
+ */
+function tasanAdaylari(dugum) {
+  const sinir = istemciKutusu(dugum);
+  const adaylar = [];
+  for (const soy of dugum.querySelectorAll('*')) {
+    const bicim = getComputedStyle(soy);
+    if (bicim.display === 'none' || bicim.visibility === 'hidden') continue;
+    const olcu = kutu(soy);
+    if (G.kutuBosMu(olcu)) continue;
+    const yatay = olcu.sag - sinir.sag;
+    const dikey = olcu.alt - sinir.alt;
+    if (yatay <= 0 && dikey <= 0) continue;
+    adaylar.push({ anahtar: ogeAdi(soy), yatay, dikey });
+  }
+  return adaylar;
 }
 
 function tasmaOlcumu() {
@@ -372,15 +490,68 @@ function tasmaOlcumu() {
   return {
     gorunum: { genislik: window.innerWidth, yukseklik: window.innerHeight },
     rafAlaniAlt: kutu(el('rafAlani')).alt,
-    kaydirma: kutular.filter((k) => k.dugum).map((k) => ({
-      anahtar: k.anahtar,
-      denetim: k.denetim,
-      scrollGenislik: k.dugum.scrollWidth,
-      clientGenislik: k.dugum.clientWidth,
-      scrollYukseklik: k.dugum.scrollHeight,
-      clientYukseklik: k.dugum.clientHeight,
-    })),
+    kaydirma: kutular.filter((k) => k.dugum).map((k) => {
+      const olcu = {
+        anahtar: k.anahtar,
+        denetim: k.denetim,
+        scrollGenislik: k.dugum.scrollWidth,
+        clientGenislik: k.dugum.clientWidth,
+        scrollYukseklik: k.dugum.scrollHeight,
+        clientYukseklik: k.dugum.clientHeight,
+      };
+      const tasiyor = olcu.scrollGenislik > olcu.clientGenislik
+        || olcu.scrollYukseklik > olcu.clientYukseklik;
+      if (tasiyor) olcu.tasanlar = tasanAdaylari(k.dugum);
+      return olcu;
+    }),
   };
+}
+
+/**
+ * El sonunda açılan rakip taşının ÖLÇÜLEN kutusu ve RAKAMIN o kutuya sığıp sığmadığı — ADR-022
+ * madde 8 (sürüm 3): "yazılan her değerde açık el taşının rakamının kırpılmadan sığdığı ÖLÇÜLÜR".
+ *
+ * Rakamın gerçek glif kutusu `Range` ile ölçülür: `.tas-rakam`ın kendi kutusu taşın yüzdesidir ve
+ * `overflow` görünürdür, yani kutuyu aşan glif gizlenmez — okunmaz olduğu yer TAŞIN kenarıdır.
+ * Bu yüzden bağlayıcı pay glifin TAŞA kalan payıdır (eksi ise rakam taşın dışına çıkıyor).
+ * En kötü taş aranır (en geniş glif / en küçük pay), ilk taş değil: ıstakada "13" ile "1" aynı
+ * kutuda durmuyor. `durum=el`de açık taş yoktur → `null`.
+ */
+function acikTasOlcumu() {
+  const taslar = [...document.querySelectorAll('.kenar-taslar .tas')];
+  if (taslar.length === 0) return null;
+  let enKotu = null;
+  for (const tas of taslar) {
+    const tasKutusu = kutu(tas);
+    const rakam = tas.querySelector('.tas-rakam');
+    if (!rakam) continue;
+    const rakamKutusu = kutu(rakam);
+    const aralik = document.createRange();
+    aralik.selectNodeContents(rakam);
+    const g = aralik.getBoundingClientRect();
+    const glif = { sol: g.left, ust: g.top, sag: g.right, alt: g.bottom };
+    const kayit = {
+      genislik: tasKutusu.sag - tasKutusu.sol,
+      yukseklik: tasKutusu.alt - tasKutusu.ust,
+      metin: rakam.textContent,
+      yaziBoyu: sayi(getComputedStyle(rakam).fontSize),
+      glifGenislik: glif.sag - glif.sol,
+      glifYukseklik: glif.alt - glif.ust,
+      // Glifin TAŞIN kutusuna kalan en küçük payı (bağlayıcı denetim).
+      tasPayi: Math.min(
+        glif.sol - tasKutusu.sol, glif.ust - tasKutusu.ust,
+        tasKutusu.sag - glif.sag, tasKutusu.alt - glif.alt,
+      ),
+      // Glifin `.tas-rakam` kutusuna kalan payı (ikincil: eksi olması kırpılma DEĞİL, taşmadır).
+      rakamPayi: Math.min(
+        glif.sol - rakamKutusu.sol, glif.ust - rakamKutusu.ust,
+        rakamKutusu.sag - glif.sag, rakamKutusu.alt - glif.alt,
+      ),
+      sayac: taslar.length,
+    };
+    if (enKotu === null || kayit.tasPayi < enKotu.tasPayi) enKotu = kayit;
+  }
+  return enKotu;
 }
 
 /**
