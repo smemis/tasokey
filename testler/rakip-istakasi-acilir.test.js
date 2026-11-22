@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { EL_SONUCU } from '../docs/cekirdek/el.js';
 import { rakipEliAcikMi } from '../docs/arayuz/etkilesim.js';
 import { RAF_SUTUN_SAYISI } from '../docs/arayuz/raf.js';
+import { degiskenOlcusu, kademeSozlukleri } from './yardimci/css-olcu.js';
 
 // tasokey#38 ek bilgi (Sahip, 2026-11-20): "El bittiğinde rakiplerin ıstakaları da gösterilsin."
 // El SÜRERKEN rakip taşı hiç görünmez (tasokey#31 ek bilgisi: yalnız ıstakanın ahşap sırtı);
@@ -89,7 +90,10 @@ test('kabul-f: 15 taşlık el kenara sığacak sütun düzeniyle seriliyor', () 
   const yatay = Number(STIL_CSS.match(/--rakip-acik-sutun-yatay:\s*(\d+)/)[1]);
   const dikey = Number(STIL_CSS.match(/--rakip-acik-sutun-dikey:\s*(\d+)/)[1]);
   const olcek = Number(STIL_CSS.match(/--rakip-acik-olcek:\s*([\d.]+)/)[1]);
-  const tasGenislik = Number(STIL_CSS.match(/--tas-genislik:\s*(\d+)px/)[1]);
+  // Taş ölçüsü artık çıplak px DEĞİL, `clamp(taban, taban * ölçek, taban * tavan)` (ADR-022,
+  // tasokey#64 iş 2) — metin eşleştiren okuma yerine değişken gerçekten hesaplanır. Ölçülen sayı
+  // değişmedi: taban kademenin görünen taş genişliği (ölçek 1'de 58 px).
+  const tasGenislik = degiskenOlcusu('--tas-genislik', kademeSozlukleri(STIL_CSS)[0].sozluk).sayi;
   // Istaka sütun sayısının tek kaynağı `arayuz/raf.js` (ADR-019/tasokey#48).
   const sutunSayisi = RAF_SUTUN_SAYISI;
 

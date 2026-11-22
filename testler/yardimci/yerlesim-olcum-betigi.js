@@ -26,12 +26,21 @@ export const BOYUTLAR = Object.freeze([
   Object.freeze([800, 360, 'telefon-kucuk']),
 ]);
 
+/**
+ * Ölçek aramasının (tasokey#68) ek boyutu: `max-width: 900px` kademesinin en dar kabul boyutu
+ * (plan §4). Planın §5 ölçüm boyutlarında yoktur — orada 900px kademesine düşen bir boyut yok,
+ * ama ölçek değeri o kademede de ölçülmek zorunda (ADR-022/5).
+ */
+export const ARAMA_EK_BOYUTU = Object.freeze([900, 600, 'kademe-900']);
+
 /** Saf çekirdeğin sayfa katmanına verilen adları (tek liste; öz-test modülle karşılaştırır). */
 export const GEOMETRI_ADLARI = Object.freeze([
   'ESIK_PX', 'HALKA_EKI', 'CIFT_ISTISNALARI',
   'kutuAlani', 'kutuBosMu', 'kutuGenislet', 'kesisim', 'ataCocukMu',
   'cakisanCiftler', 'ciftleriAyir', 'muafListesi', 'halkaCiftleriniAyir', 'tasmaIhlalleri',
-  'olcuMetni', 'ozetSatirlari', 'yaziKatmaniBicimi', 'markdownTablosu', 'olcumSatiri',
+  'ciftFarki',
+  'olcuMetni', 'ozetSatirlari', 'aramaSatirlari', 'yaziKatmaniBicimi', 'markdownTablosu',
+  'olcumSatiri',
   'TABLO_BASLIKLARI',
 ]);
 
@@ -53,7 +62,9 @@ export function gomulebilirKaynak(kaynak) {
 }
 
 /** İki kaynağı okur ve sayfada çalışacak async gövdeyi döndürür. */
-export function sayfaBetigi({ durum = 'el', gosterim = 'json', esik = null, enCokCift = null } = {}) {
+export function sayfaBetigi({
+  durum = 'el', gosterim = 'json', esik = null, enCokCift = null, arama = false,
+} = {}) {
   if (!DURUMLAR.includes(durum)) throw new Error(`sayfaBetigi: bilinmeyen durum ${durum}`);
   const geometri = gomulebilirKaynak(readFileSync(GEOMETRI_DOSYASI, 'utf8'));
   const sayfa = gomulebilirKaynak(readFileSync(SAYFA_DOSYASI, 'utf8'));
@@ -67,6 +78,7 @@ export function sayfaBetigi({ durum = 'el', gosterim = 'json', esik = null, enCo
     `  gosterim: ${JSON.stringify(gosterim)},`,
     `  esik: ${esik === null ? 'undefined' : Number(esik)},`,
     `  enCokCift: ${enCokCift === null ? 'undefined' : Number(enCokCift)},`,
+    `  arama: ${arama === true},`,
     `  geometri: { ${GEOMETRI_ADLARI.join(', ')} },`,
     '});',
     'return OLCUM;',
@@ -79,14 +91,15 @@ export function sayfaBetigi({ durum = 'el', gosterim = 'json', esik = null, enCo
  * Tohum verilmez (`index.html` düz açılır): çekirdeğin sürücüsü sayfa adını yol olarak
  * kullanıyor, sorgu dizesi eklemek riskli — el sürerken durumu tohuma bağlı değildir.
  */
-export function planNesnesi({ bekle = 1.5, jsBekle = 1.2 } = {}) {
+export function planNesnesi({ bekle = 1.5, jsBekle = 1.2, arama = false } = {}) {
+  const boyutlar = arama ? [...BOYUTLAR, ARAMA_EK_BOYUTU] : BOYUTLAR;
   return {
-    boyutlar: BOYUTLAR.map((boyut) => [...boyut]),
+    boyutlar: boyutlar.map((boyut) => [...boyut]),
     cekimler: DURUMLAR.map((durum) => ({
       ad: `olcum-${durum}`,
       sayfa: 'index.html',
       bekle,
-      js: sayfaBetigi({ durum, gosterim: 'ekran', enCokCift: EKRAN_EN_COK_CIFT }),
+      js: sayfaBetigi({ durum, gosterim: 'ekran', enCokCift: EKRAN_EN_COK_CIFT, arama }),
       js_bekle: jsBekle,
     })),
   };

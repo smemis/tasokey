@@ -85,6 +85,31 @@ function kutu(dugum) {
 
 const gorunurMu = (id) => el(id).classList.contains('gorunur');
 
+/**
+ * Bir CSS UZUNLUK ifadesinin tarayıcıda çözülen px değeri (tasokey#68).
+ *
+ * Niçin ölçü öğesi: özel değişkenin (`--x`) hesaplanan değeri, kaydedilmemiş (unregistered)
+ * olduğu sürece YALNIZ `var()` yerine konmuş belirteç dizisidir — `calc()`/`clamp()` sadeleşmez.
+ * `getComputedStyle(kök).getPropertyValue('--hedef-pay')` bu yüzden `"calc(24px / 2)"` döndürür ve
+ * `parseFloat` onu **NaN** yapar (tasokey#67'de hedef halkası sessizce 0 payla ölçülmüştü: halka
+ * kutusu sahibinin kutusuyla aynı çıkıyor, "halka ∩ komşu = 0" ölçütü gevşiyordu). ADR-022 ile
+ * taş ölçüsü de `clamp(...)` olduğundan aynı tuzak bütün ölçülere yayılırdı.
+ *
+ * Çözüm: ifadeyi görünmez bir ölçü öğesinin `width`ine veriyoruz; `width`in hesaplanan değeri
+ * mutlak uzunluktur (px). Yani sayıyı tarayıcının kendisi hesaplar, ölçüm katmanı CSS yorumlamaz.
+ */
+function olculenPx(ifade) {
+  const olcer = document.createElement('div');
+  olcer.style.cssText = `position:absolute;left:-9999px;top:0;height:0;visibility:hidden;width:${ifade};`;
+  document.body.appendChild(olcer);
+  const deger = sayi(getComputedStyle(olcer).width);
+  olcer.remove();
+  return deger;
+}
+
+/** Değişkenin px değeri (`--x` → `var(--x)` ölçülür). */
+const degiskenPx = (ad) => olculenPx(`var(${ad})`);
+
 function bilgiyiKapat() {
   if (!gorunurMu('bilgiPaneli')) return false;
   el('bilgiTamamButonu').click();
@@ -210,7 +235,7 @@ function kutulariTopla() {
   // Hedef halkaları: sahibinin kutusu --hedef-pay kadar büyütülmüş sanal öğe. Atası sahibi
   // olduğu için sahibiyle ve sahibinin çocuklarıyla çakışması ata-çocuk istisnasına düşer;
   // KOMŞU öğeyle çakışması ihlaldir (plan §5: halka ∩ komşu kutu = 0).
-  const pay = sayi(getComputedStyle(document.documentElement).getPropertyValue('--hedef-pay'));
+  const pay = degiskenPx('--hedef-pay');
   const haritaOge = new Map(ogeler.map((oge) => [oge.anahtar, oge]));
   for (const sahipAnahtari of HALKA_TANIMLARI) {
     const sahip = haritaOge.get(sahipAnahtari);
@@ -247,9 +272,87 @@ function olculeriAl() {
     rakipTas: rakipTas ? kutu(rakipTas) : null,
     masaIc,
     // CSS değişkeninin kendisi: tarayıcıda ölçülen taş kutusuyla karşılaştırma için.
-    tasDegiskeni: `${sayi(kok.getPropertyValue('--tas-genislik'))}x${sayi(kok.getPropertyValue('--tas-yukseklik'))}`,
+    tasDegiskeni: `${degiskenPx('--tas-genislik')}x${degiskenPx('--tas-yukseklik')}`,
     // `--istaka-olcek` tasokey#64 iş 2'de gelecek; bugün tanımsızdır (önce ölçümü).
     olcek: olcek === '' ? '—' : olcek,
+  };
+}
+
+/**
+ * Sığdırma bütçesinin (plan §4) ÖLÇÜLEN terimleri (tasokey#68). İki şey ölçülür:
+ *   (1) `--sigdirma-metin-payi` = ıstaka başlığının yüksekliği + merkez sütununun taş boyunu aşan
+ *       payı (deste başlığı/sayaç/ipucu satırları + `.yigin` boşlukları). Bu terim `rem` tabanlı
+ *       olduğu için CSS içinde px'e çevrilemez → ölçülmek zorundadır (ADR-022/5).
+ *   (2) Masanın İÇERİK kutusu: bütçenin sağ tarafı (`W`/`H`). Masa yüksekliği esnek kaptan gelir
+ *       (tasokey#63), yani taş ölçüsünden bağımsızdır — ölçek aramasında sabit kalır.
+ * Geri kalan terimler CSS değişkenidir ve buradan da okunur (ölçüm ile formülün aynı yerden
+ * geldiği karşılaştırılabilsin).
+ */
+function sigdirmaOlcumu() {
+  const yuksek = (dugum) => (dugum ? kutu(dugum).alt - kutu(dugum).ust : 0);
+  const rafBaslik = yuksek(el('rafBaslik'));
+  const merkez = yuksek(el('merkez'));
+  const tasYukseklik = degiskenPx('--tas-yukseklik');
+  return {
+    masaIc: olculeriAl().masaIc,
+    rafBaslik,
+    merkez,
+    tasYukseklik,
+    metinPayi: rafBaslik + Math.max(0, merkez - tasYukseklik),
+    panelDolgu: degiskenPx('--panel-dolgu'),
+    koseKaydirma: degiskenPx('--kose-kaydirma'),
+    masaBosluk: degiskenPx('--masa-bosluk'),
+    rafBosluk: degiskenPx('--raf-bosluk'),
+    yuvaBosluk: degiskenPx('--raf-yuva-bosluk'),
+    taban: `${degiskenPx('--tas-taban-genislik')}x${degiskenPx('--tas-taban-yukseklik')}`,
+    // Sütun sayısı BİRİMSİZ bir sayıdır (ADR-019, `arayuz/raf.js`): uzunluk gibi ölçülemez,
+    // hesaplanan değeri doğrudan okunur.
+    sutun: sayi(getComputedStyle(document.documentElement).getPropertyValue('--raf-sutun-sayisi')),
+  };
+}
+
+/**
+ * Ölçek araması (tasokey#68, ADR-022/5): kurulu durumda `--istaka-olcek` kademe kademe
+ * denenir, her denemede kutular YENİDEN toplanır (CSS'in kendi yerleşimi çalışır; DOM
+ * kurcalanmaz, JS yeniden çizim yapmaz — taş ölçüsünün tek kaynağı CSS değişkenidir).
+ * Ölçüt: tabana (ölçek 1) göre YENİ çakışan çift ve BÜYÜYEN çakışma yok, taşma yok
+ * (taban dalda bazı boyutlarda zaten ihlal var — tasokey#67). Arama bittiğinde satır içi
+ * geçersiz kılma kaldırılır, yani sayfa CSS'teki değere döner.
+ */
+function olcekAramasi({ esik, basamak = 0.05, tavan = 2 }) {
+  const kokOge = document.documentElement;
+  const onceki = kokOge.style.getPropertyValue('--istaka-olcek');
+  const dene = () => {
+    const { ogeler } = kutulariTopla();
+    const { ihlaller } = G.ciftleriAyir(G.cakisanCiftler(ogeler, { esik }), G.CIFT_ISTISNALARI);
+    return { ihlaller, tasmalar: G.tasmaIhlalleri(tasmaOlcumu(), { esik: 0 }) };
+  };
+  const olcekYaz = (deger) => kokOge.style.setProperty('--istaka-olcek', String(deger));
+
+  olcekYaz(1);
+  const olculenler = sigdirmaOlcumu();
+  const taban = dene();
+  const denemeler = [];
+  for (let adim = 1; ; adim += 1) {
+    const olcek = Math.round((1 + adim * basamak) * 100) / 100;
+    if (olcek > tavan + 1e-9) break;
+    olcekYaz(olcek);
+    const sonuc = dene();
+    const fark = G.ciftFarki(taban.ihlaller, sonuc.ihlaller, { esik });
+    denemeler.push({
+      olcek,
+      yeni: fark.yeni.length,
+      buyuyen: fark.buyuyen.length,
+      tasma: sonuc.tasmalar.length,
+    });
+  }
+
+  if (onceki) olcekYaz(onceki);
+  else kokOge.style.removeProperty('--istaka-olcek');
+  return {
+    olculenler,
+    taban: { ihlal: taban.ihlaller.length, tasma: taban.tasmalar.length },
+    denemeler,
   };
 }
 
@@ -297,7 +400,9 @@ function ekranaYaz(satirlar) {
  * `enCokCift` yazı katmanına kaç ihlal satırı yazılacağını söyler (verilmezse çekirdeğin
  * varsayılanı). `geometri`: `yardimci/yerlesim-cakisma.js`in dışa verdikleri (tek kaynak).
  */
-export async function olcumYap({ durum = 'el', gosterim = 'json', esik, enCokCift, geometri } = {}) {
+export async function olcumYap({
+  durum = 'el', gosterim = 'json', esik, enCokCift, arama = false, geometri,
+} = {}) {
   if (!geometri) throw new Error('olcumYap: geometri (saf çekirdek) verilmedi');
   if (!DURUMLAR.includes(durum)) throw new Error(`olcumYap: bilinmeyen durum ${durum}`);
   G = geometri;
@@ -328,8 +433,14 @@ export async function olcumYap({ durum = 'el', gosterim = 'json', esik, enCokCif
     zorlanan,
     ogeler,
   };
+  // Arama ölçümden SONRA, yazı katmanından ÖNCE koşar: katman sabit konumlu olsa da sayfaya
+  // eklenmesi taşma ölçümünün girdisini değiştirmesin.
+  if (arama) olcum.arama = olcekAramasi({ esik: esikPx });
+
   if (gosterim === 'ekran') {
-    ekranaYaz(G.ozetSatirlari(olcum, enCokCift == null ? undefined : { enCokCift }));
+    const satirlar = G.ozetSatirlari(olcum, enCokCift == null ? undefined : { enCokCift });
+    if (olcum.arama) satirlar.push(...G.aramaSatirlari(olcum.arama));
+    ekranaYaz(satirlar);
   }
   return olcum;
 }

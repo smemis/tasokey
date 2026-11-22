@@ -8,10 +8,12 @@ import {
   kutuAlani, kutuBosMu, kutuGenislet, kesisim, ataCocukMu,
   cakisanCiftler, ciftleriAyir, muafListesi, halkaCiftleriniAyir, tasmaIhlalleri,
   olcuMetni, ozetSatirlari, yaziKatmaniBicimi, markdownTablosu, olcumSatiri,
+  ciftFarki, aramaSatirlari,
 } from './yardimci/yerlesim-cakisma.js';
 import * as geometriModulu from './yardimci/yerlesim-cakisma.js';
 import {
-  BOYUTLAR, GEOMETRI_ADLARI, EKRAN_EN_COK_CIFT, gomulebilirKaynak, sayfaBetigi, planNesnesi,
+  ARAMA_EK_BOYUTU, BOYUTLAR, GEOMETRI_ADLARI, EKRAN_EN_COK_CIFT, gomulebilirKaynak, sayfaBetigi,
+  planNesnesi,
 } from './yardimci/yerlesim-olcum-betigi.js';
 import { DURUMLAR, OGE_TANIMLARI, HALKA_TANIMLARI } from './yardimci/yerlesim-olcum-sayfa.js';
 import { KULLANIM, seceneklerioku } from './yerlesim-cakisma.olcum.js';
@@ -316,6 +318,99 @@ test('markdown tablosu ve ölçüm satırı', () => {
   assert.equal(satir[9], 'yok');
 });
 
+// --- 3b. Ölçek aramasının ölçütü (tasokey#68, ADR-022/5) --------------------------------------
+
+const CIFT = (a, b, alan) => ({ a, b, kutu: { sol: 0, ust: 0, sag: alan, alt: 1 }, alan });
+
+test('çift farkı: YENİ doğan ve BÜYÜYEN çakışma ayrı sayılır (ölçek seçiminin ölçütü)', () => {
+  const taban = [CIFT('#a', '#b', 100), CIFT('#c', '#d', 50)];
+
+  // (a) Aynı liste: ne yeni ne büyüyen — ölçek bu denemede kabul edilebilir.
+  assert.deepEqual(ciftFarki(taban, taban), { yeni: [], buyuyen: [] });
+
+  // (b) Tabanda olmayan çift YENİdir (çift sırası ters yazılsa da aynı çift sayılır).
+  const yeniCiftli = [...taban, CIFT('#e', '#f', 7)];
+  assert.deepEqual(ciftFarki(taban, yeniCiftli).yeni.map((c) => c.b), ['#f']);
+  assert.deepEqual(ciftFarki(taban, [CIFT('#b', '#a', 100)]), { yeni: [], buyuyen: [] });
+
+  // (c) Tabandaki çiftin kesişimi büyüdüyse BÜYÜYEN; küçüldüyse ya da eşikten az değiştiyse değil.
+  const buyuyen = ciftFarki(taban, [CIFT('#a', '#b', 140)]).buyuyen;
+  assert.equal(buyuyen.length, 1);
+  assert.equal(buyuyen[0].tabanAlan, 100);
+  assert.deepEqual(ciftFarki(taban, [CIFT('#a', '#b', 100.4)]).buyuyen, []);
+  assert.deepEqual(ciftFarki(taban, [CIFT('#a', '#b', 60)]).buyuyen, []);
+});
+
+test('arama özeti ekrandan okunur: ölçülen bütçe terimleri + deneme tablosu + en çok ölçek', () => {
+  const arama = {
+    olculenler: {
+      masaIc: { sol: 0, ust: 0, sag: 784, alt: 281 },
+      rafBaslik: 17,
+      merkez: 132,
+      tasYukseklik: 36,
+      metinPayi: 113,
+      panelDolgu: 4,
+      koseKaydirma: 5,
+      masaBosluk: 6,
+      rafBosluk: 4,
+      yuvaBosluk: 0,
+      taban: '25x36',
+      sutun: 12,
+    },
+    taban: { ihlal: 2, tasma: 0 },
+    denemeler: [
+      { olcek: 1.05, yeni: 0, buyuyen: 0, tasma: 0 },
+      { olcek: 1.1, yeni: 0, buyuyen: 1, tasma: 0 },
+      { olcek: 1.15, yeni: 1, buyuyen: 1, tasma: 0 },
+      { olcek: 1.2, yeni: 1, buyuyen: 2, tasma: 1 },
+    ],
+  };
+  const satirlar = aramaSatirlari(arama);
+  assert.match(satirlar[0], /BUTCE masaIc=784x281 rafBaslik=17 merkez=132 tas=36 metinPayi=113/);
+  assert.match(satirlar[1], /pd=4 kk=5 mb=6 rb=4 yb=0 taban=25x36 n=12/);
+  assert.match(satirlar[2], /ARAMA taban\(olcek 1\) ihlal=2 tasma=0/);
+  assert.ok(satirlar.some((satir) => satir.includes('1.05:0/0/0 1.10:0/1/0 1.15:1/1/0 1.20:1/2/1')));
+  // En çok ölçek üç ölçüte göre ayrı okunur: yeni çift yok · yeni+büyüyen yok · taşma yok.
+  assert.match(satirlar.at(-1), /yeni0=1\.10 yeni0buyumez0=1\.05 tasma0=1\.15/);
+  // Satır başına beş deneme: `white-space: pre` katmanı 800px görünümde yatayda kırpmasın.
+  const uzun = aramaSatirlari({
+    ...arama,
+    denemeler: Array.from({ length: 20 }, (_, i) => ({
+      olcek: Math.round((1.05 + i * 0.05) * 100) / 100, yeni: 0, buyuyen: 0, tasma: 0,
+    })),
+  });
+  assert.equal(uzun.length, 3 + 4 + 1);
+  // 96 karakter = 12px Consolas'ta ~635 px: en küçük görünümde (800 px) yatayda kırpılmaz.
+  for (const satir of uzun) assert.ok(satir.length <= 96, `arama satırı çok uzun: ${satir.length}`);
+});
+
+test('uzunluk değişkenleri ölçü öğesiyle çözülür, getPropertyValue ile OKUNMAZ (tasokey#68)', () => {
+  // Belirti (tasokey#67'de sessizce kaldı): kaydedilmemiş özel değişkenin hesaplanan değeri
+  // yalnız `var()` yerine konmuş belirteç dizisidir — `--hedef-pay: calc(var(--masa-bosluk) / 2)`
+  // için `getPropertyValue` `"calc(24px / 2)"` döndürür, `parseFloat` NaN → pay 0 → hedef halkası
+  // sahibinin kutusuna eşit olur ve "halka ∩ komşu = 0" ölçütü gevşer. ADR-022 ile taş ölçüsü de
+  // `clamp(...)` olduğu için aynı tuzak bütün ölçülere yayılırdı.
+  const kaynak = readFileSync(
+    join(import.meta.dirname, 'yardimci', 'yerlesim-olcum-sayfa.js'), 'utf8',
+  );
+  // Yorumlar atılır: tuzağı ANLATAN satır da kalıbı içeriyor (kod sanılmasın).
+  const kod = kaynak.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const BIRIMSIZLER = ['--istaka-olcek', '--raf-sutun-sayisi'];
+  const okunanlar = [...kod.matchAll(/getPropertyValue\('(--[\w-]+)'\)/g)].map(([, ad]) => ad);
+  assert.ok(okunanlar.length > 0, 'kaynak değişken okumuyor (test eskidi mi?)');
+  for (const ad of okunanlar) {
+    assert.ok(
+      BIRIMSIZLER.includes(ad),
+      `${ad} getPropertyValue ile okunuyor; uzunluksa ölçü öğesiyle (olculenPx) çözülmeli`,
+    );
+  }
+  // Uzunluklar gerçekten ölçü öğesinden geçiyor (hedef payı ve taş ölçüsü dahil).
+  for (const ad of ['--hedef-pay', '--tas-genislik', '--tas-yukseklik', '--raf-bosluk']) {
+    assert.ok(kaynak.includes(`degiskenPx('${ad}')`), `${ad} ölçü öğesiyle çözülmüyor`);
+  }
+  assert.match(kaynak, /function olculenPx\(ifade\) \{[\s\S]*?getComputedStyle\(olcer\)\.width/);
+});
+
 // --- 4. Ölçüm protokolünün verisi (plan §5) ---------------------------------------------------
 
 test('beş boyut ve iki durum planın §5\'indeki küme', () => {
@@ -323,6 +418,24 @@ test('beş boyut ve iki durum planın §5\'indeki küme', () => {
     '1920x1080', '1280x800', '1180x820', '844x390', '800x360',
   ]);
   assert.deepEqual([...DURUMLAR], ['el', 'rakip']);
+});
+
+test('ölçek araması kipi: 900px kademesinin boyutu eklenir, betiğe arama geçer (tasokey#68)', () => {
+  // Planın §5 boyutlarında `max-width: 900px` kademesine düşen boyut YOK; ölçek değeri o
+  // kademede de ölçülmek zorunda (ADR-022/5) → arama kipi 900x600'ü ekler.
+  assert.deepEqual([...ARAMA_EK_BOYUTU], [900, 600, 'kademe-900']);
+  assert.ok(!BOYUTLAR.some((boyut) => boyut[0] === 900 && boyut[1] === 600));
+  const plan = planNesnesi({ arama: true });
+  assert.equal(plan.boyutlar.length, BOYUTLAR.length + 1);
+  assert.deepEqual(plan.boyutlar.at(-1), [...ARAMA_EK_BOYUTU]);
+  for (const cekim of plan.cekimler) {
+    assert.ok(cekim.js.includes('arama: true'));
+    assert.doesNotThrow(() => new Function(`return (async () => {\n${cekim.js}\n});`));
+  }
+  // Sürücünün argüman çözümü de aynı listeyi verir (iki yol tek kaynaktan — ADR-023/4).
+  assert.equal(seceneklerioku(['--arama']).boyutlar.length, BOYUTLAR.length + 1);
+  assert.equal(seceneklerioku([]).boyutlar.length, BOYUTLAR.length);
+  assert.equal(seceneklerioku(['--arama', '--boyut', '800x360']).boyutlar.length, 1);
 });
 
 test('öğe kümesi planın §5\'indeki bütün öğeleri kapsar ve index.html\'de var', () => {
@@ -410,6 +523,7 @@ test('sayfa betiği geçerli bir async gövdedir ve iki yol aynı metni kullanı
   assert.equal(plan.cekimler.length, DURUMLAR.length);
   // ADR-023: plan yolu betiğe "ekran" gösterimini verir, sunucu/tarayıcı kipine hiç girmez.
   assert.equal(plan.boyutlar.length, BOYUTLAR.length);
+  for (const cekim of plan.cekimler) assert.ok(cekim.js.includes('arama: false'));
   for (const cekim of plan.cekimler) {
     assert.equal(cekim.sayfa, 'index.html');
     assert.ok(cekim.js.includes("gosterim: \"ekran\""));

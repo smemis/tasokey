@@ -157,6 +157,25 @@ export function tasmaIhlalleri(olcum, { esik = 0 } = {}) {
   return ihlaller;
 }
 
+/**
+ * İki ölçümün çakışan çift listelerini karşılaştırır (tasokey#68 ölçek araması): hangi çift
+ * YENİ doğdu, hangi eski çiftin kesişimi BÜYÜDÜ. Ölçek seçiminin ölçütü budur — "çakışma 0"
+ * tek başına kullanılamıyor, çünkü taban dalda (ölçek 1) bazı boyutlarda **zaten** ihlal var
+ * (tasokey#67 ölçümü: 800x360'ta 2, rakip durumunda 1-14). Saf: yalnız liste.
+ */
+export function ciftFarki(tabanCiftler, denemeCiftler, { esik = ESIK_PX } = {}) {
+  const anahtar = (cift) => [cift.a, cift.b].sort().join(' n ');
+  const taban = new Map(tabanCiftler.map((cift) => [anahtar(cift), cift.alan]));
+  const yeni = [];
+  const buyuyen = [];
+  for (const cift of denemeCiftler) {
+    const ad = anahtar(cift);
+    if (!taban.has(ad)) yeni.push(cift);
+    else if (cift.alan - taban.get(ad) > esik) buyuyen.push({ ...cift, tabanAlan: taban.get(ad) });
+  }
+  return { yeni, buyuyen };
+}
+
 /** `308x100` biçiminde ölçü metni (yuvarlanmış). */
 export function olcuMetni(kutu) {
   if (kutuBosMu(kutu)) return '—';
@@ -190,6 +209,41 @@ export function ozetSatirlari(olcum, { enCokCift = 6 } = {}) {
   for (const cift of kasitli) {
     satirlar.push(`  = ${cift.a} n ${cift.b}  ${olcuMetni(cift.kutu)} (${cift.gerekce})`);
   }
+  return satirlar;
+}
+
+/**
+ * Ölçek aramasının (tasokey#68) ekrandan okunabilir özeti. Deneme satırları KISA tutulur
+ * (`ölçek:yeni/büyüyen/taşma`, satır başına beşi): yazı katmanı `white-space: pre` olduğu için
+ * uzun satır 800px görünümde yatayda kırpılır. Saf: yalnız sayı ve metin.
+ */
+export function aramaSatirlari(arama, { satirBasinaDeneme = 5 } = {}) {
+  const { taban, denemeler = [], olculenler = {} } = arama;
+  const sayi = (deger) => (typeof deger === 'number' ? Math.round(deger * 10) / 10 : '—');
+  const satirlar = [
+    `BUTCE masaIc=${olcuMetni(olculenler.masaIc)} rafBaslik=${sayi(olculenler.rafBaslik)}`
+    + ` merkez=${sayi(olculenler.merkez)} tas=${sayi(olculenler.tasYukseklik)}`
+    + ` metinPayi=${sayi(olculenler.metinPayi)}`,
+    `BUTCE pd=${sayi(olculenler.panelDolgu)} kk=${sayi(olculenler.koseKaydirma)}`
+    + ` mb=${sayi(olculenler.masaBosluk)} rb=${sayi(olculenler.rafBosluk)}`
+    + ` yb=${sayi(olculenler.yuvaBosluk)} taban=${olculenler.taban ?? '—'}`
+    + ` n=${olculenler.sutun ?? '—'}`,
+    `ARAMA taban(olcek 1) ihlal=${taban?.ihlal ?? '?'} tasma=${taban?.tasma ?? '?'}`
+    + '  satir bicimi: olcek:yeni/buyuyen/tasma',
+  ];
+  for (let i = 0; i < denemeler.length; i += satirBasinaDeneme) {
+    satirlar.push(`  ${denemeler.slice(i, i + satirBasinaDeneme)
+      .map((d) => `${d.olcek.toFixed(2)}:${d.yeni}/${d.buyuyen}/${d.tasma}`).join(' ')}`);
+  }
+  const enBuyuk = (sart) => {
+    const uygun = denemeler.filter(sart).map((d) => d.olcek);
+    return uygun.length === 0 ? '—' : Math.max(...uygun).toFixed(2);
+  };
+  satirlar.push(
+    `ARAMA enCok yeni0=${enBuyuk((d) => d.yeni === 0 && d.tasma === 0)}`
+    + ` yeni0buyumez0=${enBuyuk((d) => d.yeni === 0 && d.buyuyen === 0 && d.tasma === 0)}`
+    + ` tasma0=${enBuyuk((d) => d.tasma === 0)}`,
+  );
   return satirlar;
 }
 

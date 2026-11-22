@@ -26,7 +26,9 @@ import { dirname, join, resolve } from 'node:path';
 import {
   TABLO_BASLIKLARI, markdownTablosu, olcumSatiri, ozetSatirlari, halkaCiftleriniAyir,
 } from './yardimci/yerlesim-cakisma.js';
-import { BOYUTLAR, sayfaBetigi, planNesnesi } from './yardimci/yerlesim-olcum-betigi.js';
+import {
+  ARAMA_EK_BOYUTU, BOYUTLAR, sayfaBetigi, planNesnesi,
+} from './yardimci/yerlesim-olcum-betigi.js';
 import { DURUMLAR } from './yardimci/yerlesim-olcum-sayfa.js';
 
 const PROJE_KOK = join(import.meta.dirname, '..');
@@ -63,6 +65,9 @@ export const KULLANIM = [
   '  --durum el|rakip       yalnız bu durum (birden çok kez verilebilir)',
   '  --tohum <sayi>         dağıtım tohumu (varsayılan 20261122)',
   '  --sunucu-yok           sunucuyu başlatma (zaten koşuyorsa)',
+  '  --arama                ölçek araması: --istaka-olcek kademe kademe denenir, ölçülen',
+  '                         bütçe terimleri + deneme tablosu ekrana yazılır; plana 900x600',
+  '                         kademe boyutu eklenir (ADR-022/5, tasokey#68)',
 ].join('\n');
 
 /**
@@ -95,6 +100,7 @@ export function seceneklerioku(argv) {
     tohum: 20261122,
     sunucuYok: false,
     plan: null,
+    arama: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const bayrak = argv[i];
@@ -107,6 +113,7 @@ export function seceneklerioku(argv) {
       case '--tohum': secenekler.tohum = sayiOku(bayrak, deger, { enAz: 0 }); i += 1; break;
       case '--plan': secenekler.plan = metinOku(bayrak, deger); i += 1; break;
       case '--sunucu-yok': secenekler.sunucuYok = true; break;
+      case '--arama': secenekler.arama = true; break;
       case '--boyut': {
         const eslesme = /^(\d+)x(\d+)$/.exec(deger ?? '');
         if (!eslesme) throw new Error(`--boyut GENISLIKxYUKSEKLIK bekler: ${deger}`);
@@ -123,7 +130,12 @@ export function seceneklerioku(argv) {
       default: throw new Error(`bilinmeyen seçenek: ${bayrak}`);
     }
   }
-  if (secenekler.boyutlar.length === 0) secenekler.boyutlar = BOYUTLAR.map((b) => [...b]);
+  // Ölçek aramasında (tasokey#68) 900px kademesinin en dar kabul boyutu da ölçülür — planın §5
+  // boyut listesinde o kademeye düşen bir boyut yok (ADR-022/5).
+  if (secenekler.boyutlar.length === 0) {
+    const liste = secenekler.arama ? [...BOYUTLAR, ARAMA_EK_BOYUTU] : BOYUTLAR;
+    secenekler.boyutlar = liste.map((b) => [...b]);
+  }
   if (secenekler.durumlar.length === 0) secenekler.durumlar = [...DURUMLAR];
   return secenekler;
 }
@@ -295,7 +307,7 @@ function konsolKaydet(cdp, sessionId) {
   return { kayitlar, kaldir };
 }
 
-async function olcumAl({ cdp, sessionId, boyut, durum, adres, tohum }) {
+async function olcumAl({ cdp, sessionId, boyut, durum, adres, tohum, arama = false }) {
   const [genislik, yukseklik, boyutAdi] = boyut;
   await cdp.gonder('Emulation.setDeviceMetricsOverride', {
     width: genislik, height: yukseklik, deviceScaleFactor: 1, mobile: false,
@@ -305,7 +317,7 @@ async function olcumAl({ cdp, sessionId, boyut, durum, adres, tohum }) {
   await sinirli(yuklendi, 30000, `${boyutAdi} ${durum}: sayfa yüklenmedi`);
   await uyu(1200);
 
-  const betik = sayfaBetigi({ durum, gosterim: 'json' });
+  const betik = sayfaBetigi({ durum, gosterim: 'json', arama });
   const yanit = await sinirli(cdp.gonder('Runtime.evaluate', {
     expression: `(async () => {\n${betik}\n})()`,
     awaitPromise: true,
@@ -390,7 +402,7 @@ async function olcumuKos(secenekler) {
         let png;
         try {
           ({ olcum, png } = await olcumAl({
-            cdp, sessionId, boyut, durum, adres, tohum: secenekler.tohum,
+            cdp, sessionId, boyut, durum, adres, tohum: secenekler.tohum, arama: secenekler.arama,
           }));
         } finally {
           konsol.kaldir();
@@ -423,10 +435,10 @@ async function olcumuKos(secenekler) {
   return ihlalToplami;
 }
 
-function planiYaz(yol) {
+function planiYaz(yol, { arama = false } = {}) {
   const hedef = resolve(yol);
   mkdirSync(dirname(hedef), { recursive: true });
-  const plan = planNesnesi();
+  const plan = planNesnesi({ arama });
   writeFileSync(hedef, `${JSON.stringify(plan, null, 2)}\n`, 'utf8');
   console.log(`plan yazıldı: ${hedef}`);
   console.log(`boyut ${plan.boyutlar.length} x çekim ${plan.cekimler.length}`
@@ -449,7 +461,7 @@ if (dogrudanCagri) {
     process.exit(2);
   }
   if (secenekler.plan) {
-    planiYaz(secenekler.plan);
+    planiYaz(secenekler.plan, { arama: secenekler.arama });
   } else {
     const ihlal = await olcumuKos(secenekler);
     if (ihlal > 0) {
