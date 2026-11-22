@@ -20,11 +20,16 @@
 > kapatma anahtarı olarak çalışmayı sürdürüyor. Arayüz karşılığı: insan oyuncu joker attığında
 > bilgilendirme penceresi açılır (ADR-016 madde 8) — hamle engellenmez, pencere yalnız anlatır.
 > Başka kural (6-9, 11-13) ve bitiş koşulu değişmedi; yeni gereksinim yok.
+> **v6** (`tasokey#66`, Sahip kararı 2026-11-22): §1 **kural 6a değişti** — seri 13'ten 1'e **döner**,
+> yani `12-13-1` artık **geçerli perdir**. Karar `MIMARI.md` ADR-008 **sürüm 3**'tür; kural yine
+> `cekirdek/kural.js`'teki aynı ayarda (`onUcBirGecisiPerSayilir`) duruyor ve kapatma anahtarı
+> olarak çalışmayı sürdürüyor. §7 Soru 1'in cevabı bu yüzden **A → B** oldu. Başka kural (7-13),
+> bitiş koşulu ve gereksinim metinleri değişmedi; yeni gereksinim yok.
 
 | Alan | Değer |
 |---|---|
 | Proje | `tasokey` |
-| GDD sürümü | `5` (v5: okey/sahte okey atmak serbest — §1 kural 10, `tasokey#50`; önceki v4: bot zorluk kademeleri, `tasokey#41`) |
+| GDD sürümü | `6` (v6: seri 13'ten 1'e döner, `12-13-1` geçerli per — §1 kural 6a, `tasokey#66`; önceki v5: okey/sahte okey atmak serbest — §1 kural 10, `tasokey#50`; v4: bot zorluk kademeleri, `tasokey#41`) |
 | Bağlı PRD sürümü | `3` (`tasokey#36` ile birlikte) |
 | Son onay | Sahip onayı 2026-11-20, tasokey#35 |
 
@@ -42,7 +47,7 @@
 | 3 | Gösterge: karma sonrası açılan bir taş; okey taşı göstergeyle aynı renkte bir üst sayıdır (13 → 1 döner) | R-002 | `ARASTIRMA.md` §2.3 | doğrulandı |
 | 4 | Sahte okey, o elin okey taşının yerine geçer; her yerde (per, çift) okey gibi kullanılır | R-002 | `ARASTIRMA.md` §2.4 | doğrulandı |
 | 5 | Tur: oyuncu yerden ya da son atılan taştan 1 taş çeker, elinden 1 taş atar; sıradaki oyuncuya geçer | R-003 | `ARASTIRMA.md` §2.5 | doğrulandı |
-| 6 | Per iki biçimde olur: **(a) seri** — aynı renkte ardışık en az 3 sayı; **`12-13-1` geçişi per DEĞİLDİR** (per 1→13 düz sıradır, tur yapmaz). **(b) sayı peri** — aynı sayının 3 ya da 4 farklı renkteki taşı; aynı renk bir perde iki kez bulunamaz. Okey ve sahte okey her iki per türünde de eksik taşın yerine geçer | R-004 | (a) `MIMARI.md` ADR-008/1 (K1 kararı) · (b) Sahip kararı 2026-11-20 (`tasokey#35`) | doğrulandı (seri: K1, 2026-11-19 · sayı peri: Sahip, 2026-11-20) |
+| 6 | Per iki biçimde olur: **(a) seri** — aynı renkte ardışık en az 3 sayı; sıra **13'ten 1'e döner**, yani **`12-13-1` geçerli perdir** (v6, `tasokey#66`). Bir seride aynı sayı iki kez bulunamaz; bu yüzden en uzun seri 13 taştır. **(b) sayı peri** — aynı sayının 3 ya da 4 farklı renkteki taşı; aynı renk bir perde iki kez bulunamaz. Okey ve sahte okey her iki per türünde de eksik taşın yerine geçer | R-004 | (a) `MIMARI.md` ADR-008/1 (K1 kararı; **sürüm 3** Sahip kararı 2026-11-22, `tasokey#66`) · (b) Sahip kararı 2026-11-20 (`tasokey#35`) | doğrulandı (seri: K1, 2026-11-19 · dönüşlü sıra: Sahip, 2026-11-22 · sayı peri: Sahip, 2026-11-20) |
 | 7 | Çift: iki **birebir aynı** taş (aynı sayı **ve** aynı renk). Okey/sahte okey bir çiftin yerini tutabilir. Eski "aynı sayı, 2 farklı renk" tanımı yanlıştı; o dizilim artık sayı perinin parçasıdır (kural 6b) | R-004 | Sahip kararı 2026-11-20 (`tasokey#35`); `ARASTIRMA.md` §2 satır 6 düzeltildi | doğrulandı (Sahip, 2026-11-20) |
 | 8 | Klasik Okey'de per/çift masaya yalnız el biterken (son taşı atarken) açılır; ara aşamada masaya taş konmaz | R-005 | `ARASTIRMA.md` §2.7 | doğrulandı |
 | 9 | Gösterge taşı kendisi çift sayılamaz | R-004 | `ARASTIRMA.md` §2, satır 9 | doğrulandı |
@@ -152,12 +157,14 @@ görüntüsü kanıtı `tasokey#32`).
 
 ## 7. Açık sorular
 
-Soru 1 ve 2 K1'de kapandı (Sahip, 2026-11-19 — bkz. §1 kural 6 ve 10). Soru 3 de kapandı
+Soru 1 ve 2 K1'de kapandı (Sahip, 2026-11-19 — bkz. §1 kural 6 ve 10); ikisinin cevabı sonradan
+Sahip'in isteğiyle **değişti** (soru 2: `tasokey#50` · soru 1: `tasokey#66`), soru yine kapalıdır.
+Soru 3 de kapandı
 (2026-11-21, Mimar/Geliştirici kararı — bu soruyu bu belge onlara bırakmıştı; bkz. §4 ve
 `MIMARI.md` ADR-013). Açık soru kalmadı.
 
 | # | Soru | Seçenekler (önerilen ilk sırada) | Durum |
 |---|---|---|---|
-| 1 | 12-13-1 geçişi (sayı sırasının "tur" yapıp yapmaması) per olarak geçerli mi? | A) Geçersiz — çoğu kaynakta per ardışık sayılar 1'den 13'e düz sıradır, tur yapma belirtilmemiş **(önerilen)** · B) Geçerli — bazı yerel kurallarda tur yapabiliyor olabilir (doğrulanmadı) | **kapandı — A** (K1, §1 kural 6) |
+| 1 | 12-13-1 geçişi (sayı sırasının "tur" yapıp yapmaması) per olarak geçerli mi? | A) Geçersiz — çoğu kaynakta per ardışık sayılar 1'den 13'e düz sıradır, tur yapma belirtilmemiş **(önerilen)** · B) Geçerli — bazı yerel kurallarda tur yapabiliyor olabilir (doğrulanmadı) | **kapandı — değişti: B** (K1 2026-11-19'da A demişti; Sahip 2026-11-22'de B'ye döndürdü — v6 / `tasokey#66`, ADR-008 sürüm 3; §1 kural 6a) |
 | 2 | Okey atma cezası kesin puan/çarpanı ne olacak? | A) `PRD.md` §9 Soru 4 ile birlikte M2'de Sahip'in bildiği yerel kuralla sabitlensin **(önerilen)** · B) `101buddy.com` tablosu (101/202/404/808) birebir uygulansın | **kapandı — değişti**: ceza puanı/tablosu yok. (K1, 2026-11-19: atmak yasaktı. v5 / `tasokey#50`: atmak serbest, **ceza yine yok** — oyuncu yalnız bilgilendirilir; §1 kural 10) |
 | 3 | Bot zorluk kademesi sayısı M1'de kaç olacak? | A) 1 kademe, M2/M3'te artırılsın **(önerilen)** · B) M1'den itibaren 3 kademe (kolay/orta/zor) | **kapandı — B** (Mimar/Geliştirici, 2026-11-21, `tasokey#41`): üç kademe tek sezgiselin üç ayarı olduğu için M1'de karşılanabildi — kademe başına ayrı bot yazılmadı, kural kodu değişmedi (`MIMARI.md` ADR-013). Kademe farkı ölçüldü (`tasokey#50`'den sonra yeniden): kazanma oranı %3,5 / %26,5 / %34,5. Oyuncuya kademe seçtiren **arayüz** ayrı iştir (ADR-013 §7 risk 11) |
