@@ -158,14 +158,16 @@ test('kabul-a: varyantın BÜTÜN blokları adlandırılmış başlangıç/biti�
 
 test('kabul-a2: varyantın ölçeği BÖLGENİN İÇİNDE yazılı (kapatma anahtarı ölçeği de geri verir)', () => {
   // ADR-022/5 gereği ölçek ölçülerek seçilir (tasokey#72) ama değerin geçerliliği varyantın
-  // YAPISINA bağlıdır: dört bantlı düzen olmadan 800x360'ta 1,95 anlamsızdır. Bu yüzden ölçek
+  // YAPISINA bağlıdır: dört bantlı düzen olmadan 800x360'ta 1,45 anlamsızdır. Bu yüzden ölçek
   // bölgenin içinde durur; bölge silinince taban kademelerin tasokey#68 değerleri (1,05 ve 1)
   // yeniden kazanır — kapatma anahtarı hem düzeni hem ölçeği geri verir.
   const kalan = varyantsizCss();
-  // tasokey#72: üç dilim, üç ÖLÇÜLEN değer (800x360 1,30 · 844x390 1,50 · 900x600 1,25).
+  // tasokey#72: üç dilim, üç ÖLÇÜLEN değer. tasokey#73'te şerit daralıp kalan yer masaya geçince
+  // iki telefon dilimi yeniden ölçüldü (800x360 1,30 → 1,45 · 844x390 1,50 → 1,65); 900x600'de
+  // tavanı YATAY taşma tuttuğu için değer 1,25'te kaldı.
   for (const { boyut, varyantli, varyantsiz } of [
-    { boyut: ETKIN_BOYUTLAR[0], varyantli: 1.3, varyantsiz: 1 },
-    { boyut: ETKIN_BOYUTLAR[1], varyantli: 1.5, varyantsiz: 1 },
+    { boyut: ETKIN_BOYUTLAR[0], varyantli: 1.45, varyantsiz: 1 },
+    { boyut: ETKIN_BOYUTLAR[1], varyantli: 1.65, varyantsiz: 1 },
     { boyut: ETKIN_BOYUTLAR[2], varyantli: 1.25, varyantsiz: 1.05 },
   ]) {
     assert.equal(

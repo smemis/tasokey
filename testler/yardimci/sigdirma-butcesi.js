@@ -29,6 +29,21 @@
  * olduğunun DOĞRUDAN kanıtıdır — varsayım değil ölçüm: dört bant = varyant, üç bant = paylaşılan
  * düzen. Bant ölçüleri ölçekten BAĞIMSIZDIR (üst çubuk bandı `auto` = çubuğun kalınlığı, kalan üç
  * bant `1fr 2fr 1fr`), bu yüzden ölçek araması boyunca da sabit kalırlar.
+ *
+ * tasokey#73 (1. çekim turu, `is/tasokey-73/ekran/arama-el-*.png`): masanın DIŞINDAKİ şerit
+ * (üst çubuk + durum satırı) kısa yatay kademede daraltılınca masa O KADAR BÜYÜDÜ — tablonun
+ * varyant satırları bu yüzden yeniden ölçüldü. Masa `#uygulama`nın tek esnek öğesidir (tasokey#63),
+ * yani şeritten düşen her px doğrudan `masaIc` yüksekliğine ve oradan bantlara geçer:
+ *   · 900x600   489 → **512** px (şerit 75 → 52, −23)
+ *   · 844x390   311 → **328** px (şerit 63 → 46, −17)
+ *   · 800x360   281 → **298** px (şerit 63 → 46, −17)
+ * Masaüstü üç boyut BİREBİR aynı kaldı (gerilemesizlik; 1280x800 aynı turda ölçüldü: 1226x671 ve
+ * bant 158,75 / 317,5 / 158,75). Genişlikler de değişmedi — şerit yalnız DİKEYDE daraldı.
+ *
+ * ALT PİKSEL NOTU: iki telefon boyutunda tarayıcı SON bandı 1/64 px fazla yazdı (`68.0156` /
+ * `75.5156`) — ızgaranın kesirli paylaşımından kalan artık. Tabloya kademenin kendi değişkenlerinden
+ * ÇIKAN tam sayı yazılır (8 + 3·masa-boşluk + 4·fr = masaIc), çünkü `masaIc` de yuvarlanmış ölçüdür;
+ * ikisi ayrı yuvarlanırsa kabul-d7'nin `1fr 2fr 1fr` modeli sahte bir sapma görür.
  */
 export const OLCULEN_MASA_KUTUSU = Object.freeze([
   Object.freeze({
@@ -44,16 +59,16 @@ export const OLCULEN_MASA_KUTUSU = Object.freeze([
     bant: Object.freeze([163.75, 327.5, 163.75]),
   }),
   Object.freeze({
-    ad: 'kademe-900', boyut: [900, 600], masaIc: [864, 489], taban: [42, 60],
-    bant: Object.freeze([8, 109.75, 219.5, 109.75]),
+    ad: 'kademe-900', boyut: [900, 600], masaIc: [864, 512], taban: [42, 60],
+    bant: Object.freeze([8, 115.5, 231, 115.5]),
   }),
   Object.freeze({
-    ad: 'telefon-yatay', boyut: [844, 390], masaIc: [828, 311], taban: [25, 36],
-    bant: Object.freeze([8, 71.25, 142.5, 71.25]),
+    ad: 'telefon-yatay', boyut: [844, 390], masaIc: [828, 328], taban: [25, 36],
+    bant: Object.freeze([8, 75.5, 151, 75.5]),
   }),
   Object.freeze({
-    ad: 'telefon-kucuk', boyut: [800, 360], masaIc: [784, 281], taban: [25, 36],
-    bant: Object.freeze([8, 63.75, 127.5, 63.75]),
+    ad: 'telefon-kucuk', boyut: [800, 360], masaIc: [784, 298], taban: [25, 36],
+    bant: Object.freeze([8, 68, 136, 68]),
   }),
 ]);
 
@@ -66,11 +81,17 @@ export const OLCULEN_MASA_KUTUSU = Object.freeze([
  * (içerik + dolgu + ahşap çerçeve) düşünce kalan şeridin ta kendisidir. Şerit yazı ölçüsüne bağlı
  * satır kutularından geldiği için CSS'ten hesaplanamaz (`line-height: normal` font metriğidir) →
  * ölçülür, tahmin edilmez (A9).
+ *
+ * DİKKAT (tasokey#73'te yakalandı): çıkarmada kullanılan dolgu + çerçeve KADEMEYE GÖRE değişir
+ * (`--masa-dolgu` 16/10/4 · `--masa-cerceve-kalinlik` 14/11/8/4), bu yüzden sayı `:root` değerleriyle
+ * elde hesaplanamaz — `olculenSerit` onu modelin ÇÖZDÜĞÜ `cerceveVeDolgu` ile alır. Şeridin
+ * masaüstü/dizüstü/tablet üçlüsünde AYNI (75 px) çıkması rastlantı değildir: çerçeve inceldikçe
+ * masa o kadar büyüyor.
  */
 export const SERIT_TASOKEY_72_PX = Object.freeze({
   masaustu: 75,
-  dizustu: 69,
-  tablet: 69,
+  dizustu: 75,
+  tablet: 75,
   'kademe-900': 75,
   'telefon-yatay': 63,
   'telefon-kucuk': 63,
@@ -166,6 +187,19 @@ export const OLCEK_BASAMAGI = 0.05;
  * 0,45 → **1,25**) ve madde 10 (el bitince `#merkez` gizlenir) sonrası. 900x600'de iki durumun
  * tavanı da artık YATAY sayfa taşmasıdır (13 px: `#kenarSagAd` 9 + `#kenarSag` 6).
  * Masaüstü üç boyut BİREBİR aynı kaldı.
+ *
+ * tasokey#73 (1. çekim turu, `is/tasokey-73/ekran/arama-{el,rakip}-*.png`): şerit daraltılıp kalan
+ * yer masaya geçtikten sonra dört boyut YENİDEN ölçüldü (iki durum × dört boyut = 8 arama).
+ *   · 800x360  `el` 1,95 (değişmedi) · `rakip` 1,30 → **1,45** (sınır yine SAYFA TAŞMASI:
+ *     1,50'de `#masa` dikeyde 2 px, taşan öğe `#koseSagAltSayac` + `#koseSolAltSayac`)
+ *   · 844x390  `el` 2,00 (aramanın tavanı, değişmedi) · `rakip` 1,50 → **1,65** (1,70'te aynı
+ *     dikey taşma, aynı iki sayaç kutusu)
+ *   · 900x600  iki durumda da **1,25** — DEĞİŞMEDİ. Bu kademede bağlayıcı olan dikey değil YATAY
+ *     taşmadır (`#kenarSagAd` 9 + `#kenarSag` 6 = 13 px), yani şeridin dikey kazancı buraya
+ *     geçmez. Kazanç masaya girdi (bant 109,75 → 115,5) ama tavanı yatay sınır tutuyor.
+ *   · 1280x800 iki durumda da 1,35 / 1,35 / 1,65 — BİREBİR aynı (gerilemesizlik kanıtı; varyant
+ *     orada etkin değil). 1920x1080 ve 1180x820 bu turda ölçülmedi: varyant bölgesi onlara
+ *     dokunmuyor (kabul-b statik olarak gösteriyor) ve 1280x800 ölçümü bunu doğruluyor.
  */
 export const OLCULEN_OLCEK_TAVANI = Object.freeze({
   masaustu: Object.freeze({
@@ -192,12 +226,14 @@ export const OLCULEN_OLCEK_TAVANI = Object.freeze({
     el: Object.freeze({ yeni0: 2.00, buyumez0: 2.00, tasma0: 2.00 }),
     // `rakip`: madde 10'dan sonra çakışma sınırı kalkar (ölçümde 1,45'teki TEK yeni çift
     // `#merkez ∩ #kenarUstTaslar`tı ve 2,00'ye kadar başka çift çıkmadı) → sınır taşmadır.
-    rakip: Object.freeze({ yeni0: 1.50, buyumez0: 1.50, tasma0: 1.50 }),
+    // tasokey#73: şerit daralınca üç terim birden 1,50 → 1,65 (1,70'te `#masa` dikeyde 2 px).
+    rakip: Object.freeze({ yeni0: 1.65, buyumez0: 1.65, tasma0: 1.65 }),
   }),
   'telefon-kucuk': Object.freeze({
     el: Object.freeze({ yeni0: 1.95, buyumez0: 1.95, tasma0: 1.95 }),
     // `rakip`: aynı gerekçe (ölçümde 1,25'teki TEK yeni çift `#merkez ∩ #kenarUstTaslar`).
-    rakip: Object.freeze({ yeni0: 1.30, buyumez0: 1.30, tasma0: 1.30 }),
+    // tasokey#73: şerit daralınca üç terim birden 1,30 → 1,45 (1,50'de `#masa` dikeyde 2 px).
+    rakip: Object.freeze({ yeni0: 1.45, buyumez0: 1.45, tasma0: 1.45 }),
   }),
 });
 

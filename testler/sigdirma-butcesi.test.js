@@ -301,8 +301,10 @@ test('kabul-d6: her kademenin ölçeği TARAYICIDA ÖLÇÜLEN tavanı aşmıyor 
   assert.equal(olculenTavan('x', ['kademe-900'], ['el', 'rakip']), 1.25);
   // ÜÇÜNCÜ TERİM (madde 9): taşma tavanı da bağlar. Masaüstünde çakışma 1,85'te durduğu için
   // taşma (2,00) görünmez; telefon dilimlerinde madde 10 çakışmayı kaldırınca BAĞLAYICI olan odur.
-  assert.equal(olculenTavan('x', ['telefon-kucuk'], ['rakip']), 1.30);
-  assert.equal(olculenTavan('x', ['telefon-yatay'], ['rakip']), 1.50);
+  // tasokey#73: şerit daralıp kalan yer masaya geçince dikey taşma daha geç başladı (1,30 → 1,45
+  // ve 1,50 → 1,65); taşan öğeler aynı kaldı (alt iki köşenin sayaç kutuları).
+  assert.equal(olculenTavan('x', ['telefon-kucuk'], ['rakip']), 1.45);
+  assert.equal(olculenTavan('x', ['telefon-yatay'], ['rakip']), 1.65);
   // `tasma0` eksik bir kayıt sessizce sonsuz sayılmaz (üçüncü terim denetimsiz kalmasın).
   assert.throws(
     () => olculenTavan('x', ['masaustu'], ['el'], { masaustu: { el: { buyumez0: 1.85 } } }),
@@ -413,9 +415,9 @@ test('kabul-d10: kademenin ölçeği İKİ DURUMUN ölçülen tavanlarının en 
   // tasokey#68'de bu kural YAZILAMAZDI: masaüstü üç kademede `rakip` tavanı `el`in çok altındaydı
   // (1,85 / 1,30) ve seçim `el`e dayanıyordu. ADR-022/6 `--rakip-acik-tas-*`ı ölçekten ayırınca
   // o fark kapandı — bu turda ölçüldü: masaüstü üç boyutta iki durum AYNI (1,85 / 1,35 / 1,40).
-  // Fark yalnız kısa yatay varyantın üç dilimde sürüyor (el 1,95 / 2,00 / 1,25 ↔ rakip 1,30 /
-  // 1,50 / 1,20); ADR-022 madde 8 ve 10'dan sonra oradaki bağlayıcı terim artık çoğunlukla
-  // çakışma değil SAYFA TAŞMASIDIR (madde 9'un üçüncü terimi).
+  // Fark yalnız kısa yatay varyantın üç diliminde sürüyor (tasokey#73 ölçümü: el 1,95 / 2,00 / 1,25
+  // ↔ rakip 1,45 / 1,65 / 1,25); ADR-022 madde 8 ve 10'dan sonra oradaki bağlayıcı terim artık
+  // çoğunlukla çakışma değil SAYFA TAŞMASIDIR (madde 9'un üçüncü terimi).
   for (const [kademeAdi, boyutAdlari] of Object.entries(KADEME_KABUL_BOYUTLARI)) {
     const olcek = butceGirdisi(olculenBoyut(boyutAdlari[0])).olcek;
     assert.equal(
