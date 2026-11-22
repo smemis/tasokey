@@ -261,21 +261,30 @@ test('denetci-1: Sahip\'in ıstaka paneli kutusu içeriğinden kısa kalamaz', (
   );
 });
 
-test('denetci-2: sol/sağ rakip çubuğu dar kademelerde taban orandan daha uzun', () => {
-  const tabanEslesme = STIL_CSS.match(/\.kenar-raf-dikey\s*\{[^}]*height:\s*(\d+)%/);
-  assert.ok(tabanEslesme, '.kenar-raf-dikey taban yüzde yüksekliği tanımlı değil');
-
-  const bas = STIL_CSS.indexOf('@media (max-width: 1300px)');
-  assert.ok(bas > 0, 'stil.css 1300px kademesini tanımlamıyor');
-  const sonraki = STIL_CSS.indexOf('@media', bas + 1);
-  const darKademe = STIL_CSS.slice(bas, sonraki > 0 ? sonraki : STIL_CSS.length);
-
-  const darEslesme = darKademe.match(/\.kenar-raf-dikey\s*\{[^}]*height:\s*(\d+)%/);
-  assert.ok(darEslesme, '1300px kademesi .kenar-raf-dikey yüksekliğini artırmıyor');
-  const taban = Number(tabanEslesme[1]);
-  const dar = Number(darEslesme[1]);
-  assert.ok(dar > taban, `dar kademe oranı (${dar}%) tabandan (${taban}%) büyük değil`);
-  assert.ok(dar <= 100, `dar kademe oranı (${dar}%) satırın dışına taşıyor`);
+// Bu maddenin kuralı tasokey#63'te DEĞİŞTİ. Denetçinin (tur 1) koruduğu şey "çubuk dar kademede
+// kısa kalmasın"dı ve çözüm kademe kademe büyüyen bir yüzdeydi (taban %86, 1300px'te %96).
+// tasokey#63 aynı korumayı daha güçlü biçimde kurdu: çubuk HER kademede orta satırın TAMAMIDIR
+// (%100) ve satırın masa içindeki payı tek kaynaktan gelir (--masa-orta-satir). Kademeye göre
+// artan bir yüzde artık yok — olsaydı çubuğun ucu ile satır sınırı ayrışır, aradaki boş şerit
+// köşe atma alanının dışında kalırdı (tasokey#63 kabul ölçütü, kose-atma-alani.test.js kabul-e).
+test('denetci-2: sol/sağ rakip çubuğu hiçbir kademede satırından kısa kalmaz', () => {
+  const oranlar = [...STIL_CSS.matchAll(/\.kenar-raf-dikey\s*\{[^}]*height:\s*(\d+)%/g)]
+    .map((eslesme) => Number(eslesme[1]));
+  assert.ok(oranlar.length > 0, '.kenar-raf-dikey yüzde yüksekliği tanımlı değil');
+  for (const oran of oranlar) {
+    assert.equal(
+      oran,
+      100,
+      `.kenar-raf-dikey bir kademede satırın %${oran}'i kadar — çubuk kısalır ve satır sınırıyla `
+      + 'ucu ayrışır (boş şerit köşenin dışında kalır)',
+    );
+  }
+  // Taban uzunluk (min-height) kalır: çok kısa satırlarda çubuk bu değerin altına inmez.
+  assert.match(
+    STIL_CSS,
+    /\.kenar-raf-dikey\s*\{[^}]*min-height:\s*var\(--rakip-raf-uzunluk\)/,
+    '.kenar-raf-dikey taban uzunluğunu --rakip-raf-uzunluk değişkeninden almıyor',
+  );
 });
 
 // Denetçi bulguları (tur 2). Üst rakibin yatay çubuğu dört ekran görüntüsünde de hiç
