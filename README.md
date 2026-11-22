@@ -8,6 +8,7 @@ K1'de onaylandı (2026-11-19); kod işleri bu sürümlere göre ilerler.
 - `GDD.md` — kural ve mekanik ayrıntısı
 - `MIMARI.md` — teknoloji yığını, modüller, ADR dizini (§5)
 - `adr/` — mimari kararların tam metni, karar başına tek dosya (`ADR-001`…`ADR-025`; kural: ADR-025)
+- `DEGISIKLIK.md` — `MIMARI.md` sürüm notu geçmişi (Sürüm 3…25, birebir; her sürümün sabit çapası var)
 - `STIL.md` — görsel yön (taslak, Sahip onayı bekliyor)
 - `ARASTIRMA.md` — kaynak araştırması
 
