@@ -22,11 +22,23 @@ export function yorumlariAt(css) {
  * neler?"), aynı ayrıştırıcı üç yerde yazılmasın.
  */
 export function kuralGovdesi(css, secici) {
+  return kuralGovdeleri(css, secici)[0] ?? null;
+}
+
+/**
+ * Bir seçiciye ait BÜTÜN kural gövdeleri (geliş sırasıyla). Aynı seçici birden çok kuralda
+ * geçebilir — bildirimler amaçlarına göre ayrı kurallara bölünmüş olabilir (ör. `.tas.surukleniyor`
+ * konum/kademe kuralı + `.tas.surukleniyor, .tas-arka.surukleniyor` gizleme kuralı, ADR-021).
+ * "Şu bildirim tek yerde mi?" sorusu yalnız bütün gövdelere bakarak ölçülür: `kuralGovdesi` ilk
+ * eşleşmeyi döndürdüğü için sonraki kurallardaki bildirimi göremez (tasokey#62).
+ */
+export function kuralGovdeleri(css, secici) {
+  const govdeler = [];
   for (const [, seciciler, govde] of yorumlariAt(css).matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
     const liste = seciciler.split(',').map((parca) => parca.trim().replace(/\s+/g, ' '));
-    if (liste.includes(secici)) return govde;
+    if (liste.includes(secici)) govdeler.push(govde);
   }
-  return null;
+  return govdeler;
 }
 
 /** Her `@media` bloğunun `{ sorgu, govde }` listesi (iç içe bloklar parantez dengesiyle). */
