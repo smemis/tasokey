@@ -6,8 +6,8 @@ import { join } from 'node:path';
 import { RAF_SUTUN_SAYISI } from '../docs/arayuz/raf.js';
 import { boyutSozlugu, degiskenOlcusu, kademeSozlukleri } from './yardimci/css-olcu.js';
 import {
-  KADEME_KABUL_BOYUTLARI, OLCEK_BASAMAGI, OLCULEN_MASA_KUTUSU,
-  butceDenetimi, dikeyButce, enCokOlcek, olculenBoyut, yatayButce,
+  KADEME_KABUL_BOYUTLARI, OLCEK_BASAMAGI, OLCULEN_MASA_KUTUSU, OLCULEN_OLCEK_TAVANI,
+  butceDenetimi, dikeyButce, enCokOlcek, olculenBoyut, olculenTavan, yatayButce,
 } from './yardimci/sigdirma-butcesi.js';
 
 // tasokey#68 (üst iş tasokey#64) — ADR-022/5 kabul-d: kademe başına `--istaka-olcek` değeri
@@ -217,6 +217,38 @@ test('kabul-d4: ölçülen boyut tablosu planın §4 kabul boyutlarını kapsar'
     assert.ok(satir.masaIc[0] < satir.boyut[0], `${satir.ad}: masa genişliği görünümden küçük değil`);
     assert.ok(satir.masaIc[1] < satir.boyut[1], `${satir.ad}: masa yüksekliği görünümden küçük değil`);
   }
+});
+
+test('kabul-d6: her kademenin ölçeği TARAYICIDA ÖLÇÜLEN tavanı aşmıyor (bağlayıcı denetim)', () => {
+  // ADR-022/5: değer SEÇİLMEZ, ÖLÇÜLÜR. Bütçe (kabul-d2) bir ÜST SINIRDIR ve her boyutta
+  // gerçeğin üstünde kaldı; bağlayıcı olan `yerlesim-cakisma.olcum.js --arama` ölçümüdür.
+  for (const [kademeAdi, boyutAdlari] of Object.entries(KADEME_KABUL_BOYUTLARI)) {
+    const tavan = olculenTavan(kademeAdi, boyutAdlari);
+    const olcek = butceGirdisi(olculenBoyut(boyutAdlari[0])).olcek;
+    // Kademenin bütün kabul boyutları aynı @media bloğundan okur → ölçek hepsinde aynı olmalı.
+    for (const boyutAdi of boyutAdlari) {
+      assert.equal(
+        butceGirdisi(olculenBoyut(boyutAdi)).olcek, olcek,
+        `${kademeAdi} · ${boyutAdi}: aynı kademenin kabul boyutları farklı ölçek çözüyor`,
+      );
+    }
+    assert.ok(
+      olcek <= tavan + 1e-9,
+      `${kademeAdi}: ölçek ${olcek}, ölçülen tavan ${tavan}`
+      + ` (çakışma çıkar — is/tasokey-68/ekran/olcum-el-*.png "ARAMA enCok" satırı)`,
+    );
+  }
+  // Ölçüm tablosu, bütçenin ölçtüğü boyutların HEPSİNİ kapsıyor (biri eklenince sessizce
+  // denetimsiz kalmasın).
+  assert.deepEqual(
+    Object.keys(OLCULEN_OLCEK_TAVANI).sort(),
+    OLCULEN_MASA_KUTUSU.map((satir) => satir.ad).sort(),
+  );
+  // Bilinmeyen boyut/durum sessizce `undefined` ile geçmemeli.
+  assert.throws(() => olculenTavan('x', ['yok-boyle']), /ölçülen ölçek tavanı yok/);
+  assert.throws(() => olculenTavan('x', ['masaustu'], ['yok']), /ölçülen durum yok/);
+  // Tabanı zaten ihlalli boyut ölçeği 1'de tutar (800x360 `el`: buyumez0 yok).
+  assert.equal(olculenTavan('x', ['telefon-kucuk']), 1);
 });
 
 test('kabul-d5: metin payı ölçülen tek değişkendir (kuralların içine sayı yazılmaz)', () => {

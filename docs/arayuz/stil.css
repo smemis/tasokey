@@ -36,8 +36,12 @@
      testler/yardimci/sigdirma-butcesi.js) sağlanmak zorundadır, ölçüm iş 1'in aracıyla yapılır
      (testler/yerlesim-cakisma.olcum.js → çakışma/taşma 0). Kapatma anahtarı: bu değeri 1 yapmak
      bütün kademelerde tasokey#13 düzenine döner (testler/istaka-olcek.test.js kabul-c ölçer).
-     1920x1080'de bütçe tavanın (2) üstünü veriyor → ölçek tavanda durur. */
-  --istaka-olcek: 2;
+     Kabul boyutu 1920x1080: bütçe 2,17 (tavanın üstü) diyordu ama TARAYICI ÖLÇÜMÜ 1,85 dayattı
+     (tasokey#68 2. çekim turu) — 1,90'da ıstaka kendi ızgara satırını aşıp orta satırın alta
+     yaslı göstergesini örtüyor (#rafAlani ∩ #merkez + ∩ #gosterge). Ölçülen kazanır (ADR-022/5);
+     bütçe yalnız ikinci, daha gevşek denetimdir. Tek kaynak: sigdirma-butcesi.js
+     OLCULEN_OLCEK_TAVANI. */
+  --istaka-olcek: 1.85;
   /* Sığdırma bütçesinin (plan §4 dikey eşitsizliği) METİN SATIRI terimi — ÖLÇÜLEN tek değişken
      (ADR-022/5): ıstaka başlığı + deste sütununun taş boyunu aşan payı (başlık + sayaç + ipucu
      satırları ve `.yigin` boşlukları). rem tabanlı olduğu için CSS içinde px'e çevrilemez, bu
@@ -959,9 +963,11 @@ html, body {
     --tas-taban-yukseklik: 72px;
     --tas-arka-taban-genislik: 30px;
     --tas-arka-taban-yukseklik: 44px;
-    /* Bağlayıcı kabul boyutu 1180x820 (tablet dikey): yatay bütçe taş genişliğini 74,1 px'le
-       sınırlıyor → 50 px tabanda ölçek en çok 1,48; basamağa (0,05) yuvarlanınca 1,45. */
-    --istaka-olcek: 1.45;
+    /* Kabul boyutları 1280x800 ve 1180x820. Bütçe 1,48 diyordu; TARAYICI ÖLÇÜMÜ (tasokey#68
+       2. tur) 1280x800'de 1,35, 1180x820'de 1,40 verdi → bağlayıcı olan 1280x800, ölçek 1,35.
+       (Bütçe bağlayıcıyı 1180x820 sanıyordu: kesirli ızgara satırları toplam bütçeyle
+       modellenemiyor — sigdirma-butcesi.js OLCULEN_OLCEK_TAVANI.) */
+    --istaka-olcek: 1.35;
     --masa-bosluk: 18px;
     --masa-cerceve-kalinlik: 11px;
     --rakip-raf-uzunluk: 190px;
@@ -979,9 +985,11 @@ html, body {
     --tas-taban-yukseklik: 60px;
     --tas-arka-taban-genislik: 24px;
     --tas-arka-taban-yukseklik: 36px;
-    /* Kabul boyutu 900x600: yatay bütçe 56,6 px (ölçek 1,34), dikey bütçe 81 px (ölçek 1,35) —
-       ikisi de bağlayıcıya yakın, basamağa yuvarlanınca 1,30. */
-    --istaka-olcek: 1.3;
+    /* Kabul boyutu 900x600: bütçe 1,34 diyordu, TARAYICI ÖLÇÜMÜ (tasokey#68 2. tur) 1,05 —
+       1,10'da ıstaka göstergeyi 4 px örtüyor. Bu kademede kazanç çok azdır; büyütmenin yolu
+       orta satırın payını (--masa-orta-satir) ya da metin satırlarını değiştirmektir
+       (ADR-022 Seçenek D / Sonuçlar f — Sahip ve Mimar kararı). */
+    --istaka-olcek: 1.05;
     --masa-bosluk: 14px;
     --masa-dolgu: 10px;
     --masa-cerceve-kalinlik: 8px;
@@ -1026,11 +1034,13 @@ html, body {
     --tas-taban-yukseklik: 36px;
     --tas-arka-taban-genislik: 13px;
     --tas-arka-taban-yukseklik: 20px;
-    /* Bağlayıcı kabul boyutu 800x360: dikey bütçe taş boyunu 39,5 px'le sınırlıyor → 36 px
-       tabanda ölçek en çok 1,09, basamağa yuvarlanınca 1 — bu kademede KAZANÇ YOK (ADR-022
-       Sonuçlar/e; tarayıcı ölçümü de ölçek 1'de bütçenin zaten taştığını gösterdi: 800x360'ta
-       #rafAlani ile #merkez 10 px örtüşüyor). Büyütmenin tek yolu metin satırlarını kaldırmak
-       (ADR-022 Seçenek D) — ÜRÜN kararı, Sahip'te. */
+    /* Bağlayıcı kabul boyutu 800x360: bu kademede KAZANÇ YOK (ADR-022 Sonuçlar/e). Bütçe 1,09
+       diyordu; tarayıcı ölçümü (tasokey#68 2. tur) 800x360'ta ölçek 1'de ZATEN 2 çakışma buldu
+       (#rafAlani ∩ #merkez 308x10, ∩ #gosterge 6x10) ve ilk basamakta (1,05) ikisi de büyüyor
+       → `buyumez0` yok, ölçek 1'de kalır. 844x390 ölçek 1'de temiz ve 1,05'e izin veriyor, ama
+       kademenin değeri en dar kabul boyutundan gelir. O 2 çakışma TABANDAN gelir (tasokey#67
+       "önce" ölçümünde de vardı), bu işin kapsamı değil — raporun Öneriler'inde.
+       Büyütmenin tek yolu metin satırlarını kaldırmak (ADR-022 Seçenek D) — ÜRÜN kararı. */
     --istaka-olcek: 1;
     --raf-bosluk: 4px;
     /* Ölçülen metin payı bu kademede 79 px: `.yigin { gap: 4px }` (aşağıda) üç boşluğu 6'dan

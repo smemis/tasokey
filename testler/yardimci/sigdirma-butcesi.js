@@ -52,6 +52,75 @@ export const KADEME_KABUL_BOYUTLARI = Object.freeze({
 /** Ölçek merdiveninin basamağı (ölçüm aracının `olcekAramasi` basamağıyla aynı). */
 export const OLCEK_BASAMAGI = 0.05;
 
+/**
+ * TARAYICIDA ÖLÇÜLEN ölçek tavanı — `tasokey#68` **2. çekim turu**, `yerlesim-cakisma.olcum.js`
+ * `--arama` kipi (`is/tasokey-68/ekran/olcum-*.png` yazı katmanındaki `ARAMA enCok` satırı).
+ * Araç `--istaka-olcek`i satır içi geçersiz kılarak 1,05'ten 2,00'a 0,05 basamakla tarar ve her
+ * basamakta YENİ çakışan çift / BÜYÜYEN mevcut çift / taşma sayar.
+ *
+ * - `yeni0`: yeni çakışan çift çıkmadan erişilen en büyük ölçek.
+ * - `buyumez0`: ek olarak MEVCUT (taban) çiftlerin hiçbiri büyümeden erişilen en büyük ölçek;
+ *   `null` ise taban zaten ihlalli ve ilk basamakta büyüyor (800x360 `el`).
+ *
+ * NİÇİN BU TABLO BÜTÇENİN YANINDA DURUYOR: `enCokOlcek()` bütçesi bir ÜST SINIRDIR ve her boyutta
+ * gerçeğin ÜSTÜNDE kaldı (1920: bütçe 2,17 · ölçülen 1,85). Sebep ölçüldü: `#masa`nın satırları
+ * `grid-template-rows: 1fr var(--masa-orta-satir) 1fr` ile KESİRLİDİR, bütçe ise masa yüksekliğini
+ * tek bir toplam gibi paylaştırır. Istaka (`#rafAlani`, `align-self: end`) kendi satırını aşınca
+ * yukarı taşar ve orta satırın alta yaslı içeriğini (`#merkez` → `#gosterge`) örter — bütün
+ * boyutlarda bağlayıcı olan çift budur (`#rafAlani ∩ #merkez` + `#rafAlani ∩ #gosterge`).
+ * ADR-022/5 gereği kademe değeri SEÇİLMEZ, ÖLÇÜLÜR → CSS'teki değerin tek dayanağı bu tablodur,
+ * bütçe yalnız ikinci (daha gevşek) bir denetim olarak kalır.
+ */
+export const OLCULEN_OLCEK_TAVANI = Object.freeze({
+  masaustu: Object.freeze({
+    el: Object.freeze({ yeni0: 1.85, buyumez0: 1.85 }),
+    rakip: Object.freeze({ yeni0: 1.30, buyumez0: 1.30 }),
+  }),
+  dizustu: Object.freeze({
+    el: Object.freeze({ yeni0: 1.35, buyumez0: 1.35 }),
+    rakip: Object.freeze({ yeni0: 1.05, buyumez0: 1.05 }),
+  }),
+  tablet: Object.freeze({
+    el: Object.freeze({ yeni0: 1.40, buyumez0: 1.40 }),
+    rakip: Object.freeze({ yeni0: 1.10, buyumez0: 1.10 }),
+  }),
+  'kademe-900': Object.freeze({
+    el: Object.freeze({ yeni0: 1.05, buyumez0: 1.05 }),
+    rakip: Object.freeze({ yeni0: 1.05, buyumez0: null }),
+  }),
+  'telefon-yatay': Object.freeze({
+    el: Object.freeze({ yeni0: 1.05, buyumez0: 1.05 }),
+    rakip: Object.freeze({ yeni0: 1.05, buyumez0: 1.05 }),
+  }),
+  'telefon-kucuk': Object.freeze({
+    el: Object.freeze({ yeni0: 1.15, buyumez0: null }),
+    rakip: Object.freeze({ yeni0: 1.15, buyumez0: null }),
+  }),
+});
+
+/**
+ * Ölçümün kademeye izin verdiği en büyük ölçek: kademenin BÜTÜN kabul boyutlarında, verilen
+ * durumlarda `buyumez0`un en küçüğü. `buyumez0` yoksa (taban zaten ihlalli) o boyut ölçeğin
+ * büyümesine izin vermez → 1.
+ *
+ * `durumlar` varsayılanı yalnız `el`dir: `rakip` (el bittiğinde açılan rakip ıstakası) ölçümünde
+ * bağlayıcı çiftler `#kenarSolTaslar`/`#kenarSagTaslar` ile köşe yığınlarıdır, yani ölçeğin
+ * büyüttüğü `--rakip-acik-tas-*` ile ölçeğe BAĞLANMAYAN `--rakip-raf-*` kutusunun çelişkisi —
+ * ADR-022/6'nın açık bırakığı sorudur, `tasokey#68` raporunda Mimar'a soruluyor.
+ */
+export function olculenTavan(kademeAdi, kabulBoyutlari, durumlar = ['el']) {
+  let enKucuk = Infinity;
+  for (const boyutAdi of kabulBoyutlari) {
+    const kayit = OLCULEN_OLCEK_TAVANI[boyutAdi];
+    if (!kayit) throw new Error(`ölçülen ölçek tavanı yok: ${boyutAdi} (${kademeAdi})`);
+    for (const durum of durumlar) {
+      if (!kayit[durum]) throw new Error(`ölçülen durum yok: ${boyutAdi}/${durum}`);
+      enKucuk = Math.min(enKucuk, kayit[durum].buyumez0 ?? 1);
+    }
+  }
+  return Math.max(1, enKucuk);
+}
+
 /** Ölçülen boyut kaydı (ad ile); yoksa hata — sessizce `undefined` ile hesap yapılmasın. */
 export function olculenBoyut(ad) {
   const kayit = OLCULEN_MASA_KUTUSU.find((satir) => satir.ad === ad);
