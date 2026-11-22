@@ -1125,8 +1125,20 @@ html, body {
        `#merkez ∩ #kenarUstTaslar`; öz-test karşılığı kisa-yatay-varyant kabul-h). Böylece iş 1'in
        "durum=rakip'te YENİ çakışma 0" ölçütü bozulmadan geçer ve hiçbir denetim gevşetilmez.
        AÇIK SORU (Sahip kapısı, tasokey#72 raporu): ADR-022 Seçenek F "birkaç saniyelik bir durum
-       kalıcı ölçüyü belirlemesin" diyor — o okumayla değer 1,95 olurdu. Bedeli kabul-h'nin 800x360
-       savını gevşetmek ve ADR-022/6'ya yeni bir açık madde yazmaktır; karar Sahip'te. */
+       kalıcı ölçüyü belirlemesin" diyor — o okumayla değer 1,95 olurdu. Bedeli YALNIZ kabul-h'nin
+       800x360 savını gevşetmek değildir: aynı turda `durum=rakip`te TAŞMA da ölçüldü
+       (`ARAMA enCok tasma0` 800x360 **1,30** · 844x390 **1,50** · 900x600 **1,25**), yani 1,95'te
+       sayfa ayrıca taşar — iş 1'in "taşma 0" ölçütü de düşer. Karar Sahip'te.
+
+       NİÇİN BU KADEMEDE 1,20'NİN ÜSTÜ ÖLÇÜLEMEZ (tasokey#72 2. tur ölçümüyle, 800x360):
+       üst içerik bandı 63,75 px'tir ve ÖLÇEKTEN BAĞIMSIZDIR (bant listesi `auto 1fr 2fr 1fr`,
+       oran kararı tasokey#33 madde 1); #merkez'in yüksekliği taş boyudur (36·ölçek, ADR-022 tek
+       kaynak) ve açılan üst sıra çubuğun altından aynı banda sarkar (karar maddesi 6) →
+       8 + ad payı + sıra yüksekliği < 14 + 63,75 − 36·ölçek. Ölçek 1,6 için sıranın yüksekliği
+       10 px'in altına inmeliydi (bugün 21,6; taşlar 7x10 px olurdu). YATAY kaçış da yok: #merkez
+       ÖLÇÜLDÜ, scale 1'de 505,8 px geniş (ipucu metni taşların yanında, BUTCE-V merkezGen) — sıra
+       (253 px) ile yan yana orta sütuna sığmıyor. Yani ölçeği bu kademede yükseltmenin yolu
+       ÖLÇÜ değil DÜZEN değişikliğidir (bant oranı / metnin yeri / durum-başına ölçek) → Mimar. */
     --istaka-olcek: 1.2;
     /* Varyantın sığdırma bütçesi (plan §4'ün varyant karşılığı) — ÖLÇÜLEN iki terim (ADR-022/5):
        varyant metni KALDIRMAZ, TAŞIR (yığınlar ve ıstaka paneli yatay akar), yani metnin payı

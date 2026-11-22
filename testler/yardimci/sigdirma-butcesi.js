@@ -116,6 +116,13 @@ export const OLCEK_BASAMAGI = 0.05;
  *   · 900x600 `el` 1,05 → **1,25**
  * `durum=rakip` de üç boyutta birden yükseldi (1,05/1,05 → 1,40/1,20 · 1,05 → 1,10) ve masaüstünde
  * ADR-022/6'nın muafiyetinden sonra `el` ile eşitlendi (1,85 / 1,35 / 1,40).
+ *
+ * `yeni0`/`buyumez0` zaten TAŞMASIZ basamaklardan seçilir. Aynı turda ölçülen ayrı bir sınır da
+ * var ve tabloya GİRMEZ, çünkü ölçek seçimini bağlamaz — ama bir üst sınırdır: `durum=rakip`te
+ * sayfa taşması 800x360'ta **1,30**, 844x390'ta **1,50**, 900x600'de **1,25** basamağından sonra
+ * başlar (`ARAMA enCok tasma0`). Yani çakışmalar tümüyle çözülse bile bu kademelerde ölçek o
+ * değerlerin üstüne çıkamaz; "telefonda ölçek >= 1,6" ancak DÜZEN değişikliğiyle mümkündür
+ * (tasokey#72 raporu §11 — Sahip/Mimar kapısı).
  */
 export const OLCULEN_OLCEK_TAVANI = Object.freeze({
   masaustu: Object.freeze({
