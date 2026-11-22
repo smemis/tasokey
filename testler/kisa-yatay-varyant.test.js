@@ -9,7 +9,9 @@ import {
   boyutSozlugu, degiskenOlcusu, kuralGovdeleri, medyaBloklari, medyaSorgusuUyuyor, yorumlariAt,
 } from './yardimci/css-olcu.js';
 import { alanSatirlari, bildirim, masaModeli } from './yardimci/masa-izleri.js';
-import { olculenBantlar, olculenMasaKutusu } from './yardimci/sigdirma-butcesi.js';
+import {
+  SERIT_TASOKEY_72_PX, olculenBantlar, olculenMasaKutusu, olculenSerit,
+} from './yardimci/sigdirma-butcesi.js';
 
 // tasokey#71 (üst iş tasokey#70, sınıf K) — KISA YATAY DÜZEN VARYANTININ YAPISI · R-014.
 // Karar: tasokey#70 planı §3 (maddeler 1-7); kararın numarası ve metni MIMARI.md'ye aynı üst işin
@@ -47,14 +49,14 @@ function model(boyut) {
 
 /** Varyantın ETKİN olduğu kabul boyutları (plan §5) ve etkin OLMADIĞI gerilemesizlik boyutları. */
 const ETKIN_BOYUTLAR = [
-  { ad: '800x360', genislik: 800, yukseklik: 360 },
-  { ad: '844x390', genislik: 844, yukseklik: 390 },
-  { ad: '900x600', genislik: 900, yukseklik: 600 },
+  { ad: '800x360', genislik: 800, yukseklik: 360, olcum: 'telefon-kucuk' },
+  { ad: '844x390', genislik: 844, yukseklik: 390, olcum: 'telefon-yatay' },
+  { ad: '900x600', genislik: 900, yukseklik: 600, olcum: 'kademe-900' },
 ];
 const ETKIN_OLMAYAN_BOYUTLAR = [
-  { ad: '1280x800', genislik: 1280, yukseklik: 800 },
-  { ad: '1180x820', genislik: 1180, yukseklik: 820 },
-  { ad: '1920x1080', genislik: 1920, yukseklik: 1080 },
+  { ad: '1280x800', genislik: 1280, yukseklik: 800, olcum: 'dizustu' },
+  { ad: '1180x820', genislik: 1180, yukseklik: 820, olcum: 'tablet' },
+  { ad: '1920x1080', genislik: 1920, yukseklik: 1080, olcum: 'masaustu' },
 ];
 
 /** Varyanta ait `@media` sorgusu mu (eşik 500px'ten büyük olan yatay+kısa sorgu)? */
@@ -204,6 +206,13 @@ const ETKILENEN_BILDIRIMLER = [
   ['.kenar-ust .kenar-taslar', 'margin-top'], ['.kenar-sol .kenar-taslar', 'margin-left'],
   ['.kenar-sag .kenar-taslar', 'margin-right'],
   ['.kose', 'min-width'], ['.kose', 'min-height'], ['.kose', 'grid-template-rows'],
+  // tasokey#73 — şerit (masanın dışındaki üst çubuk + durum satırı). Değişkenler kabul-b'nin (1).
+  // maddesinde zaten karşılaştırılıyor; buradaki satırlar KURAL düzeyindeki bildirimleri bağlar
+  // (varyant `#durumSatiri`in satır aralığını yalnız bölgenin içinde yazar).
+  ['#ustCubuk', 'padding'], ['.ust-cubuk-dugmesi', 'padding'],
+  ['#durumSatiri', 'padding'], ['#durumSatiri', 'min-height'], ['#durumSatiri', 'line-height'],
+  ['.kucult-dugmesi', 'font-size'], ['#sonucPaneli.kucuk #sonucKutusu', 'padding'],
+  ['#sonucPaneli.kucuk #sonucKutusu', 'margin-top'],
 ];
 
 test('kabul-b: varyant bloğunun DIŞI tasokey#68 ile birebir aynı (masaüstü kademeleri etkilenmiyor)', () => {
@@ -464,6 +473,144 @@ test('kabul-j: el bitince #merkez gizlenir — sınıf saf karardan gelir, kural
   const gizleyenler = [...YORUMSUZ.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
     .filter(([, seciciler, govde]) => /#merkez/.test(seciciler) && /display\s*:\s*none/.test(govde));
   assert.equal(gizleyenler.length, 1, '#merkez birden çok kuralda gizleniyor — tek kapı bozuldu');
+});
+
+/* ---------------------------------------------------------------------------------- kabul-k */
+
+/**
+ * ŞERİDİN (masanın dışındaki üst çubuk + durum satırı) ölçü değişkenleri ve tasokey#68/#72'de
+ * geçerli olan TABAN değerleri — tasokey#73, plan §6.3. Çıplak sayılar kuralların içinden
+ * değişkene taşındı; masaüstü kademelerinde ÇÖZÜLEN değer birebir aynı kalmak zorunda.
+ */
+const SERIT_TABAN_OLCULERI = Object.freeze([
+  ['--ust-cubuk-dolgu-dikey', 8, 'px', 'daralan'],
+  ['--ust-cubuk-dolgu-yatay', 16, 'px', 'degismeyen'],
+  ['--ust-dugme-dolgu-dikey', 4, 'px', 'daralan'],
+  ['--ust-dugme-dolgu-yatay', 10, 'px', 'degismeyen'],
+  ['--durum-dolgu-dikey', 6, 'px', 'daralan'],
+  ['--durum-dolgu-yatay', 16, 'px', 'degismeyen'],
+  ['--durum-satir-payi', 1.4, '', 'daralan'],
+  ['--sonuc-kucuk-dolgu-dikey', 2, 'px', 'daralan'],
+  ['--sonuc-kucuk-dolgu-yatay', 10, 'px', 'degismeyen'],
+  ['--sonuc-kucuk-ust-pay', 6, 'px', 'daralan'],
+  ['--kucult-dugme-font-boyutu', 0.9, 'rem', 'cubuk-dugmesiyle-ayni'],
+]);
+
+/**
+ * Şeridin YAZI ölçüleri kademe başına tasokey#68 değerlerinde KALIR: şerit dolgudan ve satır
+ * payından daralır, metin küçültülerek değil (istek: hiçbir metin/düğme/dil anahtarı kalkmaz).
+ */
+const SERIT_YAZI_OLCULERI = Object.freeze({
+  '800x360': Object.freeze([['--baslik-font-boyutu', 0.9], ['--ust-dugme-font-boyutu', 0.75], ['--durum-font-boyutu', 0.8]]),
+  '844x390': Object.freeze([['--baslik-font-boyutu', 0.9], ['--ust-dugme-font-boyutu', 0.75], ['--durum-font-boyutu', 0.8]]),
+  '900x600': Object.freeze([['--baslik-font-boyutu', 1.1], ['--ust-dugme-font-boyutu', 0.95], ['--durum-font-boyutu', 0.95]]),
+});
+
+/**
+ * Şerit ölçülerinin taban değerinden SAPTIĞI kademeler (varyant bölgesinin DIŞINDAN, tasokey#31):
+ * yatay+kısa kademe durum satırının dolgusunu zaten küçültüyordu. "Bölge silinince ne kalır?"
+ * sorusunun yanıtı bu yüzden boyuta göre değişir ve burada pinlenir — yoksa (2). maddenin
+ * karşılaştırma tabanı sessizce kayabilir.
+ */
+const SERIT_BOLGESIZ_SAPMA = Object.freeze({
+  '800x360': Object.freeze([['--durum-dolgu-dikey', 3], ['--durum-dolgu-yatay', 8]]),
+  '844x390': Object.freeze([['--durum-dolgu-dikey', 3], ['--durum-dolgu-yatay', 8]]),
+  '900x600': Object.freeze([]),
+});
+
+/** Şeridin kısa yatayda en az bu kadar px daralması ÖLÇÜLDÜ (tasokey#73 1. çekim turu). */
+const EN_AZ_SERIT_KAZANCI_PX = 10;
+
+test('kabul-k: masanın DIŞINDAKİ şerit kısa yatayda daralır, masaüstü kademeleri birebir aynı', () => {
+  // İstek (tasokey#73): "Masanın dışındaki şeridi kısa yatay kademede daraltıp kalanı #masa'ya
+  // vermek; yalnız yerleşim ve ölçü değişikliği." Şerit yazı ölçüsüne bağlı satır kutularından
+  // geldiği için CSS'ten hesaplanamaz (`line-height: normal` font metriğidir) → yüksekliği
+  // TARAYICIDA ölçülür (aşağıdaki (3) maddesi, `masaIc` tablosundan çıkar), burada ölçülen
+  // yüksekliği ÜRETEN değişkenler ve yalıtım denetlenir.
+  const kalan = varyantsizCss();
+  const olcu = (css, boyut, ad) => degiskenOlcusu(ad, boyutSozlugu(css, boyut, EKLER));
+  const taban = (ad) => SERIT_TABAN_OLCULERI.find(([deger]) => deger === ad);
+
+  // (1) Masaüstü/dizüstü/tablet: şeridin BÜTÜN ölçüleri taban değerinde ve varyant bölgesi
+  // onlara dokunmuyor (bölgeli ve bölgesiz CSS aynı sayıyı veriyor).
+  for (const boyut of ETKIN_OLMAYAN_BOYUTLAR) {
+    for (const [ad, sayi, birim] of SERIT_TABAN_OLCULERI) {
+      assert.deepEqual(
+        olcu(STIL_CSS, boyut, ad), { sayi, birim },
+        `${boyut.ad}: ${ad} tasokey#72 değerinden sapmış (masaüstü şeridi değişti)`,
+      );
+      assert.deepEqual(
+        olcu(kalan, boyut, ad), { sayi, birim },
+        `${boyut.ad}: ${ad} varyant bölgesinden etkilenmiş`,
+      );
+    }
+  }
+
+  // (2) Varyantın üç boyutu: dikey bileşenler KÜÇÜLDÜ, yatay bileşenler ve YAZI ölçüleri aynı.
+  // Karşılaştırma tabanı "bölgesiz CSS"in aynı boyutta çözdüğü değerdir (kapatma anahtarı =
+  // yalıtım): yatay+kısa kademe bazı dolguları zaten küçültüyor (SERIT_BOLGESIZ_SAPMA).
+  for (const boyut of ETKIN_BOYUTLAR) {
+    for (const [ad, , birim, tur] of SERIT_TABAN_OLCULERI) {
+      const varyantli = olcu(STIL_CSS, boyut, ad);
+      const bolgesiz = olcu(kalan, boyut, ad);
+      const sapma = SERIT_BOLGESIZ_SAPMA[boyut.ad].find(([deger]) => deger === ad);
+      assert.deepEqual(
+        bolgesiz,
+        { sayi: sapma ? sapma[1] : taban(ad)[1], birim },
+        `${boyut.ad}: bölge silinince ${ad} tasokey#72 değerine dönmüyor (bildirim sızmış ya da `
+        + 'taban kademe değişmiş)',
+      );
+      if (tur === 'daralan') {
+        assert.ok(
+          varyantli.sayi < bolgesiz.sayi,
+          `${boyut.ad}: ${ad} ${varyantli.sayi} — bölgesiz değerden (${bolgesiz.sayi}) küçük değil `
+          + '(şerit daralmıyor)',
+        );
+      } else if (tur === 'degismeyen') {
+        assert.deepEqual(
+          varyantli, bolgesiz,
+          `${boyut.ad}: ${ad} değişmiş — şeridin YATAY ölçüsü bu işin kapsamı değil`,
+        );
+      } else {
+        // Rozetin düğmesi üst çubuğun düğmesiyle AYNI ölçüyü okur (tek kaynak): rozet üst çubuğun
+        // içinde kalmak zorunda, yoksa durum satırına girer (yeni çakışma).
+        assert.deepEqual(
+          varyantli, olcu(STIL_CSS, boyut, '--ust-dugme-font-boyutu'),
+          `${boyut.ad}: ${ad} üst çubuk düğmesinin ölçüsünden ayrışmış`,
+        );
+      }
+    }
+    for (const [ad, rem] of SERIT_YAZI_OLCULERI[boyut.ad]) {
+      assert.deepEqual(
+        olcu(STIL_CSS, boyut, ad), { sayi: rem, birim: 'rem' },
+        `${boyut.ad}: ${ad} değişmiş — şerit metin küçültülerek değil DOLGUDAN daralır`,
+      );
+      assert.deepEqual(
+        olcu(kalan, boyut, ad), { sayi: rem, birim: 'rem' },
+        `${boyut.ad}: ${ad} varyant bölgesinden etkilenmiş`,
+      );
+    }
+  }
+
+  // (3) ÖLÇÜLEN şerit yüksekliği (görünüm − masanın dış kutusu; `olculenSerit`): masaüstü üç
+  // boyutta tasokey#72 değeri BİREBİR, varyantın üç boyutunda belirgin biçimde KÜÇÜK.
+  for (const boyut of [...ETKIN_BOYUTLAR, ...ETKIN_OLMAYAN_BOYUTLAR]) {
+    const m = model(boyut);
+    const serit = olculenSerit(boyut.olcum, m.cerceveVeDolgu / 2);
+    const once = SERIT_TASOKEY_72_PX[boyut.olcum];
+    if (m.varyant) {
+      assert.ok(
+        serit <= once - EN_AZ_SERIT_KAZANCI_PX,
+        `${boyut.ad}: ölçülen şerit ${serit} px, tasokey#72'de ${once} px — en az `
+        + `${EN_AZ_SERIT_KAZANCI_PX} px daralması bekleniyordu (kazanç masaya geçmiyor)`,
+      );
+    } else {
+      assert.equal(
+        serit, once,
+        `${boyut.ad}: ölçülen şerit ${serit} px, tasokey#72'de ${once} px — masaüstü şeridi değişti`,
+      );
+    }
+  }
 });
 
 /* ---------------------------------------------------------------------------------- kabul-i */

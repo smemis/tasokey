@@ -57,6 +57,35 @@ export const OLCULEN_MASA_KUTUSU = Object.freeze([
   }),
 ]);
 
+/**
+ * MASANIN DIŞINDAKİ ŞERİDİN (üst çubuk + durum satırı) tasokey#72'de ÖLÇÜLEN yüksekliği, px —
+ * tasokey#73'ün (plan §6.3) TABANI ve gerilemesizlik çapası.
+ *
+ * Sayı ayrı ölçülmedi, aynı turun `masaIc` tablosundan ÇIKAR (`olculenSerit`): masa `#uygulama`nın
+ * tek esnek öğesidir (flex 1 1 0, tasokey#63), yani görünüm yüksekliğinden masanın DIŞ kutusu
+ * (içerik + dolgu + ahşap çerçeve) düşünce kalan şeridin ta kendisidir. Şerit yazı ölçüsüne bağlı
+ * satır kutularından geldiği için CSS'ten hesaplanamaz (`line-height: normal` font metriğidir) →
+ * ölçülür, tahmin edilmez (A9).
+ */
+export const SERIT_TASOKEY_72_PX = Object.freeze({
+  masaustu: 75,
+  dizustu: 69,
+  tablet: 69,
+  'kademe-900': 75,
+  'telefon-yatay': 63,
+  'telefon-kucuk': 63,
+});
+
+/**
+ * Bir ölçülen boyutta şeridin yüksekliği: görünüm − (masa içerik kutusu + dolgu + çerçeve).
+ * `dolguVeCerceve` = `--masa-dolgu` + `--masa-cerceve-kalinlik` (tek yanı; iki yan için 2 ile
+ * çarpılır — `masa-izleri.js` `cerceveVeDolgu` ile aynı hesap).
+ */
+export function olculenSerit(boyutAdi, dolguVeCerceve) {
+  const kayit = olculenBoyut(boyutAdi);
+  return kayit.boyut[1] - kayit.masaIc[1] - 2 * dolguVeCerceve;
+}
+
 /** Ölçülen bant sayısından: bu boyutta kısa yatay DÜZEN VARYANTI etkin mi (dört bant)? */
 export function olculenVaryant(ad) {
   return olculenBoyut(ad).bant.length > 3;
