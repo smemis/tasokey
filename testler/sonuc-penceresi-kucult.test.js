@@ -100,8 +100,30 @@ test('ASIL KABUL (arayüz): küçük pencere masanın üstünü açar — saydam
   // Küçükken yalnız geri büyüten düğme görünür: metin, döküm bölümü ve alt düğmeler gizlenir.
   const gizleme = tekKuralGovdesi('#sonucPaneli.kucuk #sonucKutusu > :not(#kucultAcKapaButonu)');
   assert.match(gizleme, /display:\s*none/, 'küçükken pencere içeriği gizlenmiyor — kutu yine büyük');
+});
 
-  // Hiçbir duyarlı kademe küçültme kurallarını geçersiz kılmamalı.
+// Çekim turu 2 bulgusu (is/tasokey-65/ekran/sonuc-kucultulmus-genis-masaustu.png): küçültülmüş kutu
+// masanın TAM ORTASINDA kalıyordu — destenin ve "Yer destesi"/"Gösterge" yazılarının üstüne oturdu,
+// üstelik --panel ile --masa-zemin birbirine o kadar yakın ki kutu zeminsiz bir yazı gibi duruyordu.
+test('ASIL KABUL (konum): küçültülmüş kutu masanın ortasında durmaz, görünür bir rozettir', () => {
+  const panel = tekKuralGovdesi('#sonucPaneli.kucuk');
+  assert.match(
+    panel, /align-items:\s*flex-start/,
+    'küçültülmüş kutu dikeyde ortada kalıyor — masanın orta alanını (deste + gösterge) örter',
+  );
+
+  const kutu = tekKuralGovdesi('#sonucPaneli.kucuk #sonucKutusu');
+  assert.match(kutu, /border:\s*[^;]*var\(--metin\)/, 'rozetin kenar çizgisi yok — masa zemininde kaybolur');
+  assert.match(kutu, /box-shadow:/, 'rozetin gölgesi yok — masadan ayrışmıyor');
+  // Ölçüler değişkenden gelir (R-009: kuralda sihirli sayı yok).
+  assert.match(kutu, /padding:\s*var\(--sonuc-kucuk-dolgu\)/, 'rozet dolgusu kurala yazılmış');
+  assert.match(kutu, /margin-top:\s*var\(--sonuc-kucuk-ust-pay\)/, 'rozetin üst payı kurala yazılmış');
+  for (const degisken of ['--sonuc-kucuk-dolgu', '--sonuc-kucuk-ust-pay']) {
+    assert.ok(STIL_CSS.includes(`${degisken}:`), `${degisken} :root'ta tanımlı değil`);
+  }
+});
+
+test('küçültme kuralları duyarlı kademelerde de geçerli', () => {
   const ilkMedya = STIL_CSS.indexOf('@media');
   assert.doesNotMatch(
     STIL_CSS.slice(ilkMedya),
