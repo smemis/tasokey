@@ -296,8 +296,9 @@ test('kabul-d6: her kademenin ölçeği TARAYICIDA ÖLÇÜLEN tavanı aşmıyor 
   // 800x360'ın 1,95'inde kalırlardı. (tasokey#72'de kademe bölündü — bkz. KADEME_KABUL_BOYUTLARI.)
   assert.equal(olculenTavan('x', ['telefon-yatay', 'telefon-kucuk']), 1.95);
   // `durum=rakip` daha dar bir sınır verir (el sonunda açılan rakip ıstakası) — ADR-022/6.
-  // tasokey#72: madde 8'in muaf küçültmesinden sonra 900x600'de 1,10 → 1,20.
-  assert.equal(olculenTavan('x', ['kademe-900'], ['el', 'rakip']), 1.20);
+  // tasokey#72: madde 8'in muaf küçültmesinden (0,45) ve madde 10'dan sonra 900x600'de
+  // 1,10 → 1,25; iki durumun tavanı da artık YATAY sayfa taşmasıdır (çakışma değil).
+  assert.equal(olculenTavan('x', ['kademe-900'], ['el', 'rakip']), 1.25);
   // ÜÇÜNCÜ TERİM (madde 9): taşma tavanı da bağlar. Masaüstünde çakışma 1,85'te durduğu için
   // taşma (2,00) görünmez; telefon dilimlerinde madde 10 çakışmayı kaldırınca BAĞLAYICI olan odur.
   assert.equal(olculenTavan('x', ['telefon-kucuk'], ['rakip']), 1.30);

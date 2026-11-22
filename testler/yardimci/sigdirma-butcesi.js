@@ -131,10 +131,12 @@ export const OLCEK_BASAMAGI = 0.05;
  * yalnız taşma kalıyor (800x360 **1,30** · 844x390 **1,50**; taşan öğe de ölçüldü — alt iki
  * köşenin sayaç kutuları, `#koseSagAltSayac` + `#koseSolAltSayac`).
  *
- * tasokey#72 (4. çekim turu, `is/tasokey-72/ekran/muaf-*.png`): varyantın üç boyutu `durum=rakip`
- * için YENİDEN ölçüldü — ADR-022 madde 8 (muafın kendi ölçeği, 900x600'de `--rakip-acik-olcek`
- * 0,6 → 0,5; ölçülen merdiven 0,60 → 1,10 · 0,55 → 1,15 · 0,50 → 1,20 · 0,45 → 1,20) ve madde 10
- * (el bitince `#merkez` gizlenir) sonrası. Masaüstü üç boyut BİREBİR aynı kaldı.
+ * tasokey#72 (4. ve 5. çekim turu, `is/tasokey-72/ekran/muaf-*.png` ve `son-*.png`): varyantın üç
+ * boyutu `durum=rakip` için YENİDEN ölçüldü — ADR-022 madde 8 (muafın kendi ölçeği, 900x600'de
+ * `--rakip-acik-olcek` 0,6 → 0,45; ölçülen merdiven madde 10 yürürlükteyken 0,50 → 1,20 ·
+ * 0,45 → **1,25**) ve madde 10 (el bitince `#merkez` gizlenir) sonrası. 900x600'de iki durumun
+ * tavanı da artık YATAY sayfa taşmasıdır (13 px: `#kenarSagAd` 9 + `#kenarSag` 6).
+ * Masaüstü üç boyut BİREBİR aynı kaldı.
  */
 export const OLCULEN_OLCEK_TAVANI = Object.freeze({
   masaustu: Object.freeze({
@@ -152,9 +154,10 @@ export const OLCULEN_OLCEK_TAVANI = Object.freeze({
   'kademe-900': Object.freeze({
     // `el`: 1,30'da sayfa yatayda 13 px taşıyor (taşan öğe `#kenarSagAd` 9 + `#kenarSag` 6).
     el: Object.freeze({ yeni0: 1.25, buyumez0: 1.25, tasma0: 1.25 }),
-    // `rakip`: ADR-022 madde 8'in muaf küçültmesinden (0,5) SONRA; bağlayıcı çift #merkez değil
-    // `#rafAlani ∩ #kenarSol/SagTaslar` olduğu için madde 10 bu boyutta kazanç vermez.
-    rakip: Object.freeze({ yeni0: 1.20, buyumez0: 1.20, tasma0: 1.25 }),
+    // `rakip`: ADR-022 madde 8'in muaf küçültmesinden (0,45) SONRA. 0,50'de bağlayıcı çift
+    // `#rafAlani ∩ #kenarSol/SagTaslar`dı (1,20'de kalıyordu); 0,45'te o çift kalkar ve sınır
+    // `el` ile aynı yere, YATAY sayfa taşmasına gelir.
+    rakip: Object.freeze({ yeni0: 1.25, buyumez0: 1.25, tasma0: 1.25 }),
   }),
   'telefon-yatay': Object.freeze({
     el: Object.freeze({ yeni0: 2.00, buyumez0: 2.00, tasma0: 2.00 }),

@@ -160,11 +160,11 @@ test('kabul-a2: varyantın ölçeği BÖLGENİN İÇİNDE yazılı (kapatma anah
   // bölgenin içinde durur; bölge silinince taban kademelerin tasokey#68 değerleri (1,05 ve 1)
   // yeniden kazanır — kapatma anahtarı hem düzeni hem ölçeği geri verir.
   const kalan = varyantsizCss();
-  // tasokey#72: üç dilim, üç ÖLÇÜLEN değer (800x360 1,30 · 844x390 1,50 · 900x600 1,20).
+  // tasokey#72: üç dilim, üç ÖLÇÜLEN değer (800x360 1,30 · 844x390 1,50 · 900x600 1,25).
   for (const { boyut, varyantli, varyantsiz } of [
     { boyut: ETKIN_BOYUTLAR[0], varyantli: 1.3, varyantsiz: 1 },
     { boyut: ETKIN_BOYUTLAR[1], varyantli: 1.5, varyantsiz: 1 },
-    { boyut: ETKIN_BOYUTLAR[2], varyantli: 1.2, varyantsiz: 1.05 },
+    { boyut: ETKIN_BOYUTLAR[2], varyantli: 1.25, varyantsiz: 1.05 },
   ]) {
     assert.equal(
       degiskenOlcusu('--istaka-olcek', boyutSozlugu(STIL_CSS, boyut, EKLER)).sayi,

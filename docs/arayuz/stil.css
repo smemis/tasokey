@@ -1276,23 +1276,29 @@ html, body {
    Bölgenin parçasıdır — bölgeyi silmek ölçeği de taban kademeye (900px → 1,05) geri verir. */
 @media (orientation: landscape) and (min-height: 501px) and (max-height: 700px) {
   :root {
-    /* ÖLÇÜLDÜ (tasokey#72 4. çekim turu, `is/tasokey-72/ekran/muaf-*-kademe-900.png`):
+    /* ÖLÇÜLDÜ (tasokey#72 5. çekim turu, `is/tasokey-72/ekran/son-*-kademe-900.png`):
          · `durum=el`    **1,25** — 1,30'da sayfa YATAYDA 13 px taşıyor; taşan öğe ÖLÇÜLDÜ:
            `#kenarSagAd` 9 px + `#kenarSag` 6 px (rakip ADI çubuktan kalın, tasokey#33 madde 1).
            Bütçe de aynı yönü ve aynı değeri veriyor (bkz. --sigdirma-raf-baslik-payi).
-         · `durum=rakip` **1,20** — aşağıdaki muaf küçültmeden SONRA (ADR-022 madde 8). Burada
-           bağlayıcı çift #merkez DEĞİL `#rafAlani ∩ #kenarSol/SagTaslar`tır, yani madde 10 bu
-           boyutta bir şey kazandırmaz; kazanç yığının KENDİ ölçeğinden gelir.
-       Üç terimin en küçüğü (madde 9): 1,25 · 1,20 · taşma 1,25 → **1,20**. */
-    --istaka-olcek: 1.2;
+         · `durum=rakip` **1,25** — aşağıdaki muaf küçültmeden SONRA (ADR-022 madde 8). Muaf
+           0,50'deyken bağlayıcı çift #merkez DEĞİL `#rafAlani ∩ #kenarSol/SagTaslar`dı (24x4 px,
+           1,25'te çıkıyordu), yani madde 10 bu boyutta tek başına kazanç vermiyor; kazanç
+           yığının KENDİ ölçeğinden geliyor. Muaf 0,45'te o çift kalkar ve geriye `el` ile AYNI
+           sınır kalır.
+       Üç terimin en küçüğü (madde 9): 1,25 · 1,25 · taşma 1,25 → **1,25**. Bu kademede tavanı
+       belirleyen çakışma değil YATAY BÜTÇEDİR (sayfa genişliği); daha büyük ölçek ancak
+       `#kenarSagAd`/`#kenarSag` yatay payı küçülürse gelir (ayrı iş). */
+    --istaka-olcek: 1.25;
     /* ADR-022 madde 8 — muaf açık el yığınının KENDİ ölçeği bu kademede küçülür. Ölçülen merdiven
-       (4. çekim turu "MUAF" satırları, her basamakta ölçek araması yeniden koşuldu):
-         0,60 → 1,10 · 0,55 → 1,15 · **0,50 → 1,20** · 0,45 → 1,20 (kazanç bitti).
-       Tavanı gerçekten yükselten EN BÜYÜK değer yazılır (gereksiz küçültme yok) → **0,50**.
-       Açık taş 21x30 px ve rakamın taşa kalan payı ölçüldü (`rk=2,5` px, artı) → rakam kırpılmıyor.
+       ("MUAF" satırları, her basamakta ölçek araması yeniden koşuldu):
+         · 4. çekim turu (madde 10'dan ÖNCE): 0,60 → 1,10 · 0,55 → 1,15 · 0,50 → 1,20 · 0,45 → 1,20
+         · 5. çekim turu (madde 10 yürürlükte): 0,50 → 1,20 · **0,45 → 1,25**
+       Madde 10 `#merkez`i kaldırınca 0,45 basamağı yeniden kazanç verdi → Mimar'ın izin verdiği
+       TABAN değer (0,45) yazılır; daha aşağısı DUR VE SOR'dur (mimar-karari.md §4).
+       Açık taş 18,9x27 px ve rakamın taşa kalan payı ölçüldü (`rk=2,9` px, artı) → rakam kırpılmıyor.
        Telefon dilimlerinde bu değişken YAZILMAZ: orada madde 10 zaten tavanı taşmaya kadar
        açıyor, yığını küçültmek gereksiz olurdu. `:root` değeri 0,6 kalır (kapatma anahtarı). */
-    --rakip-acik-olcek: 0.5;
+    --rakip-acik-olcek: 0.45;
   }
 }
 /* ===== KISA YATAY DÜZEN VARYANTI — BİTİŞ (tasokey#71, ölçekler tasokey#72) ===== */
