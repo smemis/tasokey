@@ -120,6 +120,9 @@ const ETKILENEN_BILDIRIMLER = [
   ['#rafAlani', 'flex-direction'], ['#rafAlani', 'align-items'], ['#rafAlani', 'align-self'],
   ['#rafAlani', 'gap'], ['#rafAlani', 'padding'], ['#rafAlani', 'min-height'],
   ['.kenar-raf-dikey', 'height'], ['.kenar-raf-dikey', 'min-height'],
+  ['.kenar-ad', 'font-size'], ['.kenar-ad', 'line-height'],
+  ['.kenar-ust .kenar-taslar', 'margin-top'], ['.kenar-sol .kenar-taslar', 'margin-left'],
+  ['.kenar-sag .kenar-taslar', 'margin-right'],
   ['.kose', 'min-width'], ['.kose', 'min-height'], ['.kose', 'grid-template-rows'],
 ];
 
@@ -298,6 +301,8 @@ test('kabul-h: varyantta açılan rakip taşları kendi bandına sığar (yan y�
     const tasG = px('--rakip-acik-tas-genislik');
     const tasY = px('--rakip-acik-tas-yukseklik');
     const bosluk = px('--rakip-acik-bosluk');
+    // Taşların ÇUBUKTAN uzaklığı artık boşluk değil, adın kenarından türeyen pay (kabul-i).
+    const pay = px('--rakip-acik-ad-payi');
     const sutunDikey = px('--rakip-acik-sutun-dikey');
     const sutunYatay = px('--rakip-acik-sutun-yatay');
 
@@ -313,7 +318,7 @@ test('kabul-h: varyantta açılan rakip taşları kendi bandına sığar (yan y�
     // Yatayda yığın çubuğun masa tarafına serilir ve varyantta yan çubuk bandının orta sütunu
     // BOŞTUR → kenar sütununu aşsa bile çarpacağı bir kutu yoktur; bağlayıcı olan karşı kenarın
     // yığınıdır (ikisi masanın içinde buluşmamalı).
-    const yanGenislik = bosluk + sutunDikey * tasG + (sutunDikey - 1) * bosluk;
+    const yanGenislik = pay + sutunDikey * tasG + (sutunDikey - 1) * bosluk;
     assert.ok(
       2 * (m.cubukKalinlik + yanGenislik) <= m.masaIcGenislik,
       `${boyut.ad}: sol ve sağ açık yığın masanın ortasında buluşuyor `
@@ -323,7 +328,7 @@ test('kabul-h: varyantta açılan rakip taşları kendi bandına sığar (yan y�
     // (2) Üst kenar: yığın çubuğun ALTINA, yani #merkez'in bandına sarkar. #merkez bandın alt
     // kenarına yaslı (karar maddesi 3); yığının alt kenarı onun üst kenarına değmemeli.
     const ustSatir = Math.ceil(EN_COK_EL / sutunYatay);
-    const ustYiginAlt = m.cubukKalinlik + bosluk + ustSatir * tasY + (ustSatir - 1) * bosluk;
+    const ustYiginAlt = m.cubukKalinlik + pay + ustSatir * tasY + (ustSatir - 1) * bosluk;
     const ortaBant = alanSatirlari(m.sablon, 'merkez');
     assert.equal(ortaBant.length, 1, `${boyut.ad}: merkez alanı tek bant kaplamıyor`);
     const merkezYukseklik = m.satirIcerikUst[ortaBant[0]];
@@ -339,6 +344,80 @@ test('kabul-h: varyantta açılan rakip taşları kendi bandına sığar (yan y�
     assert.ok(
       ustGenislik <= m.istakaGenislik,
       `${boyut.ad}: üst açık sıra ${ustGenislik.toFixed(0)} px, ıstaka ${m.istakaGenislik.toFixed(0)} px`,
+    );
+  }
+});
+
+/* ---------------------------------------------------------------------------------- kabul-i */
+
+/** `stil.css`te `html`/`body` yazı boyu yazılmaz → `rem` tarayıcı tabanıdır (16 px). */
+const KOK_YAZI_PX = 16;
+/**
+ * `line-height: normal` yazı boyunun ~1,33 katı bir kutu verir. Ölçülen değer: 0.85rem (13,6 px)
+ * yazı → 18 px kutu (tasokey#68 ve #71 çekimlerinde `#kenarXAd ∩ çubuk` kesişiminin kalınlığı
+ * masaüstü boyutlarda 18 px, yani adın KENDİ kutusu). Varyantın DIŞINDA satır aralığı yazılmadığı
+ * için gerilemesizlik denetimi bu ölçülen oranla yapılır; varyantın İÇİNDE `line-height: 1` var,
+ * yani orada kutu tam olarak yazı boyudur ve oran kullanılmaz.
+ */
+const NORMAL_SATIR_ORANI = 1.33;
+
+/** `.kenar-ad`ın TABAN kuralındaki yazı boyu (px) — varyant bloğundan önceki ilk gövde. */
+function tabanAdYazisiPx() {
+  const [taban] = kuralGovdeleri(YORUMSUZ, '.kenar-ad');
+  const eslesme = /font-size:\s*([\d.]+)rem/.exec(taban ?? '');
+  assert.ok(eslesme, '.kenar-ad taban kuralında rem cinsinden font-size yok');
+  return Number.parseFloat(eslesme[1]) * KOK_YAZI_PX;
+}
+
+test('kabul-i: açılan rakip taşları rakip ADININ kutusuna girmiyor (ad çubuktan kalın olduğunda)', () => {
+  // tasokey#33 madde 1: ad çubuğun ÜSTÜNE yazılır (o kesişim kasıtlıdır). Ama ad çubuktan
+  // kalınsa iki yana taşar ve çubuğun masa tarafına serilen açık taşlara girer — tasokey#68
+  // ölçümünde 800x360/844x390'ta 2 px'lik `#kenarXAd ∩ #kenarXTaslar` çakışması tam olarak buydu
+  // ve çubuk 10 → 8 px inince 3 px'e çıkıyordu. Uzaklık artık ADIN kenarından türüyor.
+  for (const boyut of ETKIN_BOYUTLAR) {
+    const m = model(boyut);
+    const px = (ad) => degiskenOlcusu(ad, m.sozluk).sayi;
+    const adKalinlik = px('--rakip-ad-kalinlik');
+    const pay = px('--rakip-acik-ad-payi');
+    const bosluk = px('--rakip-acik-bosluk');
+
+    // (1) Tek kaynak: varyantın yazdığı kalınlık `.kenar-ad`ın taban yazı boyuyla aynı px'tir ve
+    // varyant o kalınlığı yazı boyu olarak GERİ YAZAR → kutu (line-height: 1) tam o kadardır.
+    assert.equal(
+      adKalinlik,
+      tabanAdYazisiPx(),
+      `--rakip-ad-kalinlik ${adKalinlik} px, .kenar-ad taban yazı boyu ${tabanAdYazisiPx()} px — `
+      + 'ikisi ayrışırsa ad kutusu paydan büyük olur ve taşlara girer',
+    );
+    const [, varyantGovde] = kuralGovdeleri(YORUMSUZ, '.kenar-ad');
+    assert.match(
+      varyantGovde ?? '', /font-size:\s*var\(--rakip-ad-kalinlik\)/,
+      'varyant `.kenar-ad`ın yazı boyunu --rakip-ad-kalinlik\'ten okumuyor (kutu kalınlığı tek kaynak değil)',
+    );
+    assert.match(
+      varyantGovde ?? '', /line-height:\s*1\b/,
+      'varyant `.kenar-ad`ın satır aralığını 1\'e sabitlemiyor — kutu yazı boyundan kalın kalır',
+    );
+
+    // (2) Taşmanın yarısı + taban boşluk kadar uzaklık: taşlar adın kenarına değmiyor.
+    const adTasmasi = (adKalinlik - m.cubukKalinlik) / 2;
+    assert.ok(
+      pay >= adTasmasi + bosluk,
+      `${boyut.ad}: açık taşlar çubuktan ${pay.toFixed(1)} px uzakta, ad ${adTasmasi.toFixed(1)} px `
+      + 'taşıyor — taşlar adın kutusuna giriyor',
+    );
+    // (3) Pay taban boşluğun altına düşmüyor (çubuk addan kalın olsa bile).
+    assert.ok(pay >= bosluk, `${boyut.ad}: pay (${pay} px) taban boşluktan (${bosluk} px) küçük`);
+  }
+
+  // (4) Gerilemesizlik: varyantın DIŞINDA ad hâlâ çubuktan ince, yani taban boşluk yetiyor.
+  for (const boyut of ETKIN_OLMAYAN_BOYUTLAR) {
+    const m = model(boyut);
+    const adKutusu = tabanAdYazisiPx() * NORMAL_SATIR_ORANI;
+    assert.ok(
+      m.cubukKalinlik >= adKutusu,
+      `${boyut.ad}: çubuk ${m.cubukKalinlik} px, ad kutusu ${adKutusu.toFixed(1)} px — `
+      + 'ad çubuğun dışına taşıyor, masaüstü kademesinde de pay gerekir',
     );
   }
 });

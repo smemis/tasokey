@@ -1112,7 +1112,33 @@ html, body {
        (15 taş, dagitim.js) TEK SIRA serilir, sıra Sahip'in ıstaka genişliğini aşmaz. */
     --rakip-acik-sutun-yatay: 15;
     --rakip-acik-sutun-dikey: 4;
+    /* Rakip ADININ kutu kalınlığı (dikey yazıda genişlik, üstte yükseklik). Ad çubuğun ORTASINA
+       bindirilir (tasokey#33 madde 1), yani çubuktan kalınsa iki yana (ad − çubuk)/2 kadar taşar.
+       Taban kademelerde çubuk 26..14px, yani addan kalın → taşma yok; varyantta çubuk 8px olduğu
+       için ad taşıyor ve açılan taşların altına giriyordu (tasokey#68 ölçümünde 800x360/844x390'ta
+       2 px'lik `#kenarXAd ∩ #kenarXTaslar`; çubuk 10 → 8 inince 3 px'e çıkardı, 900x600'de de
+       çıkardı). Kalınlık burada TEK KAYNAK: hem `.kenar-ad`ın yazı boyutunu hem taşların uzaklığını
+       besler. Değer taban kuralın 0.85rem'inin px karşılığıdır (öz-test kabul-i ikisini eşitler);
+       rem yazılamaz, çünkü aşağıdaki pay px ile toplanıyor (calc birim denetimi, denetci-4). */
+    --rakip-ad-kalinlik: 13.6px;
+    /* Açılan taşlar çubuktan değil ADIN kenarından sonra başlar; çubuk addan kalınsa taban
+       boşluğa düşer (max). Uzaklık ölçülmez, TÜRER. */
+    --rakip-acik-ad-payi: max(
+      var(--rakip-acik-bosluk),
+      calc((var(--rakip-ad-kalinlik) - var(--rakip-raf-kalinlik)) / 2 + var(--rakip-acik-bosluk)));
   }
+
+  /* Adın kutusu tam olarak yazı kalınlığı kadar olsun: satır aralığı payı (line-height) kutuyu
+     glif boyunun ötesinde büyütüyordu. Yazı boyu ve adın konumu DEĞİŞMEZ (aynı px), yalnız kutu
+     gerçeğe oturur — çakışma ölçümü kutuyu ölçer. */
+  .kenar-ad {
+    font-size: var(--rakip-ad-kalinlik);
+    line-height: 1;
+  }
+
+  .kenar-ust .kenar-taslar { margin-top: var(--rakip-acik-ad-payi); }
+  .kenar-sol .kenar-taslar { margin-left: var(--rakip-acik-ad-payi); }
+  .kenar-sag .kenar-taslar { margin-right: var(--rakip-acik-ad-payi); }
 
   /* Karar maddesi 2 — varyantın TEK yapı değişikliği: masanın bant listesi. Dört bant
      (üst çubuk `auto` / üst içerik `1fr` / yan çubuk `var(--masa-orta-satir)` / ıstaka `1fr`) ve
