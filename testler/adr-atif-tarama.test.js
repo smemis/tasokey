@@ -8,11 +8,17 @@ import { join, relative } from 'node:path';
 // o numaranın "kullanılmadığını" yazıyordu; Denetçi "güncel mimari karara uyuyor mu" maddesini
 // ölçemedi çünkü atıf yapılan karar hiçbir yerde okunamıyordu.
 //
-// Bu dosya, kaynaklarda geçen her ADR atfı için MIMARI.md §5'te gerçek bir karar başlığı
-// bulunduğunu kaynak taramasıyla ölçer (ADR-002'nin kaynak taraması dilinin aynısı; DOM gerektirmez).
+// Bu dosya, kaynaklarda geçen her ADR atfı için gerçek bir karar belgesi bulunduğunu kaynak
+// taramasıyla ölçer (ADR-002'nin kaynak taraması dilinin aynısı; DOM gerektirmez).
+//
+// tasokey#76 (ADR-025): karar gövdeleri MIMARI.md §5'ten `adr/ADR-0NN-kisa-ad.md` dosyalarına taşındı.
+// Bu yüzden "belgelenen numaralar" artık §5 başlıklarından değil `adr/` dosya kümesinden okunur ve
+// `adr/` de taranan dizinlere girdi (ADR'lerin birbirine atfı da ölçülsün). Yukarıdaki tasokey#38 ve
+// tasokey#54 dersleri aynen geçerli: testin neden var olduğu buradan silinmez.
 
 const KOK = join(import.meta.dirname, '..');
 const MIMARI_MD = readFileSync(join(KOK, 'MIMARI.md'), 'utf8');
+const ADR_DIZIN = join(KOK, 'adr');
 // tasokey#53: yeni üst düzey `android/` klasörü (belge + PowerShell betiği) koruma kapsamına alındı;
 // kaynak türü eklenince tarama sessizce kapsam kaybetmesin diye uzantılar da burada tek yerde durur.
 // tasokey#54 (Mimar hakemliği): `.java` ve `.xml` eklendi — Android kabuğu (`android/kabuk/`) ADR
@@ -23,7 +29,7 @@ const MIMARI_MD = readFileSync(join(KOK, 'MIMARI.md'), 'utf8');
 //
 // Not: bu dosya kendisi de taranıyor (`testler/` kapsamda). Bu yüzden yorumlarda var olmayan bir
 // karar numarası `ADR-xxx` biçiminde yazılamaz — ölçüm günlüğünde geçen numaralar düz yazıyla anılır.
-const TARANAN_DIZINLER = ['docs', 'testler', 'android'];
+const TARANAN_DIZINLER = ['docs', 'testler', 'android', 'adr'];
 const TARANAN_UZANTILAR = ['.js', '.css', '.html', '.md', '.ps1', '.java', '.xml'];
 
 const ATIF_DESENI = /ADR-(\d{3})/g;
@@ -52,9 +58,12 @@ function atiflar() {
   return bulunan;
 }
 
-/** MIMARI.md §5'te karar başlığı olan ADR numaraları. */
+/** Karar belgesi (adr/ADR-0NN-….md) olan ADR numaraları — ADR-025'ten beri tek kaynak budur. */
 function belgelenenler() {
-  return new Set([...MIMARI_MD.matchAll(/^### ADR-(\d{3}):/gm)].map(([, numara]) => numara));
+  const numaralar = readdirSync(ADR_DIZIN)
+    .map((ad) => ad.match(/^ADR-(\d{3})-[a-z0-9-]+\.md$/)?.[1])
+    .filter((numara) => numara !== undefined);
+  return new Set(numaralar);
 }
 
 test('ADR taraması çalışıyor (en az 1 dosya tarandı, en az 1 atıf bulundu)', () => {
@@ -62,7 +71,7 @@ test('ADR taraması çalışıyor (en az 1 dosya tarandı, en az 1 atıf bulundu
   assert.ok(atiflar().size > 0, 'kaynaklarda hiç ADR atfı bulunamadı — tarama deseni bozulmuş olabilir');
 });
 
-test('ASIL KABUL: kaynaklarda atıf yapılan her ADR numarasının MIMARI.md §5\'te karar başlığı var', () => {
+test('ASIL KABUL: kaynaklarda atıf yapılan her ADR numarasının adr/ içinde karar dosyası var', () => {
   const yazilmis = belgelenenler();
   const eksikler = [...atiflar()]
     .filter(([numara]) => !yazilmis.has(numara))
@@ -71,7 +80,7 @@ test('ASIL KABUL: kaynaklarda atıf yapılan her ADR numarasının MIMARI.md §5
   assert.deepEqual(
     eksikler.sort(),
     [],
-    `kodda/testte atıf yapılan ama MIMARI.md'de "### ADR-0xx:" başlığı olmayan karar(lar):\n${eksikler.sort().join('\n')}`,
+    `kodda/testte/belgede atıf yapılan ama adr/ içinde dosyası olmayan karar(lar):\n${eksikler.sort().join('\n')}`,
   );
 });
 
