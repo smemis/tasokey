@@ -12,7 +12,7 @@ import { surukleBagla, cekmeSurukleBagla, SURUKLENIYOR_SINIFI } from './surukle.
 import { HEDEF_TURU, EYLEM, eylemKararVer, cekmeKararVer, rakipEliAcikMi } from './etkilesim.js';
 import {
   EKRAN, OLAY, BILGI, ZORLUKLAR, kabukBaslat, gecis, kayitAlanlari, botTurunuOynat,
-  oyunuBitirilebilirMi, onayBekliyorMu, bilgiBekliyorMu, dokumAcikMi,
+  oyunuBitirilebilirMi, onayBekliyorMu, bilgiBekliyorMu, dokumAcikMi, sonucKucukMu,
   botSirasiMi, bekleyenBotTuruGecerliMi, ustCubukBaslikTarifi,
 } from './kabuk.js';
 import { kayitOku, kayitYaz } from '../kayit/depo.js';
@@ -418,11 +418,20 @@ function sonucKalanTaslariCiz(sonuc) {
 // bu dosya kendi "açık mı" bayrağını açmaz (ADR-016/1). Liste kapalıyken kutu da içeriğiyle
 // birlikte küçülür — pencerenin sabit bir en/boyu yoktur (Sahip ek bilgisi 2, stil.css
 // `#sonucKutusu`).
+//
+// Pencere ayrıca KÜÇÜLTÜLEBİLİR (tasokey#65): bayrak yine kabuktadır (`sonucKucukMu`), bu dosya
+// yalnız `.kucuk` sınıfını taşır — küçükken neyin gizleneceğine stil.css karar verir, burada ikinci
+// bir görünürlük kuralı yazılmaz (ADR-016/1). Küçükken de metinler tazelenir: düğme ister
+// küçültsün ister büyütsün, dil değişimi onu da günceller (R-008).
 function sonucPaneliCiz() {
   const { durum, kabuk } = durumKutu;
   const sonucEkraninda = kabuk.ekran === EKRAN.SONUC;
+  const kucuk = sonucEkraninda && sonucKucukMu(kabuk);
   eleman.sonucPaneli.classList.toggle('gorunur', sonucEkraninda);
+  eleman.sonucPaneli.classList.toggle('kucuk', kucuk);
   if (!sonucEkraninda) return;
+  eleman.kucultAcKapaButonu.textContent = metinAl(kucuk ? 'sonuc.buyut' : 'sonuc.kucult');
+  eleman.kucultAcKapaButonu.setAttribute('aria-pressed', String(kucuk));
   const sonuc = elSonucunuHesapla(durum);
   eleman.sonucMetni.textContent = sonucMetni();
   if (sonuc !== null) sonucKalanTaslariCiz(sonuc);
@@ -732,6 +741,13 @@ function dokumAcKapa() {
   ciz();
 }
 
+// Sonuç penceresini küçült/büyüt (tasokey#65): pencere kapanmaz, yalnız geri büyüten düğmeye iner —
+// el durumuna ve döküm bölümüne dokunulmaz, büyütünce pencere bırakıldığı gibi geri gelir.
+function kucultAcKapa() {
+  durumKutu.kabuk = gecis(durumKutu.kabuk, OLAY.SONUC_KUCULT_AC_KAPA);
+  ciz();
+}
+
 // Zorluk seçimi: karar kabukta (yalnız başlangıç ekranında geçerli), kalıcılığı kayıtta
 // (ADR-006 şema sürüm 2 — seçim bir sonraki açılışta geri okunur).
 function zorlukSec(zorluk) {
@@ -756,7 +772,7 @@ function elemanlariTopla() {
     'koseSolAlt', 'koseSolAltYigin', 'koseSolAltSayac',
     'koseSagAlt', 'koseSagAltYigin', 'koseSagAltSayac',
     'rafBaslik', 'raf',
-    'sonucPaneli', 'sonucMetni', 'dokumAcKapaButonu', 'sonucKalanTaslar',
+    'sonucPaneli', 'sonucMetni', 'kucultAcKapaButonu', 'dokumAcKapaButonu', 'sonucKalanTaslar',
     'yeniElButonu', 'baslangicaDonButonu',
     'baslangicPaneli', 'baslangicBaslik', 'zorlukBaslik', 'yeniOyunButonu',
     'onayPaneli', 'onayMetni', 'onayEvetButonu', 'onayHayirButonu',
@@ -780,6 +796,7 @@ function olaylariBagla() {
   eleman.onayHayirButonu.addEventListener('click', oyunuBitirVazgec);
   eleman.bilgiTamamButonu.addEventListener('click', bilgiyiKapat);
   eleman.dokumAcKapaButonu.addEventListener('click', dokumAcKapa);
+  eleman.kucultAcKapaButonu.addEventListener('click', kucultAcKapa);
   eleman.yeniElButonu.addEventListener('click', yeniElBaslat);
   eleman.baslangicaDonButonu.addEventListener('click', baslangicaDon);
   eleman.yeniOyunButonu.addEventListener('click', yeniOyunBaslat);

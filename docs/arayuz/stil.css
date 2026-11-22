@@ -813,6 +813,38 @@ html, body {
 
 .acilir-baslik[aria-expanded='true']::after { transform: rotate(180deg); }
 
+/* Sonuç penceresini küçültme düğmesi (tasokey#65): pencere masanın ortasında durduğu için üst
+   kenardaki rakibin ıstakasını örtüyordu. Düğme kutunun ilk çocuğudur ve sağa yaslanır (pencere
+   denetimi gibi); metni dil anahtarından gelir, basılı durumu `aria-pressed`tedir. */
+.kucult-dugmesi {
+  background: transparent;
+  border: none;
+  color: var(--metin);
+  font: inherit;
+  font-size: 0.9rem;
+  opacity: 0.85;
+  padding: 2px 6px;
+  cursor: pointer;
+  align-self: flex-end;
+}
+
+/* Küçültülmüş pencere: karartma zemini kalkar ve tıklamayı geçirir (masa görünür ve erişilebilir
+   kalır), kutuda yalnız geri büyüten düğme durur. Pencere KAPANMAZ — "Yeni el" / "Başlangıç
+   ekranı" seçimi büyütünce olduğu gibi geri gelir. Kutu masanın ortasında kalır: orta alan deste
+   ve göstergedir, dört ıstakanın hiçbirini örtmez (işin isteği). */
+#sonucPaneli.kucuk {
+  background: transparent;
+  pointer-events: none;
+}
+
+#sonucPaneli.kucuk #sonucKutusu {
+  pointer-events: auto;
+  padding: 2px 6px;
+  gap: 0;
+}
+
+#sonucPaneli.kucuk #sonucKutusu > :not(#kucultAcKapaButonu) { display: none; }
+
 #sonucDugmeleri,
 #onayDugmeleri,
 #bilgiDugmeleri {

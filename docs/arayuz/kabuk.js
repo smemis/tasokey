@@ -8,8 +8,8 @@
 // görünür" biçiminde ikinci bir kural yazılmaz (ADR-016/1). Üst çubuktaki "Oyunu bitir" düğmesinin
 // onay sorusu da ayrı bir ekran değil, aynı makinenin `onay` alanıdır (tasokey#43); okey/sahte okey
 // atıldığında gösterilen bilgilendirme penceresi de `bilgi` alanıdır (tasokey#50, ADR-016/8).
-// Kabuk bugün `{ ekran, zorluk, onay, bilgi, dokumAcik }` tutar; `zorluk` dışındaki hiçbiri kayda
-// yazılmaz (`kayitAlanlari`).
+// Kabuk bugün `{ ekran, zorluk, onay, bilgi, dokumAcik, sonucKucuk }` tutar; `zorluk` dışındaki
+// hiçbiri kayda yazılmaz (`kayitAlanlari`).
 //
 // Kademe adlarının tek kaynağı `bot/bot.js` (`KADEME`, ADR-013): kabuk kendi zorluk listesini
 // yazmaz, botun tanımını okur. Kayıt katmanı (`kayit/depo.js`) zorluğu **opak dize** olarak saklar;
@@ -36,6 +36,7 @@ export const OLAY = Object.freeze({
   BILGI_GOSTER: 'bilgiGoster',
   BILGI_KAPAT: 'bilgiKapat',
   DOKUM_AC_KAPA: 'dokumAcKapa',
+  SONUC_KUCULT_AC_KAPA: 'sonucKucultAcKapa',
 });
 
 // Bekleyen onay sorusu (tasokey#43): ekran değişmeden önce sorulan "emin misin?". Kabuğun bir
@@ -78,8 +79,9 @@ export function zorlukCozumle(deger) {
 }
 
 // İlk açılış her zaman `baslangic` ekranındadır (iş isteği); zorluk kayıttan okunur. Bekleyen onay,
-// bilgilendirme penceresi ve sonuç penceresinin açılır döküm bölümü kayıttan GELMEZ: üçü de oturum
-// içi durumdur, açılışta hiçbir pencere açık ve döküm bölümü kapalıdır (Sahip ek bilgisi, #50).
+// bilgilendirme penceresi, sonuç penceresinin açılır döküm bölümü ve küçültülmüşlüğü kayıttan
+// GELMEZ: dördü de oturum içi durumdur, açılışta hiçbir pencere açık, döküm bölümü kapalı ve sonuç
+// penceresi tam boydur (Sahip ek bilgisi, #50; tasokey#65).
 export function kabukBaslat(kayit = null) {
   return Object.freeze({
     ekran: EKRAN.BASLANGIC,
@@ -87,6 +89,7 @@ export function kabukBaslat(kayit = null) {
     onay: null,
     bilgi: null,
     dokumAcik: false,
+    sonucKucuk: false,
   });
 }
 
@@ -117,6 +120,16 @@ export function dokumAcikMi(kabuk) {
   return kabuk.dokumAcik === true;
 }
 
+// Sonuç penceresi küçültülmüş mü? (tasokey#65) Pencere masanın ortasında durduğu için üst kenardaki
+// rakibin (Bot 2) ıstakasını örtüyordu — Sahip el bittiğinde taşları görmek istiyor. Küçültülmüş
+// pencere yalnız geri büyüten düğmeyi gösterir, masanın üstünü açar ve kapanmaz: oyuncu "Yeni el" /
+// "Başlangıç ekranı" seçimini kaybetmez. Döküm bölümünden BAĞIMSIZ bir bayraktır (ikisi aynı anda
+// açık olabilir); döküm gibi o da yalnız sonuç ekranında anlamlıdır ve her ekran değişiminde düşer,
+// böylece pencere her açılışında tam boy başlar.
+export function sonucKucukMu(kabuk) {
+  return kabuk.sonucKucuk === true;
+}
+
 // Tek geçiş kapısı: tanımsız olay ya da o ekranda geçersiz olay kabuğu **değiştirmez** (aynı nesne
 // döner) — arayüz yanlış sırada gelen bir tıklamayla durumu bozamaz.
 export function gecis(kabuk, olay, veri = {}) {
@@ -140,7 +153,9 @@ export function gecis(kabuk, olay, veri = {}) {
   }
   if (olay === OLAY.ONAY_EVET) {
     if (kabuk.onay !== ONAY.OYUNU_BITIR) return kabuk;
-    return Object.freeze({ ...kabuk, ekran: EKRAN.BASLANGIC, onay: null, bilgi: null, dokumAcik: false });
+    return Object.freeze({
+      ...kabuk, ekran: EKRAN.BASLANGIC, onay: null, bilgi: null, dokumAcik: false, sonucKucuk: false,
+    });
   }
   // Bilgilendirme (tasokey#50, ADR-016/8): yalnız masa ekranında açılır — insan oyuncunun kendi
   // hamlesini anlatır, başka ekranda anlatacak hamle yoktur. Bilinmeyen bilgi türü ve pencere
@@ -159,13 +174,22 @@ export function gecis(kabuk, olay, veri = {}) {
     if (kabuk.ekran !== EKRAN.SONUC) return kabuk;
     return Object.freeze({ ...kabuk, dokumAcik: !dokumAcikMi(kabuk) });
   }
+  // Sonuç penceresini küçült/büyüt (tasokey#65): döküm bölümü gibi yalnız o pencere açıkken
+  // anlamlıdır, ekranı ve el durumunu değiştirmez. Döküm bayrağına DOKUNMAZ — büyütülünce pencere
+  // bırakıldığı gibi geri gelir.
+  if (olay === OLAY.SONUC_KUCULT_AC_KAPA) {
+    if (kabuk.ekran !== EKRAN.SONUC) return kabuk;
+    return Object.freeze({ ...kabuk, sonucKucuk: !sonucKucukMu(kabuk) });
+  }
   const hedef = GECISLER[kabuk.ekran]?.[olay];
   if (!hedef) return kabuk;
-  // Ekran değişince bekleyen soru ve bilgilendirme düşer, döküm bölümü de kapanır: üçü de yalnız
-  // açıldıkları ekranda anlamlıdır (ör. botlar soru açıkken oynamayı sürdürür ve el biterse
-  // `masa → sonuc` geçişi soruyu kapatır — iki pencere birden açılmaz; sonuç penceresi de her
-  // açılışında kapalı dökümle başlar).
-  return Object.freeze({ ...kabuk, ekran: hedef, onay: null, bilgi: null, dokumAcik: false });
+  // Ekran değişince bekleyen soru ve bilgilendirme düşer, döküm bölümü kapanır ve küçültülmüş sonuç
+  // penceresi tam boya döner: dördü de yalnız açıldıkları ekranda anlamlıdır (ör. botlar soru
+  // açıkken oynamayı sürdürür ve el biterse `masa → sonuc` geçişi soruyu kapatır — iki pencere
+  // birden açılmaz; sonuç penceresi de her açılışında tam boy ve kapalı dökümle başlar).
+  return Object.freeze({
+    ...kabuk, ekran: hedef, onay: null, bilgi: null, dokumAcik: false, sonucKucuk: false,
+  });
 }
 
 // Botun sırası mı? (ADR-016) Dört koşul birlikte sorulur: masa ekranı açık, bilgilendirme penceresi

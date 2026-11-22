@@ -91,9 +91,13 @@
     </div>
     <!-- Sonuç penceresi: kutu içeriğiyle boyutlanır (sabit en/boy yok — Sahip ek bilgisi 2,
          tasokey#50). Oyuncuların kalan taşları AÇILIR bölümdür (ek bilgi 1): düğme listeyi
-         aç/kapat eder, pencere her açıldığında kapalı başlar (kabuk.dokumAcik). -->
+         aç/kapat eder, pencere her açıldığında kapalı başlar (kabuk.dokumAcik).
+         Pencere KÜÇÜLTÜLEBİLİR (tasokey#65): küçükken yalnız ilk düğme kalır, masanın üstü
+         (rakip ıstakaları) açılır; durumu yine kabuk tutar (kabuk.sonucKucuk). -->
     <div id="sonucPaneli">
       <div id="sonucKutusu">
+        <button id="kucultAcKapaButonu" class="kucult-dugmesi" type="button"
+                aria-pressed="false" aria-controls="sonucKutusu"></button>
         <div id="sonucMetni"></div>
         <button id="dokumAcKapaButonu" class="acilir-baslik" type="button"
                 aria-expanded="false" aria-controls="sonucKalanTaslar"></button>
