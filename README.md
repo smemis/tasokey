@@ -6,7 +6,9 @@ K1'de onaylandı (2026-11-19); kod işleri bu sürümlere göre ilerler.
 ## Belgeler
 - `PRD.md` — ürün gereksinimleri (R-001…R-010), onaylı
 - `GDD.md` — kural ve mekanik ayrıntısı
-- `MIMARI.md` — teknoloji yığını, modüller, ADR'ler
+- `MIMARI.md` — teknoloji yığını, modüller, ADR dizini (§5)
+- `adr/` — mimari kararların tam metni, karar başına tek dosya (`ADR-001`…`ADR-025`; kural: ADR-025)
+- `DEGISIKLIK.md` — `MIMARI.md` sürüm notu geçmişi (Sürüm 3…25, birebir; her sürümün sabit çapası var)
 - `STIL.md` — görsel yön (taslak, Sahip onayı bekliyor)
 - `ARASTIRMA.md` — kaynak araştırması
 
@@ -17,6 +19,7 @@ bot/        bot karar vericisi (cekirdek'i kullanır)
 arayuz/     DOM + CSS: masa, raf, sürükleme, dil, kayıt
 diller/     dil anahtarı dosyaları (tr.json, en.json)
 testler/    öz-testler (npm test burayı çalıştırır)
+adr/        mimari kararlar, karar başına tek dosya (ADR-025)
 docs/       GitHub Pages'ten yayınlanan statik site (ADR-005); oyun dosyaları doğrudan burada durur
 android/    Android kabuğu ve APK zinciri (ADR-020); oyun katmanlarına bağlı değildir
 ```

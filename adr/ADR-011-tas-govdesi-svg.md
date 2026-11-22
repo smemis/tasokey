@@ -1,0 +1,9 @@
+# ADR-011: Taş gövdesi SVG + DOM rakam katmanı
+| Alan | Değer |
+|---|---|
+| Tarih | 2026-11-20 · Durum: kabul (K2 — Mimar) |
+| Bağlam | `tasokey#15/16`'dan gelen mevcut varlık seti sayı başına ayrı bir SVG dosyası üretiyor (`docs/gorsel/tas-01.svg`…`tas-13.svg`); rakam SVG içinde sabit bir `<path>` olarak çiziliyor (**ölçüldü**: `tas-01.svg` rakamı iki dikdörtgenden oluşan geometrik şekil, bir yazı tipi glifi değil). `STIL.md` §4-5 ve `PRD.md` R-015 rakamın **sistem/lisanslı yazı tipiyle, kalın düz** ve **6/9, 1/7 karışmadan** okunmasını istiyor; sabit path bu okunurluğu yazı tipi düzeyinde garanti etmiyor ve 13 dosyanın her biri aynı gövdeyi (fildişi renk, gölge, yuvarlak köşe) tekrarlıyor |
+| Karar | Taş gövdesi (fildişi renk, gölge, yuvarlak köşe, çerçeve) **tek paylaşılan SVG** parçası olur; rakam (1-13) ve altındaki küçük daire gövdenin üstüne bindirilen bir **DOM metin katmanı** (`<span>`/`<div>` + CSS) olarak, gerçek sistem/lisanslı yazı tipiyle render edilir. Sahte okey ve kapalı taş aynı paylaşılan gövdenin rakamsız varyantı kalır |
+| Seçenekler | B) 13 SVG dosyasının rakam yolunu seçilen yazı tipinden elle iz çıkararak yeniden çizmek — reddedildi: her yazı tipi/dil değişiminde 13 dosya elle güncellenir (tek kapı/tek kaynak ilkesine aykırı), gerçek metin erişilebilirliği (ekran okuyucu, seçilebilirlik) kazanılmaz. C) Rakamı SVG içine `<text>` olarak gömmek — reddedildi: CSS yazı tipi/boyut kontrolü DOM metninden daha sınırlı, kapalı/dönük taş durumunda görünürlük mantığı ekstra karmaşıklık getirir |
+| Sonuçlar | Kolaylaştırır: SVG varlık sayısı 13 yüz deseninden 1 paylaşılan gövdeye iner; rakam yazı tipi `STIL.md` §5'teki seçimle birebir eşleşir, 6/9-1/7 ayrımı ekran görüntüsüyle doğrulanır (R-015). Zorlaştırır: taş artık iki katman (SVG gövde + DOM metin) hizalanmalı; önceki `tas-01.svg`…`tas-13.svg` kaldırılır (kod ve varlık değişikliği bu işte **yapılmadı**, ayrı Geliştirici işi) |
+| Etkilenen gereksinimler | R-015 |
