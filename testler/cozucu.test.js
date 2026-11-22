@@ -66,6 +66,21 @@ const BITEBILEN = [
       t('mavi', 2), t('sari', 2), t('siyah', 2),
     ],
   },
+  // tasokey#66 (ADR-008 sürüm 3): dönüşlü seri (13 → 1) çözücünün aday üretecine de girer.
+  { ad: 'dönüşlü seri: kirmizi 12-13-1', el: [t('kirmizi', 12), t('kirmizi', 13), t('kirmizi', 1)] },
+  {
+    ad: 'dönüşlü serinin boşluğunu joker dolduruyor: siyah 13-_-2',
+    el: [t('siyah', 13), sOkey(1), t('siyah', 2)],
+  },
+  {
+    ad: '14 taşlık tam el, dönüşlü seri(4) + seri(3) + iki sayı peri',
+    el: [
+      t('siyah', 12), t('siyah', 13), t('siyah', 1), t('siyah', 2),
+      t('kirmizi', 5), t('kirmizi', 6), t('kirmizi', 7),
+      t('mavi', 9), t('sari', 9), t('kirmizi', 9),
+      t('kirmizi', 3), t('siyah', 3), t('mavi', 3), t('sari', 3),
+    ],
+  },
   {
     ad: '14 taşlık tam el, iki joker iki ayrı per boşluğunu dolduruyor',
     el: [
@@ -190,6 +205,18 @@ test('gösterge taşının kendisi yedinci çifti kuramaz', () => {
   ];
   assert.equal(elBitirilebilirMi(el, OKEY_TASI), true, 'gösterge verilmezse normal 7 çift');
   assert.equal(elBitirilebilirMi(el, OKEY_TASI, undefined, gostergeTasi), false);
+});
+
+// tasokey#66 (ADR-008 sürüm 3) — kapatma anahtarı iki yönlü ölçülür: ayar kapatılınca çözücü de
+// dönüşlü seriyi bitiş saymaz, kuralı kendi yeniden yazmadığı için tek satır yetiyor.
+test('kapatma anahtarı: ayar kapatılınca dönüşlü seri bitiş sayılmaz', () => {
+  const el = [t('kirmizi', 12), t('kirmizi', 13), t('kirmizi', 1)];
+  assert.equal(elBitirilebilirMi(el, OKEY_TASI), true, 'varsayılanda dönüşlü seri biter');
+  assert.equal(
+    elBitirilebilirMi(el, OKEY_TASI, { onUcBirGecisiPerSayilir: false }),
+    false,
+    'ayar kapalıyken düz sıra kuralı geri gelmeli',
+  );
 });
 
 test('elBitirilebilirMi dizi olmayan girdide false döner', () => {
