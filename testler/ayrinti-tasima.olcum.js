@@ -104,6 +104,17 @@ const dogrulandi = new Set();
 let fark = 0;
 let tasinan = 0;
 
+/** Kısaltılan hücrede satırı TANITAN bir metin kaldı mı (grup başına yazılı alt sınır).
+ *  Kalan cümlenin taban metne sadık olup olmadığı otomatik ölçülemez — bu yalnızca hücrenin
+ *  boşaltılmadığını ölçer (mutasyon denemesi 9'un açtığı kör noktanın kapağı, tasokey#78). */
+const EN_AZ = { sorumluluk: 60, konu: 60, seçim: 60, tür: 20 };
+function kimlikKaldi(etiket, simdiHucre, grup) {
+  const enAz = EN_AZ[grup];
+  if (B(simdiHucre) < enAz) {
+    sorunlar.push(`${etiket}: kısaltılan hücrede ${B(simdiHucre)} B kaldı, en az ${enAz} B olmalı`);
+  }
+}
+
 /** Taban hücresinin eke BİREBİR girdiğini ölçer. */
 function birebir(etiket, baslik, tabanHucre) {
   const govde = ek.get(baslik);
@@ -127,7 +138,10 @@ for (const p of moduller(simdiMd)) {
     sorunlar.push(`modül ${p[0]}: taban commit'te yok`);
     continue;
   }
-  if (p[1] !== t[1]) birebir(`modül ${duzMetin(p[0])} sorumluluk`, `${duzMetin(p[0])} — sorumluluk`, t[1]);
+  if (p[1] !== t[1]) {
+    birebir(`modül ${duzMetin(p[0])} sorumluluk`, `${duzMetin(p[0])} — sorumluluk`, t[1]);
+    kimlikKaldi(`modül ${duzMetin(p[0])} sorumluluk`, p[1], 'sorumluluk');
+  }
   if (p[2] !== t[2]) sorunlar.push(`modül ${p[0]}: "Bağımlı olduğu" hücresi değişmiş (taşıma kapsamı dışı)`);
   if (p[3] !== t[3]) birebir(`modül ${duzMetin(p[0])} saf mantık`, `${duzMetin(p[0])} — saf mantık mı`, t[3]);
 }
@@ -146,7 +160,10 @@ for (const [numara, t] of [...tabanRisk].sort((a, b) => a[0] - b[0])) {
     if (!tam) sorunlar.push(`AÇIK risk ${numara}: metni değişmiş (açık riskin üç hücresi tam kalmalı)`);
     continue;
   }
-  if (s[1] !== t[1]) birebir(`risk ${numara} konu`, `Risk ${numara} — konu`, t[1]);
+  if (s[1] !== t[1]) {
+    birebir(`risk ${numara} konu`, `Risk ${numara} — konu`, t[1]);
+    kimlikKaldi(`risk ${numara} konu`, s[1], 'konu');
+  }
   if (s[2] !== t[2]) sorunlar.push(`risk ${numara}: "Durum" hücresi değişmiş (bu işte dokunulmamalı)`);
   if (s[3] !== t[3]) birebir(`risk ${numara} ölçüm`, `Risk ${numara} — nasıl ölçülecek`, t[3]);
 }
@@ -162,7 +179,10 @@ for (let i = 0; i < Math.min(tabanKanit.length, simdiKanit.length); i += 1) {
     [2, 'tek komut', `Kanıt ${i + 1} — tek komut`],
   ];
   for (const [s, ad, baslik] of sutunlar) {
-    if (tabanKanit[i][s] !== simdiKanit[i][s]) birebir(`kanıt ${i + 1} ${ad}`, baslik, tabanKanit[i][s]);
+    if (tabanKanit[i][s] !== simdiKanit[i][s]) {
+      birebir(`kanıt ${i + 1} ${ad}`, baslik, tabanKanit[i][s]);
+      if (ad === 'tür') kimlikKaldi(`kanıt ${i + 1} tür`, simdiKanit[i][s], 'tür');
+    }
   }
 }
 
@@ -172,7 +192,10 @@ const simdiYigin = tablo(simdiMd, 2, 4, (p) => p[0] === 'Katman');
 if (tabanYigin.length !== simdiYigin.length) sorunlar.push('yığın satır sayısı taban ile aynı değil');
 for (let i = 0; i < Math.min(tabanYigin.length, simdiYigin.length); i += 1) {
   if (tabanYigin[i][0] !== simdiYigin[i][0]) sorunlar.push(`yığın ${i + 1}: "Katman" hücresi değişmiş`);
-  if (tabanYigin[i][1] !== simdiYigin[i][1]) birebir(`yığın ${i + 1} seçim`, `Yığın ${i + 1} — seçim`, tabanYigin[i][1]);
+  if (tabanYigin[i][1] !== simdiYigin[i][1]) {
+    birebir(`yığın ${i + 1} seçim`, `Yığın ${i + 1} — seçim`, tabanYigin[i][1]);
+    kimlikKaldi(`yığın ${i + 1} seçim`, simdiYigin[i][1], 'seçim');
+  }
   if (tabanYigin[i][2] !== simdiYigin[i][2]) birebir(`yığın ${i + 1} gerekçe`, `Yığın ${i + 1} — gerekçe`, tabanYigin[i][2]);
   if (tabanYigin[i][3] !== simdiYigin[i][3]) sorunlar.push(`yığın ${i + 1}: "ADR" hücresi değişmiş (taşıma kapsamı dışı)`);
 }

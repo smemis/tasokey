@@ -127,6 +127,10 @@ for (const [numara, taban_] of [...tabanRiskler].sort((a, b) => a[0] - b[0])) {
       );
     } else if (Buffer.byteLength(simdi.konu) >= Buffer.byteLength(taban_.konu)) {
       sorunlar.push(`risk ${numara}: "Konu" hücresi kısalmamış (taşımanın kazancı yok)`);
+    } else if (Buffer.byteLength(simdi.konu) < 60) {
+      // Kalan cümlenin taban metne SADIK olduğu otomatik ölçülemez; ölçülebilen şey hücrenin
+      // boşaltılmadığıdır (satır kimliğini yitirmemeli). Alt sınır yazılı: 60 bayt.
+      sorunlar.push(`risk ${numara}: "Konu" hücresinde ${Buffer.byteLength(simdi.konu)} B kaldı, en az 60 B olmalı`);
     } else tasinanKonu += 1;
   }
   if (taban_.nasil !== simdi.nasil) {
