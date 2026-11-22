@@ -8,6 +8,7 @@ import {
   alanSatirlari, bildirim as beyan, izlerCoz, masaKullanilanYukseklik, masaModeli,
 } from './yardimci/masa-izleri.js';
 import { olculenBantlar, olculenMasaKutusu } from './yardimci/sigdirma-butcesi.js';
+import { EN_AZ_BOLGE_ORANI } from './yardimci/surukleme-hedefi.js';
 import { RAF_SUTUN_SAYISI } from '../docs/arayuz/raf.js';
 
 // tasokey#63 (sınıf K) — Sahip'in `tasokey#47`e düzeltmesi:
@@ -24,8 +25,9 @@ import { RAF_SUTUN_SAYISI } from '../docs/arayuz/raf.js';
 // yapışır ve dikey çubuk satırının TAMAMIDIR. Böylece köşe hücresi = iki komşu ıstaka arasındaki
 // boş dikdörtgen eksi birer ızgara boşluğu; kural dört köşe için tektir (ADR-010 simetrisi).
 //
-// tasokey#71: masa düzeni artık İKİ VARYANTLIDIR (tasokey#70 planı §3, karar maddesi 2) —
-// paylaşılan düzende ÜÇ iz, kısa yatay varyantta DÖRT bant (üst köşeler ilk iki bandı kaplar).
+// tasokey#71: masa düzeni artık İKİ VARYANTLIDIR (**ADR-024**, karar maddesi 2 — numarası
+// tasokey#74'te MIMARI.md'ye yazıldı) — paylaşılan düzende ÜÇ iz, kısa yatay varyantta DÖRT bant
+// (üst köşeler ilk iki bandı kaplar).
 // Bu dosyanın savları GEVŞETİLMEDİ: aynı kapsama/ortalama/sığdırma ölçütleri iki düzende de
 // ayrı ayrı denetlenir; "izler üç tanedir" varsayımı yerine düzen başına beklenen bant listesi
 // ölçülür (aşağıda `kabul-c`). Bant modeli `yardimci/masa-izleri.js`e taşındı (tek kaynak: ince
@@ -40,8 +42,11 @@ const DOCS_KOK = join(import.meta.dirname, '..', 'docs');
 const STIL_CSS = readFileSync(join(DOCS_KOK, 'arayuz', 'stil.css'), 'utf8');
 const YORUMSUZ_STIL = yorumlariAt(STIL_CSS);
 
-// Sahip'in kabul ölçütü: boş bölgenin en az %80'i atma alanı olacak.
-const EN_AZ_KAPSAMA = 0.8;
+// Sahip'in kabul ölçütü: boş bölgenin en az %80'i atma alanı olacak. tasokey#74: sayı artık burada
+// YAZILMAZ — tarayıcı ölçümünün kendi denetimi (`yardimci/surukleme-hedefi.js`
+// `bolgeIsabetiEnAz80`) aynı ölçütü kullandığı için sabit TEK KAYNAKTAN okunur; statik hesap ile
+// tarayıcı ölçümü aynı çıtadan geçer, biri gevşerse ikisi birden gevşemek zorunda kalır.
+const EN_AZ_KAPSAMA = EN_AZ_BOLGE_ORANI;
 
 // --raf-sutun-sayisi CSS'te değil `arayuz/raf.js`te tanımlıdır (ADR-019, tek kaynak).
 const EKLER = new Map([['--raf-sutun-sayisi', [String(RAF_SUTUN_SAYISI)]]]);
@@ -179,12 +184,18 @@ test('ASIL KABUL (c2): satır içerikleri kalan yüksekliğe sığar (kesin yük
 /**
  * Paylaşılan düzende (masaüstü/tablet) ve kısa yatay varyantta beklenen bant listesi. tasokey#71:
  * "izler üç tanedir" varsayımı GEVŞETİLMEDİ, DÜZEN BAŞINA yazıldı — paylaşılan düzende yine tam
- * üç iz, varyantta tam dört bant ve üst köşeler ilk iki bandı kaplar (karar maddesi 2).
+ * üç iz, varyantta tam dört bant ve üst köşeler ilk iki bandı kaplar (ADR-024/2).
+ *
+ * tasokey#74: düzen başına TEK boyut ölçülüyordu (ilk ve son); artık her düzen KENDİ BÜTÜN kabul
+ * boyutlarında ölçülür (3 + 3 = 6 boyut, ölçülen bant tablosuyla — `olculenBantlar`). Gerekçe:
+ * varyant üç boyutta etkin ve üçünün bant ölçüleri farklı (900x600 `8/115,5/231/115,5`,
+ * 844x390 `8/75,5/151/75,5`, 800x360 `8/68/136/68`); tek boyut ölçmek, öbür ikisinde bant
+ * listesinin sessizce bozulmasına açık kapı bırakıyordu. Savlar gevşemedi, kapsam genişledi.
  */
 const BEKLENEN_DUZENLER = [
   {
     ad: 'paylaşılan düzen (masaüstü/tablet)',
-    boyut: OLCUM_BOYUTLARI[0],
+    boyutlar: OLCUM_BOYUTLARI.slice(0, 3),
     satirSayisi: 3,
     koseUstBantlari: [0],
     koseAltBantlari: [2],
@@ -193,7 +204,7 @@ const BEKLENEN_DUZENLER = [
   },
   {
     ad: 'kısa yatay varyant',
-    boyut: OLCUM_BOYUTLARI.at(-1),
+    boyutlar: OLCUM_BOYUTLARI.slice(3),
     satirSayisi: 4,
     koseUstBantlari: [0, 1],
     koseAltBantlari: [3],
@@ -202,10 +213,14 @@ const BEKLENEN_DUZENLER = [
   },
 ];
 
+/** Düzen × boyut çiftleri: yapısal savlar hepsini tek tek ölçer. */
+const DUZEN_BOYUTLARI = BEKLENEN_DUZENLER.flatMap(
+  (duzen) => duzen.boyutlar.map((boyut) => ({ duzen, boyut, ad: `${duzen.ad} · ${boyut.ad}` })),
+);
+
 test('kabul-c: masa ızgarası ortada yalnız ıstaka şeridini bırakır (dış izler esnek, simetrik)', () => {
-  for (const { ad, boyut } of BEKLENEN_DUZENLER) {
-    const { sozluk, satirAdlari, sutunAdlari } = masaOlcusu(boyut);
-    const duzen = BEKLENEN_DUZENLER.find((d) => d.ad === ad);
+  for (const { ad, boyut, duzen } of DUZEN_BOYUTLARI) {
+    const { satirAdlari, sutunAdlari } = masaOlcusu(boyut);
     // Sütunlarda dış izler birebir eşit ve esnek (iki düzende de aynı).
     const [ilkSutun, , sonSutun] = sutunAdlari;
     assert.equal(ilkSutun, sonSutun, `${ad} sütunlar: dış izler eşit değil (${ilkSutun} / ${sonSutun}) — köşeler simetrik olmaz`);
@@ -239,7 +254,7 @@ test('kabul-c: masa ızgarası ortada yalnız ıstaka şeridini bırakır (dış
     );
     // Orta SATIR bir ORAN kararıdır (çubuk ~masa yüksekliğinin yarısı): esnek ve köşe
     // satırlarından büyük olmalı, yoksa çubuk kısalır (madde 1, tasokey#33).
-    const yanIz = satirAdlari[BEKLENEN_DUZENLER.find((d) => d.ad === ad).yanBant];
+    const yanIz = satirAdlari[duzen.yanBant];
     assert.ok(
       Number.parseFloat(yanIz) > Number.parseFloat(satirAdlari.at(-1)),
       `${ad}: #masa yan çubuk bandı (${yanIz}) köşe bandından (${satirAdlari.at(-1)}) büyük değil — `
@@ -249,14 +264,14 @@ test('kabul-c: masa ızgarası ortada yalnız ıstaka şeridini bırakır (dış
 });
 
 test('kabul-c3: düzen başına bant listesi ve köşelerin kapladığı bantlar beklenen (üç iz / dört bant)', () => {
-  for (const duzen of BEKLENEN_DUZENLER) {
-    const { satirAdlari, sablon } = masaOlcusu(duzen.boyut);
+  for (const { ad, boyut, duzen } of DUZEN_BOYUTLARI) {
+    const { satirAdlari, sablon } = masaOlcusu(boyut);
     assert.equal(
       satirAdlari.length,
       duzen.satirSayisi,
-      `${duzen.ad}: ${satirAdlari.length} bant var, ${duzen.satirSayisi} bekleniyor (${satirAdlari.join(' ')})`,
+      `${ad}: ${satirAdlari.length} bant var, ${duzen.satirSayisi} bekleniyor (${satirAdlari.join(' ')})`,
     );
-    assert.equal(sablon.length, duzen.satirSayisi, `${duzen.ad}: alan şablonu bant sayısıyla uyuşmuyor`);
+    assert.equal(sablon.length, duzen.satirSayisi, `${ad}: alan şablonu bant sayısıyla uyuşmuyor`);
     for (const [alan, beklenen] of [
       ['solUst', duzen.koseUstBantlari], ['sagUst', duzen.koseUstBantlari],
       ['solAlt', duzen.koseAltBantlari], ['sagAlt', duzen.koseAltBantlari],
@@ -267,16 +282,16 @@ test('kabul-c3: düzen başına bant listesi ve köşelerin kapladığı bantlar
       assert.deepEqual(
         alanSatirlari(sablon, alan),
         beklenen,
-        `${duzen.ad}: ${alan} alanı ${alanSatirlari(sablon, alan).join(',')} bandında (beklenen ${beklenen.join(',')})`,
+        `${ad}: ${alan} alanı ${alanSatirlari(sablon, alan).join(',')} bandında (beklenen ${beklenen.join(',')})`,
       );
     }
     // Varyantta üst çubuk bandı içeriğe oturur (yalnız çubuğun kalınlığı), öbür bantlar esnektir.
     if (duzen.satirSayisi === 4) {
-      assert.equal(satirAdlari[0], 'auto', `${duzen.ad}: üst çubuk bandı "auto" değil`);
+      assert.equal(satirAdlari[0], 'auto', `${ad}: üst çubuk bandı "auto" değil`);
       assert.deepEqual(
-        sablon[2].filter((ad) => ad === '.'),
+        sablon[2].filter((alanAdi) => alanAdi === '.'),
         ['.'],
-        `${duzen.ad}: yan çubuk bandının orta sütunu boş değil — ıstakanın taşacağı yer kalmaz`,
+        `${ad}: yan çubuk bandının orta sütunu boş değil — ıstakanın taşacağı yer kalmaz`,
       );
     }
   }
@@ -290,7 +305,7 @@ test('kabul-d: dört ıstaka masanın kendi kenarına yapışır (köşe sütunu
     ['.kenar-sag', 'justify-self', 'end'],
   ];
   // İki düzende de aynı: varyant yalnız bant listesini değiştirir, yapışmayı değiştirmez.
-  for (const { ad, boyut } of BEKLENEN_DUZENLER) {
+  for (const { ad, boyut } of DUZEN_BOYUTLARI) {
     for (const [secici, ozellik, deger] of beklenen) {
       assert.equal(
         bildirim(secici, ozellik, boyut),
@@ -314,7 +329,7 @@ test('kabul-e: dikey ıstaka çubuğu satırın TAMAMIDIR (satır sınırı = bo
 });
 
 test('kabul-f: orta satır oranı tek kaynaktan (kuralın içine sayı yazılmaz)', () => {
-  for (const { ad, boyut } of BEKLENEN_DUZENLER) {
+  for (const { ad, boyut } of DUZEN_BOYUTLARI) {
     const ham = bildirim('#masa', 'grid-template-rows', boyut);
     assert.match(
       ham,

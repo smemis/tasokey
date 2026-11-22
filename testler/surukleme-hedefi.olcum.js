@@ -1,5 +1,6 @@
 // tasokey#69 (üst iş tasokey#64, plan §7 iş 3) — SÜRÜKLE-BIRAK HEDEF ÖLÇÜM ARACI (sürücü).
-// Beş yolu iki boyutta (800x360 ve 1920x1080) ölçer: ıstakaya bırakma (ADR-019), geçersiz
+// Beş yolu ÜÇ boyutta (1920x1080, 900x600, 800x360 — tasokey#74, ADR-024 varyantının iki kabul
+// boyutu + varyantın etkin olmadığı masaüstü) ölçer: ıstakaya bırakma (ADR-019), geçersiz
 // bırakmada taşın yerine dönmesi (tasokey#62), köşe atma alanı (tasokey#63), desteden/komşu
 // köşeden çekme (R-012), bitirme hedefinin destede vurgulanması (R-013).
 //

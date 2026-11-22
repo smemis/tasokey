@@ -24,6 +24,19 @@
 /** Kutu karşılaştırmalarının alt-piksel payı (tarayıcı yerleşimi kesirli piksel üretir). */
 export const ESIK_PX = 1.5;
 
+/**
+ * Köşe atma alanının kabul ÖLÇÜTÜ: boş bölgeye serilen noktaların en az bu oranı o köşeye isabet
+ * etmeli. Sahip'in ölçütü (`tasokey#63`: "atma alanı iki ıstaka arasındaki boş bölgenin en az
+ * %80'i"). TEK KAYNAK: `testler/kose-atma-alani.test.js` statik kapsama savını da bu sabitten
+ * okur — ölçüt iki yerde ayrı ayrı yazılmaz.
+ *
+ * tasokey#74: oran `tasokey#69`da ölçülüp yalnız rapora yazılıyordu (eşiksiz ölçüm); kısa yatay
+ * düzen varyantı (ADR-024) köşe hücrelerinin ölçüsünü değiştirdiği için ölçüt artık ölçümün
+ * KENDİSİNDE denetlenir (aşağıdaki `bolgeIsabetiEnAz80`). Oran yine ölçülerek yazılır (A9);
+ * eklenen tek şey ölçütle karşılaştırmadır.
+ */
+export const EN_AZ_BOLGE_ORANI = 0.8;
+
 /** Ölçülen sahneler: dört yol el sürerken, bitirme hedefi ayrı bir sahnede ölçülür. */
 export const SAHNELER = Object.freeze(['hedef', 'bitirme']);
 
@@ -205,6 +218,17 @@ export const YOLLAR = Object.freeze([
           .map((k) => `${k.anahtar}=${sayi(k.kenarlar.icX)}`).join(' '),
       },
       {
+        // Boş bölgenin KAÇ noktası köşeye isabet ediyor: Sahip'in ≥%80 ölçütü (tasokey#63) dört
+        // köşede ayrı ayrı denetlenir. Varyantta (ADR-024) üst köşeler iki bandı kaplar, alt
+        // köşeler ıstaka büyüdüğü için daralır → oran kademeye göre değişir, ölçüt değişmez.
+        ad: 'bolgeIsabetiEnAz80',
+        gecti: (g) => hepsi(g.koseler, (k) => (k.bolge?.toplam ?? 0) > 0
+          && k.bolge.isabet / k.bolge.toplam >= EN_AZ_BOLGE_ORANI),
+        olcu: (g) => `enAz=%${Math.round(EN_AZ_BOLGE_ORANI * 100)} ` + (g.koseler ?? [])
+          .map((k) => `${k.anahtar}=${k.bolge?.isabet ?? '?'}/${k.bolge?.toplam ?? '?'}`
+            + ` (%${Math.round((k.bolge?.oran ?? 0) * 100)})`).join(' '),
+      },
+      {
         // Uç noktadan (hücrenin köşesine yakın) atma GERÇEKTEN hamle üretir: el bir taş azalır,
         // o köşenin yığını bir taş artar.
         ad: 'ucNoktadanAtmaCalisti',
@@ -328,8 +352,10 @@ export function kararOzeti(kararlar) {
 /**
  * Ekran görüntüsünden ve sürücü günlüğünden okunan özet (tek kaynak: iki yolda aynı satırlar).
  * Satırlar KISA tutulur — yazı katmanı `white-space: pre`, uzun satır 800px görünümde kırpılır.
+ * `enCokOlcu` en kalabalık yolun denetim sayısı kadardır (bugün `koseAtmaAlani`: 5, tasokey#74) —
+ * daha küçük olursa bir denetimin ölçüsü ekran görüntüsünden okunamaz.
  */
-export function ozetSatirlari(olcum, { enCokOlcu = 4 } = {}) {
+export function ozetSatirlari(olcum, { enCokOlcu = 5 } = {}) {
   const { sahne, gorunum, kararlar = [], olculer = {} } = olcum;
   const ozet = kararOzeti(kararlar);
   const satirlar = [
@@ -355,7 +381,9 @@ export function ozetSatirlari(olcum, { enCokOlcu = 4 } = {}) {
 /**
  * Köşe bölge taramasının dökümü: hücrenin dışında kalan noktalar hangi öğeye düşüyor.
  * "Boş bölgenin tamamı" iddiası bu sayıyla okunur; kaçan nokta ızgara boşluğuna (`#masa`) ya da
- * komşu öğeye düşüyorsa sahipsiz bir şerit yoktur. Eşik YOKTUR: ölçülen oran yazılır (A9).
+ * komşu öğeye düşüyorsa sahipsiz bir şerit yoktur. Bu satırlar DÖKÜMDÜR, kendi kararını vermez:
+ * ölçülen oran olduğu gibi yazılır (A9). Ölçütle karşılaştırma `koseAtmaAlani` yolunun
+ * `bolgeIsabetiEnAz80` denetimindedir (tek kaynak `EN_AZ_BOLGE_ORANI`, tasokey#74).
  */
 export function bolgeSatirlari(koseler = []) {
   const satirlar = [];

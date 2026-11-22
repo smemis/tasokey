@@ -12,7 +12,7 @@ import { join } from 'node:path';
 
 import * as cekirdekModulu from './yardimci/surukleme-hedefi.js';
 import {
-  ESIK_PX, SAHNELER, SAHNE_YOLLARI, YOLLAR, YOL_ANAHTARLARI,
+  ESIK_PX, EN_AZ_BOLGE_ORANI, SAHNELER, SAHNE_YOLLARI, YOLLAR, YOL_ANAHTARLARI,
   coklukAyni, dizilimAyni, isabetNoktalari, izgaraNoktalari, kutuAlani, olcuMetni,
   yolTanimi, yolKarari, sahneKararlari, kararOzeti,
   ozetSatirlari, bolgeSatirlari, yaziKatmaniBicimi, kararSatiri, TABLO_BASLIKLARI,
@@ -144,6 +144,16 @@ test('bozulan gözlem "kaldi" verir: her denetim gerçekten bir şey ölçüyor 
     ['koseAtmaAlani', 'hucreIsabetiTam', (g) => { g.koseler[1].hucre.isabet = 8; }],
     ['koseAtmaAlani', 'disKenarMasayaDayali', (g) => { g.koseler[0].kenarlar.disY = 9; }],
     ['koseAtmaAlani', 'icKenarIstakaYuzunde', (g) => { g.koseler[3].kenarlar.icX = 40; }],
+    // tasokey#74: isabet oranı ölçütün (≥%80) altına düşerse yol KALIR — tek köşede bile.
+    ['koseAtmaAlani', 'bolgeIsabetiEnAz80', (g) => {
+      g.koseler[2].bolge.isabet = 19;
+      g.koseler[2].bolge.oran = 19 / 25;
+    }],
+    // Bölge hiç taranamamışsa (0 nokta) "geçti" yazılmaz: oran hesaplanamaz, denetim kalır.
+    ['koseAtmaAlani', 'bolgeIsabetiEnAz80', (g) => {
+      g.koseler[0].bolge.toplam = 0;
+      g.koseler[0].bolge.isabet = 0;
+    }],
     ['koseAtmaAlani', 'ucNoktadanAtmaCalisti', (g) => { g.atma.elSonra = 15; }],
     ['cekme', 'destedenCekildi', (g) => { g.deste.elSonra = 14; }],
     ['cekme', 'komsuKosedenCekildi', (g) => { g.komsuKose.cekilebilirSinif = false; }],
@@ -248,11 +258,32 @@ test('özet satırları ekran görüntüsünden okunabilir biçimde yazılır', 
   assert.ok(bozukSatirlar.some((satir) => satir.includes('! destedenCekildi')));
 });
 
-test('bölge satırları oranı ve kaçan noktaların dökümünü yazar (eşik YOK, ölçüm)', () => {
+test('bölge satırları oranı ve kaçan noktaların dökümünü yazar (döküm, kararı yolda)', () => {
   const satirlar = bolgeSatirlari([koseKaydi('solAlt')]);
   assert.match(satirlar[0], /^BOLGE solAlt hucre 200x100 bosBolge 240x120 isabet 20\/25 \(80%\)$/);
   assert.match(satirlar[1], /kacan: #masa x1/);
   assert.deepEqual(bolgeSatirlari([]), []);
+});
+
+test('köşe isabeti ölçütü TEK SABİTTEN okunur ve ekran görüntüsünde yazılı (tasokey#74)', () => {
+  // Sahip'in ölçütü (tasokey#63): boş bölgenin en az %80'i atma alanı. Sabit burada ölçülür;
+  // `kose-atma-alani.test.js` aynı sabiti import eder (ölçüt iki yerde yazılmaz).
+  assert.equal(EN_AZ_BOLGE_ORANI, 0.8);
+  const denetim = yolTanimi('koseAtmaAlani').denetimler.find((d) => d.ad === 'bolgeIsabetiEnAz80');
+  assert.ok(denetim, 'koseAtmaAlani yolunda bolgeIsabetiEnAz80 denetimi yok');
+  // Tam eşikte geçer (20/25 = %80), bir nokta altında kalır — ölçüt ">" değil "≥".
+  const tamEsik = kopya(GECEN.koseAtmaAlani);
+  assert.equal(denetim.gecti(tamEsik), true);
+  assert.match(denetim.olcu(tamEsik), /enAz=%80 solUst=20\/25 \(%80\)/);
+  // Ekran görüntüsünde yolun BÜTÜN denetimleri görünür (en kalabalık yol kırpılmaz).
+  const satirlar = ozetSatirlari({
+    sahne: 'hedef',
+    gorunum: { genislik: 900, yukseklik: 600 },
+    olculer: { istaka: null, tas: null, olcek: '1.25', hedefPay: 3 },
+    kararlar: [yolKarari('koseAtmaAlani', GECEN.koseAtmaAlani)],
+  });
+  assert.ok(satirlar.some((satir) => satir.includes('bolgeIsabetiEnAz80')), 'denetim ekranda yok');
+  assert.ok(!satirlar.some((satir) => satir.includes('denetim daha')), 'denetim listesi kırpıldı');
 });
 
 test('yazı katmanı ekrana sığar: uzun liste başa çekilir, gerekirse yazı küçülür', () => {
@@ -311,10 +342,14 @@ test('sayfa betiği geçerli bir async gövdedir; iki sahne de gömülü kaynağ
   assert.throws(() => sayfaBetigi({ sahne: 'yokBoyleSahne' }), /bilinmeyen sahne/);
 });
 
-test('plan iki boyut × iki sahne: işin metnindeki 800x360 ve 1920x1080', () => {
-  assert.deepEqual(BOYUTLAR.map((b) => `${b[0]}x${b[1]}`), ['800x360', '1920x1080']);
+test('plan üç boyut × iki sahne: işin metnindeki 800x360, 900x600 ve 1920x1080', () => {
+  // tasokey#74: 900x600 eklendi (ADR-024 varyantının en geniş kabul boyutu). Sıra geniş → dar,
+  // öbür iki ölçüm tablosuyla aynı.
+  assert.deepEqual(BOYUTLAR.map((b) => `${b[0]}x${b[1]}`), ['1920x1080', '900x600', '800x360']);
   const plan = planNesnesi();
-  assert.deepEqual(plan.boyutlar, [[800, 360, 'telefon-kucuk'], [1920, 1080, 'masaustu']]);
+  assert.deepEqual(plan.boyutlar, [
+    [1920, 1080, 'masaustu'], [900, 600, 'kademe-900'], [800, 360, 'telefon-kucuk'],
+  ]);
   assert.deepEqual(plan.cekimler.map((c) => c.ad), ['surukle-hedef', 'surukle-bitirme']);
   for (const cekim of plan.cekimler) {
     assert.equal(cekim.sayfa, 'index.html');

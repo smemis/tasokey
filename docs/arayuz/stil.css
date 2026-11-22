@@ -1106,14 +1106,14 @@ html, body {
 }
 
 /* ===== KISA YATAY DÜZEN VARYANTI — BAŞLANGIÇ (tasokey#71) =====
-   Karar: tasokey#70 planı §3 (kısa yatay düzen varyantı). Kararın NUMARASI ve metni MIMARI.md'ye
-   tasokey#70 iş 4'te girer; o güne kadar burada yalnız plan maddesine atıf yapılır (atıf taraması
+   Karar: ADR-024 (MIMARI.md §5; numara ve metin tasokey#74'te yazıldı — tasokey#70 planı §3'ten
+   olduğu gibi. O güne kadar burada yalnız plan maddesine atıf yapılıyordu, çünkü atıf taraması
    belgede karşılığı olmayan karar numarasını haklı olarak reddeder — adr-atif-tarama.test.js).
    Kısa yatay ekranlarda masa AYRI BİR DÜZEN VARYANTI kullanır: dikey zincir en çok ÜÇ taş boyu
-   taşır (plan §3, karar maddeleri 1-2). Yukarıdaki kademeler yalnız ÖLÇÜ değiştirir; buradaki
+   taşır (ADR-024, karar maddeleri 1-2). Yukarıdaki kademeler yalnız ÖLÇÜ değiştirir; buradaki
    blok masanın BANT LİSTESİNİ değiştirir, bu yüzden ayrı ve adlandırılmış durur.
 
-   KAPATMA ANAHTARI = YALITIM (karar maddesi 7): varyantın BÜTÜN bildirimleri bu tek bloğun içindedir.
+   KAPATMA ANAHTARI = YALITIM (ADR-024 madde 7): varyantın BÜTÜN bildirimleri bu tek bloğun içindedir.
    Bloğu silmek `tasokey#68` düzenini birebir geri verir — öz-test bunu ölçer
    (`kisa-yatay-varyant.test.js` kabul-a/b: blok tektir, adlandırılmış yorumu taşır ve masaüstü
    kademelerinde blokla bloksuz CSS'in çözdüğü değerler BİREBİR aynıdır). Çalışma zamanı anahtarı

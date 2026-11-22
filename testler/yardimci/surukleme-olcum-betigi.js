@@ -18,17 +18,25 @@ const CEKIRDEK_DOSYASI = join(import.meta.dirname, 'surukleme-hedefi.js');
 const SAYFA_DOSYASI = join(import.meta.dirname, 'surukleme-olcum-sayfa.js');
 
 /**
- * İşin metnindeki iki boyut: en küçük kabul boyutu ve en büyük (ADR-022 ölçeğinin 1 olduğu ve
- * 1,85 olduğu iki uç — hedeflerin "yeni ölçekte" çalıştığı ancak ikisinde birlikte ölçülür).
+ * Ölçüm boyutları: `[genislik, yukseklik, ad]`, geniş → dar (öbür ölçüm tablolarıyla aynı sıra:
+ * `yardimci/yerlesim-olcum-betigi.js` BOYUTLAR ve `yardimci/sigdirma-butcesi.js`
+ * OLCULEN_MASA_KUTUSU — üç tablo yan yana okunur).
+ *
+ * tasokey#69'da İKİ boyut vardı (ADR-022 ölçeğinin 1 ve 1,85 olduğu iki uç). tasokey#74 (üst iş
+ * tasokey#70, plan §6.4) **900x600**'ü ekler: kısa yatay düzen varyantının (ADR-024) en GENİŞ
+ * kabul boyutudur, bağlayıcı ekseni öbür ikisinden farklıdır (orada yatay bütçe bağlar — ADR-022
+ * madde 9) ve varyantta deste/gösterge bandın ucuna geçtiği için hedeflerin orada da çalıştığı
+ * ölçülmek zorundadır. 1920x1080 varyantın ETKİN OLMADIĞI kademedir: gerilemesizlik kanıtı.
  */
 export const BOYUTLAR = Object.freeze([
-  Object.freeze([800, 360, 'telefon-kucuk']),
   Object.freeze([1920, 1080, 'masaustu']),
+  Object.freeze([900, 600, 'kademe-900']),
+  Object.freeze([800, 360, 'telefon-kucuk']),
 ]);
 
 /** Saf çekirdeğin sayfa katmanına verilen adları (tek liste; öz-test modülle karşılaştırır). */
 export const CEKIRDEK_ADLARI = Object.freeze([
-  'ESIK_PX', 'SAHNELER', 'SAHNE_YOLLARI', 'YOLLAR', 'YOL_ANAHTARLARI',
+  'ESIK_PX', 'EN_AZ_BOLGE_ORANI', 'SAHNELER', 'SAHNE_YOLLARI', 'YOLLAR', 'YOL_ANAHTARLARI',
   'olcuMetni', 'coklukAyni', 'dizilimAyni', 'isabetNoktalari', 'izgaraNoktalari', 'kutuAlani',
   'yolTanimi', 'yolKarari', 'sahneKararlari', 'kararOzeti',
   'ozetSatirlari', 'bolgeSatirlari', 'yaziKatmaniBicimi', 'kararSatiri', 'TABLO_BASLIKLARI',
@@ -55,7 +63,7 @@ export function sayfaBetigi({ sahne = 'hedef', gosterim = 'json' } = {}) {
 
 /**
  * Ofisin ekran görüntüsü yolu için plan nesnesi (iş klasörüne `plan.json` olarak yazılır):
- * iki boyut × iki sahne. Ölçüm özeti sayfanın üstüne yazı katmanı olarak basılır, isabet
+ * üç boyut × iki sahne. Ölçüm özeti sayfanın üstüne yazı katmanı olarak basılır, isabet
  * noktaları sayfaya işaretlenir (işin kabulü: "isabet noktaları ekran görüntüsüyle kanıtlanır").
  * `bitirme` sahnesi birkaç el oynadığı için daha uzun bekler.
  */
