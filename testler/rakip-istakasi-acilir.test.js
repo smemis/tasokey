@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { EL_SONUCU } from '../docs/cekirdek/el.js';
 import { rakipEliAcikMi } from '../docs/arayuz/etkilesim.js';
 import { RAF_SUTUN_SAYISI } from '../docs/arayuz/raf.js';
-import { degiskenOlcusu, kademeSozlukleri } from './yardimci/css-olcu.js';
+import { degiskenOlcusu, kademeSozlukleri, sozlukleriBirlestir } from './yardimci/css-olcu.js';
 
 // tasokey#38 ek bilgi (Sahip, 2026-11-20): "El bittiğinde rakiplerin ıstakaları da gösterilsin."
 // El SÜRERKEN rakip taşı hiç görünmez (tasokey#31 ek bilgisi: yalnız ıstakanın ahşap sırtı);
@@ -71,17 +71,42 @@ test('kabul-d: açılan taşlar düzeni kaydırmıyor — kutu akış dışında
   assert.match(kutu[1], /pointer-events:\s*none/, 'açılan rakip taşları tıklama hedefi olmamalı');
 });
 
-test('kabul-e: açılan taş ölçüsü tek kaynaktan türer ve kademelerde kendiliğinden küçülür', () => {
-  assert.match(
-    STIL_CSS,
-    /--rakip-acik-tas-genislik:\s*calc\(var\(--tas-genislik\) \* var\(--rakip-acik-olcek\)\)/,
-    'açık taş genişliği --tas-genislik tabanından türemiyor (sabit ölçü duyarlı kademelerde taşar)',
-  );
-  assert.match(
-    STIL_CSS,
-    /--rakip-acik-tas-yukseklik:\s*calc\(var\(--tas-yukseklik\) \* var\(--rakip-acik-olcek\)\)/,
-    'açık taş yüksekliği --tas-yukseklik tabanından türemiyor',
-  );
+test('kabul-e: açılan taş ölçüsü TABANdan türer (ölçekten muaf) ve kademelerde kendiliğinden küçülür', () => {
+  // ADR-022 sürüm 2, madde 6 muafiyeti (tasokey#68): bu taşlar --tas-taban-*'a bağlıdır,
+  // --istaka-olcek'e DEĞİL — kutusu (çubuğun dışı + masanın orta satırı) ölçekle büyümüyor.
+  // Ölçekten bağımsızlık ölçülerek denetlenir: ölçek 1 ile tavan 2'de değer aynı kalmalı.
+  for (const [turetilen, taban] of [
+    ['--rakip-acik-tas-genislik', '--tas-taban-genislik'],
+    ['--rakip-acik-tas-yukseklik', '--tas-taban-yukseklik'],
+  ]) {
+    assert.match(
+      STIL_CSS,
+      new RegExp(`${turetilen}:\\s*calc\\(var\\(${taban}\\) \\* var\\(--rakip-acik-olcek\\)\\)`),
+      `${turetilen} ${taban} tabanından türemiyor (sabit ölçü duyarlı kademelerde taşar)`,
+    );
+    const kademeler = kademeSozlukleri(STIL_CSS);
+    const olcu = (sozluk, olcek) => degiskenOlcusu(
+      turetilen,
+      sozlukleriBirlestir(sozluk, new Map([['--istaka-olcek', [String(olcek)]]])),
+    ).sayi;
+    for (const kademe of kademeler) {
+      assert.equal(
+        olcu(kademe.sozluk, 2),
+        olcu(kademe.sozluk, 1),
+        `${kademe.ad}: ${turetilen} --istaka-olcek ile büyüyor — kutusu büyümediği için`
+          + ' köşe hedef halkasına çarpar (ADR-022 sürüm 2, madde 6)',
+      );
+    }
+    // Kademelerde kendiliğinden küçülme: taban merdiveni kademeli olduğu için her kademe
+    // bir öncekinden küçük ölçü verir (sabit px olsaydı dar ekranda taşardı).
+    const merdiven = kademeler.map((kademe) => olcu(kademe.sozluk, 1));
+    for (const [sira, deger] of merdiven.slice(1).entries()) {
+      assert.ok(
+        deger < merdiven[sira],
+        `${turetilen} ${kademeler[sira + 1].ad} kademesinde küçülmüyor (${merdiven.join(' → ')})`,
+      );
+    }
+  }
   const olcek = Number(STIL_CSS.match(/--rakip-acik-olcek:\s*([\d.]+)/)[1]);
   assert.ok(olcek > 0 && olcek < 1, `--rakip-acik-olcek 0-1 arasında değil (${olcek})`);
 });

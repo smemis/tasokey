@@ -181,8 +181,14 @@ test('kabul-c2: ölçek clamp alt/üst sınırını geçemez (küçülme yasak, 
   }
 });
 
-test('kabul-e: --rakip-raf-*, --hedef-pay ve --masa-bosluk ölçeğe BAĞLANMAMIŞ (ADR-022/6)', () => {
-  const bagimsizlar = ['--rakip-raf-uzunluk', '--rakip-raf-kalinlik', '--hedef-pay', '--masa-bosluk'];
+test('kabul-e: kutusu ölçekle büyümeyen ölçüler ölçeğe BAĞLANMAMIŞ (ADR-022 sürüm 2, madde 6)', () => {
+  // Madde 6 bir LİSTE değil kuraldır: bir ölçü ölçeğe ancak kendi kutusu da ölçekle büyüyorsa
+  // bağlanır. --rakip-acik-tas-* sürüm 2'de muafiyete girdi (kutusu çubuğun dışı + orta satır;
+  // ikisi de ölçekten bağımsız → ölçekle büyüyünce köşe hedef halkasına çarpıyordu, tasokey#68).
+  const bagimsizlar = [
+    '--rakip-raf-uzunluk', '--rakip-raf-kalinlik', '--hedef-pay', '--masa-bosluk',
+    '--rakip-acik-tas-genislik', '--rakip-acik-tas-yukseklik',
+  ];
   for (const kademe of KADEMELER) {
     for (const ad of bagimsizlar) {
       assert.equal(
@@ -201,8 +207,9 @@ test('kabul-e: --rakip-raf-*, --hedef-pay ve --masa-bosluk ölçeğe BAĞLANMAMI
   }
   // Olumlu denetim: bağımlılık yürüyüşü gerçekten çalışıyor (taş ölçüsü ölçeğe BAĞLI).
   assert.equal(bagimliMi('--tas-genislik', KADEMELER[0].sozluk, '--istaka-olcek'), true);
-  // Rakip ıstakası açıkken küçültülmüş taşlar da ölçekle büyür (türev, tek kaynak).
-  assert.equal(bagimliMi('--rakip-acik-tas-genislik', KADEMELER[0].sozluk, '--istaka-olcek'), true);
+  // Üst rakibin çubuğu KUTUNUN KENDİSİdir ve Sahip'in ıstakasının genişliğini aynı formülden
+  // alır (tek kaynak) → madde 6 gereği ölçeğe bağlı KALIR.
+  assert.equal(bagimliMi('--rakip-ust-genislik', KADEMELER[0].sozluk, '--istaka-olcek'), true);
 });
 
 /* ------------------------------------------------- ölçüm aracının kendisi: clamp()/min()/max() */

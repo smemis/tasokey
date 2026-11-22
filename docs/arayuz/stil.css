@@ -91,10 +91,17 @@
   /* El bittiğinde açılan rakip ıstakası (Sahip ek bilgisi, 2026-11-20): taşlar kendi ölçüsünün
      bu oranında çizilir ki 14-15 taş kenara sığsın; sütun sayıları yatay (üst) ve dikey
      (sol/sağ) kenar için ayrı. Ölçek her duyarlı kademede kendiliğinden küçülür, çünkü taban
-     --tas-genislik/--tas-yukseklik'ten türer (tek kaynak). */
+     merdiveni (--tas-taban-*) kademelidir.
+     TABANA bağlıdır, --istaka-olcek'e DEĞİL (ADR-022 sürüm 2, madde 6 muafiyeti): bu taşlar
+     çubuğun DIŞINA mutlak konumla serilir (.kenar-taslar left/right: 100%), sığdıkları yer ise
+     masanın orta satırı (--masa-orta-satir) ile çubuğun uzunluğudur — ikisi de ölçeğe bağlı
+     değildir. Ölçekle büyütülünce sol/sağ yığın (2 sütun × 8 satır) orta satırı aşıp köşe
+     hücrelerine girer ve ADR-014'ün hedef halkasına çarpar: üç kademede +8 yeni çakışma
+     (tasokey#68 3. çekim turu, #kenarSol/SagTaslar ∩ #koseSol/SagAlt::after). Kural: bir ölçü
+     ölçeğe ancak KENDİ KUTUSU da ölçekle büyüyorsa bağlanır. */
   --rakip-acik-olcek: 0.6;
-  --rakip-acik-tas-genislik: calc(var(--tas-genislik) * var(--rakip-acik-olcek));
-  --rakip-acik-tas-yukseklik: calc(var(--tas-yukseklik) * var(--rakip-acik-olcek));
+  --rakip-acik-tas-genislik: calc(var(--tas-taban-genislik) * var(--rakip-acik-olcek));
+  --rakip-acik-tas-yukseklik: calc(var(--tas-taban-yukseklik) * var(--rakip-acik-olcek));
   --rakip-acik-bosluk: 2px;
   --rakip-acik-sutun-yatay: 8;
   --rakip-acik-sutun-dikey: 2;
