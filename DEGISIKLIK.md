@@ -6,8 +6,10 @@
 > Güncel belge ve özet tablo: [MIMARI.md](MIMARI.md).
 > Dosyanın sonunda iki ek var: özet tablodan taşınan **sürüm zinciri** ve `tasokey#78`'de taşınan
 > **§7 risk gerekçeleri** ([Ek](#ek--mimarimd-7-risk-gerekçeleri); risk satırları `MIMARI.md`'de duruyor).
+> Burada **tarihsel** gerekçe durur; tablo hücrelerinin **yürürlükteki** ayrıntısı
+> [MIMARI-AYRINTI.md](MIMARI-AYRINTI.md)'de, karar gövdeleri [adr/](adr/ADR-026-mimari-dizin-ayrinti-eki.md)'dedir (ADR-026).
 
-**Son sürüm: 25** (`tasokey#76`, 2026-11-22) → [Sürüm 25](#sürüm-25--tasokey76)
+**Son sürüm: 26** (`tasokey#78`, 2026-11-22) → [Sürüm 26](#sürüm-26--tasokey78)
 
 > *Birleştirme notu (Masa, 2026-11-22):* `tasokey#66` (main) ile `tasokey#64` zinciri aynı anda ilerlediği için ikisi de "sürüm 20" yazmıştı. Birleştirmede sıraya konuldu: **20** = `tasokey#66`, **21** = `tasokey#67` (ADR-023), **22** = `tasokey#69` (ADR-022 §0). Metinlerdeki "20 numarası ADR-023'e verilmişti, bu yüzden 21" ifadesi bu sıralamadan önce yazıldı.
 
@@ -267,6 +269,24 @@
 > numaraları artık `adr/`den okuyor, `adr/` de taranıyor (`tasokey#38`/`#54` dersleri korundu).
 > `docs/`, `android/`, `tasarim/` ve kayıt şeması **değişmedi**. Sürüm notu geçmişi ve tarihsel
 > gerekçeler bu işte taşınmadı — planın iş 2 ve iş 3'ü.
+
+## Sürüm 26 — tasokey#78
+
+> **Sürüm 26** (`tasokey#78` — üst iş `tasokey#75`; Mimar-K2 planı + Geliştirici uygulaması, 2026-11-22):
+> **ADR-026** yazıldı — *`MIMARI.md` **dizindir**; tablo hücrelerinin yürürlükteki ayrıntısı
+> `MIMARI-AYRINTI.md`'de* (üç ev ayrıdır: yürürlükteki ayrıntı ekte, karar gövdesi `adr/`de, tarihsel
+> gerekçe burada). Dört adım sırayla ve her adımdan **sonra ölçülerek** uygulandı: §3'ün 12 uzun modül
+> hücresi + `android/` "saf mantık mı" hücresi, §7'nin kapanmış satırlarındaki 16 "Nasıl ölçülecek"
+> hücresi, §6'nın 8 "Ne ile" hücresi ve §5'in **"Tek satır karar" sütunu** (25 satır) eke taşındı —
+> toplam **62 hücre**, hepsi **birebir** (`node testler/ayrinti-tasima.olcum.js` → bayt farkı 0; ekteki
+> 63. bölüm ADR-026'nın bu işte **yazılan** satırıdır, tabanda karşılığı yoktur).
+> Belge **40.000 → 30.376 bayt** (LF), ek dosya 17.061 bayt. Satır sayıları korundu: ADR dizini **26**
+> (ADR-026 eklendi), modül **18**, kanıt **14**, risk **30**; açık 10 riskin (8, 10, 15, 16, 18, 21, 22,
+> 23, 29, 30) metni taban ile birebir.
+> Sahip'in **25.600 bayt** hedefi bu içerik listesiyle **tutmadı** (4.776 bayt fazla): planın dört adımı
+> hedefe matematiksel olarak yetmiyor, çünkü taşınabilir dört hücre grubu toplam 14.237 bayttı ve gereken
+> azalma 14.400 bayttı. Ölçülen seçenekler ve **mutlak alt sınır 22.234 bayt** `tasokey#78` raporunda;
+> karar Sahip'te. `docs/`, `android/`, kayıt şeması ve `adr/`deki 25 eski gövde **değişmedi**.
 
 ## Ek — özet tablodan taşınan sürüm zinciri
 

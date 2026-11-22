@@ -11,6 +11,12 @@
 // Satır sonu notu: `core.autocrlf=true` (blob LF, çalışma kopyası CRLF olabilir) → karşılaştırma
 // satır sonu normalleştirilmiş metin üzerinde yapılır (tasokey#76/#77 ölçüm betikleriyle aynı dil).
 
+// tasokey#78 (ADR-026, aynı işin ikinci turu): "Nasıl ölçülecek" hücresi artık taban ile aynı
+// kalmak ZORUNDA değil — 16 tanesi `MIMARI-AYRINTI.md`'ye taşındı. Sav gevşetilmedi, kesinleştirildi:
+// değişen hücre YALNIZCA tek bir `[ayrıntı](MIMARI-AYRINTI.md#…)` bağlantısıysa ve ekteki bölüm
+// taban hücresine BİREBİR eşitse kabul edilir; başka her değişiklik kırmızı yanar (tasokey#74'ün
+// dersi: sav yeni yapıya uydurulurken gevşetilmez).
+
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -39,8 +45,8 @@ function riskler(md) {
   return harita;
 }
 
-/** DEGISIKLIK.md'deki "### Risk N" bölümleri: numara → gövde. */
-function riskBolumleri(deg) {
+/** "### Risk N …" başlıklı bölümler (DEGISIKLIK.md gerekçeleri ve MIMARI-AYRINTI.md ölçüm hücreleri). */
+function riskBolumleri(deg, desen = /^### Risk (\d+)\s*$/) {
   const harita = new Map();
   let numara = null;
   let govde = [];
@@ -51,12 +57,14 @@ function riskBolumleri(deg) {
     harita.set(numara, govde.join('\n'));
   };
   for (const satir of deg.split('\n')) {
-    const esle = satir.match(/^### Risk (\d+)\s*$/);
+    const esle = satir.match(desen);
     if (esle) {
       yaz();
       numara = Number(esle[1]);
       govde = [];
-    } else if (satir.startsWith('## ')) {
+    } else if (/^#{1,6} +/.test(satir)) {
+      // desene uymayan HER başlık bölümü kapatır (ör. ekteki "### ADR-001 — tek satır karar"):
+      // yoksa yabancı bölümler gövdeye sızar ve birebirlik ölçümü sessizce yanlış olur.
       yaz();
       numara = null;
     } else if (numara !== null) govde.push(satir);
@@ -82,6 +90,12 @@ const tabanRiskler = riskler(normalize(git('show', `${taban}:MIMARI.md`)));
 const simdiMd = normalize(readFileSync(join(KOK, 'MIMARI.md'), 'utf8'));
 const simdiRiskler = riskler(simdiMd);
 const bolumler = riskBolumleri(normalize(readFileSync(join(KOK, 'DEGISIKLIK.md'), 'utf8')));
+// ADR-026 (tasokey#78 ikinci tur): "Nasıl ölçülecek" hücrelerinin yürürlükteki tam metni ekte.
+const ekBolumler = riskBolumleri(
+  normalize(readFileSync(join(KOK, 'MIMARI-AYRINTI.md'), 'utf8')),
+  /^### Risk (\d+) — nasıl ölçülecek\s*$/,
+);
+let tasinanOlcum = 0;
 
 console.log(`taban commit        : ${taban.slice(0, 7)} (${git('log', '-1', '--format=%s', taban).trim()})`);
 console.log(`risk satırı         : ${tabanRiskler.size} → ${simdiRiskler.size}`);
@@ -99,7 +113,20 @@ for (const [numara, taban_] of [...tabanRiskler].sort((a, b) => a[0] - b[0])) {
     continue;
   }
   if (taban_.konu !== simdi.konu) sorunlar.push(`risk ${numara}: "Konu" hücresi değişmiş`);
-  if (taban_.nasil !== simdi.nasil) sorunlar.push(`risk ${numara}: "Nasıl ölçülecek" hücresi değişmiş`);
+  if (taban_.nasil !== simdi.nasil) {
+    // ADR-026: hücre eke taşınmış olabilir — kabul ölçütü bağlantının TEK başına durması ve
+    // ekteki bölümün taban hücresine BİREBİR eşit olmasıdır.
+    const bag = simdi.nasil.match(/^\[ayrıntı\]\(MIMARI-AYRINTI\.md#[^)\s]+\)$/);
+    const ekGovde = ekBolumler.get(numara);
+    if (!bag) sorunlar.push(`risk ${numara}: "Nasıl ölçülecek" hücresi değişmiş (ek bağlantısı da değil)`);
+    else if (ekGovde === undefined) sorunlar.push(`risk ${numara}: hücre eke taşınmış ama ekte bölümü yok`);
+    else if (ekGovde !== taban_.nasil) {
+      sorunlar.push(
+        `risk ${numara}: eke taşınan ölçüm metni birebir değil ` +
+          `(${Buffer.byteLength(taban_.nasil)} B → ${Buffer.byteLength(ekGovde)} B)`,
+      );
+    } else tasinanOlcum += 1;
+  }
 
   if (ACIK.includes(numara)) {
     const tam = taban_.durum === simdi.durum;
@@ -141,6 +168,7 @@ if (fazlalar.length) sorunlar.push(`taban commit'te olmayan risk numarası: ${fa
 const boyut = Buffer.byteLength(simdiMd);
 const tabanBoyut = Buffer.byteLength(normalize(git('show', `${taban}:MIMARI.md`)));
 console.log('');
+console.log(`birebir taşınan ölçüm   : ${tasinanOlcum} hücre → MIMARI-AYRINTI.md (ADR-026)`);
 console.log(`birebir taşınan gerekçe : ${ayni}/${[...tabanRiskler.keys()].filter((n) => !ACIK.includes(n)).length} (kapanmış/Masa'da/ölçülmüş satır)`);
 console.log(`BAYT FARKI              : ${fark}`);
 console.log(`MIMARI.md               : ${tabanBoyut} → ${boyut} bayt (LF)`);
