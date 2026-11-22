@@ -9,6 +9,8 @@ import {
   cakisanCiftler, ciftleriAyir, muafListesi, halkaCiftleriniAyir, tasmaIhlalleri,
   olcuMetni, ozetSatirlari, yaziKatmaniBicimi, markdownTablosu, olcumSatiri,
   ciftFarki, aramaSatirlari,
+  MUAF_OLCEK_TABANI, MUAF_OLCEK_BASAMAGI, muafOlcekMerdiveni, tasanOgeler, tasmaMetni,
+  aramaTavanlari, ilkTasmaDenemesi, muafSatiri,
 } from './yardimci/yerlesim-cakisma.js';
 import * as geometriModulu from './yardimci/yerlesim-cakisma.js';
 import {
@@ -341,6 +343,135 @@ test('çift farkı: YENİ doğan ve BÜYÜYEN çakışma ayrı sayılır (ölçe
   assert.deepEqual(ciftFarki(taban, [CIFT('#a', '#b', 60)]).buyuyen, []);
 });
 
+test('taşan ÖĞE ölçülür: miktarın yanında kaynağı da yazılır (tasokey#72)', () => {
+  // tasokey#72 raporu §11 "hangi öğe taşıyor" sorusunu açık bıraktı; ölçeğin mutlak tavanını
+  // (ADR-022/9 üçüncü terim) o öğe belirlediği için taşma artık kaynağıyla ölçülür.
+  const adaylar = [
+    { anahtar: '#kenarUstTaslar', miktar: 13.4 },
+    { anahtar: '#merkez', miktar: 0 },
+    { anahtar: '.kenar-ust>.kenar-taslar', miktar: 4.2 },
+  ];
+  assert.deepEqual(tasanOgeler(adaylar), [
+    { anahtar: '#kenarUstTaslar', miktar: 13.4 },
+    { anahtar: '.kenar-ust>.kenar-taslar', miktar: 4.2 },
+  ]);
+  // Eşiğin altındaki ve sıfır olan aday listeye girmez; `enCok` kayıt sayısını sınırlar.
+  assert.deepEqual(tasanOgeler(adaylar, { esik: 5 }), [{ anahtar: '#kenarUstTaslar', miktar: 13.4 }]);
+  assert.equal(tasanOgeler(adaylar, { enCok: 1 }).length, 1);
+  assert.deepEqual(tasanOgeler(), []);
+  // Eşit miktarda ad sırası kararlıdır (ekran görüntüsü turdan tura aynı okunsun).
+  assert.deepEqual(
+    tasanOgeler([{ anahtar: '#b', miktar: 2 }, { anahtar: '#a', miktar: 2 }]).map((t) => t.anahtar),
+    ['#a', '#b'],
+  );
+
+  // Taşma ihlali, kutunun ölçtüğü adaylardan YÖNE göre kendi listesini alır.
+  const tasanli = {
+    ...TEMIZ_TASMA,
+    kaydirma: TEMIZ_TASMA.kaydirma.map((k) => (k.anahtar === 'scrollingElement' ? {
+      ...k,
+      scrollGenislik: 813,
+      tasanlar: [
+        { anahtar: '#kenarUstTaslar', yatay: 13, dikey: 0 },
+        { anahtar: '#masa', yatay: 0, dikey: 40 },
+      ],
+    } : k)),
+  };
+  assert.deepEqual(tasmaIhlalleri(tasanli), [{
+    tur: 'yatay-tasma',
+    anahtar: 'scrollingElement',
+    miktar: 13,
+    tasanlar: [{ anahtar: '#kenarUstTaslar', miktar: 13 }],
+  }]);
+  // Taşan öğe ÖLÇÜLMEMİŞSE alan hiç yazılmaz (eski ölçümlerin biçimi birebir kalır).
+  assert.deepEqual(tasmaIhlalleri({ ...TEMIZ_TASMA, rafAlaniAlt: 372 }), [
+    { tur: 'istaka-gorunum-disi', anahtar: '#rafAlani', miktar: 12 },
+  ]);
+  assert.equal(tasmaMetni({ tur: 'dikey-tasma', anahtar: '#masa', miktar: 9 }), '#masa dikey-tasma 9px');
+  assert.equal(
+    tasmaMetni({
+      tur: 'yatay-tasma', anahtar: 'scrollingElement', miktar: 13.4,
+      tasanlar: [{ anahtar: '#kenarUstTaslar', miktar: 13.4 }],
+    }),
+    'scrollingElement yatay-tasma 13px <- #kenarUstTaslar 13px',
+  );
+});
+
+test('muaf ölçek merdiveni: CSS değerinden 0,45 tabanına, 0,05 basamakla (ADR-022/8)', () => {
+  // Alt sınır bir KARARDIR (Mimar, ADR-022 sürüm 3 madde 8) ve TEK YERDE durur: arama merdiveni
+  // de, öz-testin CSS denetimi de bu sabitten okur.
+  assert.equal(MUAF_OLCEK_TABANI, 0.45);
+  assert.equal(MUAF_OLCEK_BASAMAGI, 0.05);
+  assert.deepEqual(muafOlcekMerdiveni(0.6), [0.6, 0.55, 0.5, 0.45]);
+  // İlk basamak CSS'in kendi değeridir: "önce" ile "sonra" aynı koşuda ölçülür.
+  assert.equal(muafOlcekMerdiveni(0.5)[0], 0.5);
+  assert.deepEqual(muafOlcekMerdiveni(0.5), [0.5, 0.45]);
+  assert.deepEqual(muafOlcekMerdiveni(0.45), [0.45]);
+  // Tabanın altı UYDURULMAZ: değer zaten sınırın altındaysa yalnız kendisi ölçülür (öz-test
+  // CSS'i sınırda tutar; daha azı gerekiyorsa iş durur ve sorar).
+  assert.deepEqual(muafOlcekMerdiveni(0.4), [0.4]);
+  // Kesirli toplama hatası birikmiyor (0,05 basamak ikilik tabanda tam değil).
+  for (const deger of muafOlcekMerdiveni(0.6)) {
+    assert.equal(deger, Math.round(deger * 100) / 100);
+  }
+});
+
+test('arama tavanları ve ilk taşan basamak tek kaynaktan okunur', () => {
+  const denemeler = [
+    { olcek: 1.05, yeni: 0, buyuyen: 0, tasma: 0 },
+    { olcek: 1.1, yeni: 0, buyuyen: 1, tasma: 0 },
+    { olcek: 1.15, yeni: 1, buyuyen: 1, tasma: 0 },
+    {
+      olcek: 1.2, yeni: 1, buyuyen: 2, tasma: 1,
+      tasmaListesi: [{ tur: 'yatay-tasma', anahtar: 'scrollingElement', miktar: 13 }],
+    },
+  ];
+  assert.deepEqual(aramaTavanlari(denemeler), { yeni0: 1.1, buyumez0: 1.05, tasma0: 1.15 });
+  // Taban zaten ihlalliyse ölçüt sağlanmaz → `null` (sayı uydurulmaz).
+  assert.deepEqual(
+    aramaTavanlari([{ olcek: 1.05, yeni: 1, buyuyen: 1, tasma: 1 }]),
+    { yeni0: null, buyumez0: null, tasma0: null },
+  );
+  assert.deepEqual(aramaTavanlari(), { yeni0: null, buyumez0: null, tasma0: null });
+  // `tasma0`+1 basamağı: taşmanın İLK göründüğü deneme ve orada taşan kayıt.
+  assert.deepEqual(ilkTasmaDenemesi(denemeler), {
+    olcek: 1.2,
+    ihlal: { tur: 'yatay-tasma', anahtar: 'scrollingElement', miktar: 13 },
+  });
+  assert.equal(ilkTasmaDenemesi(denemeler.slice(0, 3)), null);
+});
+
+test('muaf satırı tek satırda okunur: üç tavan + açık taş + rakam payı + taşan öğe', () => {
+  // Ekran görüntüsü yolunda (ADR-023) ölçüm yalnız yazı katmanından okunur: dört basamağın
+  // hepsi tek satıra sığmak zorunda (katman `white-space: pre`, 800 px görünümde kırpar).
+  const satir = muafSatiri({
+    muaf: 0.5,
+    taban: { ihlal: 1, tasma: 0 },
+    denemeler: [
+      { olcek: 1.25, yeni: 0, buyuyen: 0, tasma: 0 },
+      { olcek: 1.3, yeni: 0, buyuyen: 0, tasma: 0 },
+      {
+        olcek: 1.35, yeni: 1, buyuyen: 0, tasma: 1,
+        tasmaListesi: [{
+          tur: 'yatay-tasma', anahtar: 'scrollingElement', miktar: 13,
+          tasanlar: [{ anahtar: '#kenarUstTaslar', miktar: 13 }],
+        }],
+      },
+    ],
+    acikTas: { genislik: 29, yukseklik: 41, tasPayi: 1.24, rakamPayi: -0.4 },
+  });
+  assert.equal(
+    satir,
+    'MUAF 0.50 y0=1.30 b0=1.30 t0=1.30 tas=29x41 rk=1.2 ! 1.35 kok/yatay 13px <#kenarUstTaslar',
+  );
+  assert.ok(satir.length <= 96, `muaf satırı çok uzun: ${satir.length}`);
+  // Ölçülmeyen alan "—" ile yazılır, 0 ya da tahminle DOLDURULMAZ (A9): `durum=el`de açık taş yok.
+  assert.equal(
+    muafSatiri({ muaf: 0.6, denemeler: [{ olcek: 1.2, yeni: 0, buyuyen: 0, tasma: 0 }] }),
+    'MUAF 0.60 y0=1.20 b0=1.20 t0=1.20 tas=— rk=—',
+  );
+});
+
 test('arama özeti ekrandan okunur: ölçülen bütçe terimleri + deneme tablosu + en çok ölçek', () => {
   const arama = {
     olculenler: {
@@ -408,6 +539,18 @@ test('arama özeti ekrandan okunur: ölçülen bütçe terimleri + deneme tablos
   assert.ok(satirlar.some((satir) => satir.includes('> #rafAlani n #merkez  308x14')));
   assert.ok(satirlar.some((satir) => /ARAMA ilk-tasma olcek=1\.20 sayi=1/.test(satir)));
   assert.ok(satirlar.some((satir) => satir.includes('! #masa dikey-tasma 9px')));
+  // tasokey#72: taşma dökümü artık TAŞAN ÖĞEYİ de yazıyor (ADR-022/9 üçüncü terimi).
+  const tasanli = aramaSatirlari({
+    ...arama,
+    denemeler: arama.denemeler.map((d) => (d.tasma > 0 ? {
+      ...d,
+      tasmaListesi: [{
+        tur: 'dikey-tasma', anahtar: '#masa', miktar: 9,
+        tasanlar: [{ anahtar: '#kenarUstTaslar', miktar: 9 }],
+      }],
+    } : d)),
+  });
+  assert.ok(tasanli.some((satir) => satir.includes('! #masa dikey-tasma 9px <- #kenarUstTaslar 9px')));
   // Döküm en çok `enCokAyrinti` satır yazar (yazı katmanı taşmasın).
   const cokCift = aramaSatirlari({
     ...arama,
@@ -421,7 +564,13 @@ test('arama özeti ekrandan okunur: ölçülen bütçe terimleri + deneme tablos
   }, { enCokAyrinti: 2 });
   assert.equal(cokCift.filter((satir) => satir.startsWith('  +')).length, 2);
   // En çok ölçek üç ölçüte göre ayrı okunur: yeni çift yok · yeni+büyüyen yok · taşma yok.
-  assert.match(satirlar.at(-1), /yeni0=1\.10 yeni0buyumez0=1\.05 tasma0=1\.15/);
+  // (Satır tasokey#72'de BAŞA alındı — ekran kırpılırsa ölçeği seçen sayı değil ayrıntı gitsin.)
+  const enCok = satirlar.find((satir) => satir.startsWith('ARAMA enCok'));
+  assert.match(enCok, /yeni0=1\.10 yeni0buyumez0=1\.05 tasma0=1\.15/);
+  assert.ok(
+    satirlar.indexOf(enCok) < satirlar.findIndex((satir) => satir.startsWith('ARAMA ilk-')),
+    'ARAMA enCok satırı ayrıntı dökümünden sonra geliyor (kırpılma riski)',
+  );
   // Satır başına beş deneme: `white-space: pre` katmanı 800px görünümde yatayda kırpmasın.
   const uzun = aramaSatirlari({
     ...arama,
@@ -445,7 +594,9 @@ test('uzunluk değişkenleri ölçü öğesiyle çözülür, getPropertyValue il
   );
   // Yorumlar atılır: tuzağı ANLATAN satır da kalıbı içeriyor (kod sanılmasın).
   const kod = kaynak.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-  const BIRIMSIZLER = ['--istaka-olcek', '--raf-sutun-sayisi'];
+  // `--rakip-acik-olcek` tasokey#72'de eklendi: muaf açık el yığınının kendi ölçeği, BİRİMSİZ bir
+  // çarpan (ADR-022/8). Arama merdiveni CSS'teki değerden başladığı için okunmak zorundadır.
+  const BIRIMSIZLER = ['--istaka-olcek', '--raf-sutun-sayisi', '--rakip-acik-olcek'];
   const okunanlar = [...kod.matchAll(/getPropertyValue\('(--[\w-]+)'\)/g)].map(([, ad]) => ad);
   assert.ok(okunanlar.length > 0, 'kaynak değişken okumuyor (test eskidi mi?)');
   for (const ad of okunanlar) {

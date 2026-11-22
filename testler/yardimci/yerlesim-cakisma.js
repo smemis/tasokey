@@ -26,6 +26,21 @@ export const ESIK_PX = 0.5;
 export const HALKA_EKI = '::after';
 
 /**
+ * Muaf açık el yığınının kendi ölçeğinin (`--rakip-acik-olcek`) ALT SINIRI ve arama basamağı
+ * — ADR-022 **madde 8 (sürüm 3)**, tasokey#72.
+ *
+ * Alt sınır bir KARARDIR, ölçüm değil (Mimar, ADR-022/8): el sonunda birkaç saniye görünen yığın
+ * küçültülerek el oynanırken geçerli ölçeğin tavanı yükseltilir, ama taşın rakamı okunur kalmak
+ * zorundadır. Bir kademe bu sınırın altını isterse iş **durur ve sorar**. Değer TEK YERDE burada
+ * durur: hem tarayıcıdaki arama merdivenini hem öz-testin CSS denetimini (`sigdirma-butcesi`
+ * kabul-d11) bu sabit besler.
+ */
+export const MUAF_OLCEK_TABANI = 0.45;
+
+/** Muaf ölçek aramasının basamağı (ölçek aramasının 0,05'iyle aynı çözünürlük). */
+export const MUAF_OLCEK_BASAMAGI = 0.05;
+
+/**
  * Kasıtlı ÇİFT istisnaları: geometrik olarak çakışan ama tasarım gereği üst üste duran öğeler.
  * Çift burada yazılıysa ihlal değil "kasıtlı" sayılır; gerekçe çıktıda görünür (gizlenmez).
  * Planın §5'i öğe bazlı istisnaları sayar, çift bazlı olanları saymaz — bu liste onun eki
@@ -122,14 +137,59 @@ export function halkaCiftleriniAyir(ciftler) {
 }
 
 /**
+ * Muaf ölçek merdiveni (tasokey#72): CSS'teki değerden başlayıp `MUAF_OLCEK_TABANI`na kadar
+ * basamak basamak iner. İlk basamak CSS'in kendi değeridir — ölçüm "küçültmeden önce" ile
+ * "küçülttükten sonra"yı AYNI koşuda, aynı yoldan karşılaştırsın (gereksiz küçültme yazılmasın).
+ * Tabanın altındaki bir girdi uydurulmaz: yalnız kendisi döner (öz-test CSS'i sınırda tutar).
+ */
+export function muafOlcekMerdiveni(cssDegeri, {
+  taban = MUAF_OLCEK_TABANI, basamak = MUAF_OLCEK_BASAMAGI,
+} = {}) {
+  const yuvarla = (deger) => Math.round(deger * 100) / 100;
+  const bas = yuvarla(cssDegeri);
+  const merdiven = [];
+  for (let deger = bas; deger >= taban - 1e-9; deger = yuvarla(deger - basamak)) merdiven.push(deger);
+  return merdiven.length === 0 ? [bas] : merdiven;
+}
+
+/**
+ * Bir kaydırma kutusundan TAŞAN öğeler (tasokey#72; ADR-022/9'un üçüncü terimi).
+ *
+ * Niçin: `scrollWidth − clientWidth` taşmanın MİKTARINI verir, KAYNAĞINI vermez — `tasokey#72`
+ * raporu §11 "hangi öğe taşıyor" sorusunu açık bırakmıştı, oysa ölçeğin tavanını o öğe belirliyor.
+ * `adaylar`: `[{ anahtar, miktar }]` (miktar = öğenin kutunun istemci alanını SON kenardan aştığı
+ * px — kaydırılabilir taşma yalnız son kenarda doğar, baş kenarın ötesi erişilemez ve
+ * `scrollWidth`e girmez). Büyükten küçüğe sıralı, en çok `enCok` kayıt. Saf: yalnız liste.
+ */
+export function tasanOgeler(adaylar = [], { esik = 0, enCok = 2 } = {}) {
+  return adaylar
+    .filter((aday) => aday.miktar > esik)
+    .sort((a, b) => b.miktar - a.miktar || String(a.anahtar).localeCompare(String(b.anahtar)))
+    .slice(0, enCok)
+    .map((aday) => ({ anahtar: aday.anahtar, miktar: aday.miktar }));
+}
+
+/**
  * Taşma ihlalleri (R-014 regresyonu, tasokey#63). `olcum`:
  *   `{ gorunum: { genislik, yukseklik }, rafAlaniAlt, kaydirma: [{ anahtar, scrollGenislik,
- *      clientGenislik, scrollYukseklik, clientYukseklik, denetim: ['dikey'|'yatay'] }] }`
+ *      clientGenislik, scrollYukseklik, clientYukseklik, denetim: ['dikey'|'yatay'],
+ *      tasanlar: [{ anahtar, yatay, dikey }] }] }`
  * `denetim` hangi yönün ölçüldüğünü söyler (plan §5: masa/uygulama dikey, kök öğe yatay).
+ * `tasanlar` verilmişse ihlale TAŞAN ÖĞE listesi eklenir (tasokey#72); verilmemişse alan hiç
+ * yazılmaz — eski ölçümlerin biçimi değişmesin.
  */
 export function tasmaIhlalleri(olcum, { esik = 0 } = {}) {
   const ihlaller = [];
   const { gorunum, rafAlaniAlt, kaydirma = [] } = olcum;
+  /** O yöndeki taşan öğeler (kutunun ölçtüğü adaylardan). */
+  const tasanlariEkle = (ihlal, kutu, yon) => {
+    const liste = tasanOgeler(
+      (kutu.tasanlar ?? []).map((aday) => ({ anahtar: aday.anahtar, miktar: aday[yon] ?? 0 })),
+      { esik },
+    );
+    if (liste.length > 0) ihlal.tasanlar = liste;
+    return ihlal;
+  };
   if (typeof rafAlaniAlt === 'number' && rafAlaniAlt - gorunum.yukseklik > esik) {
     ihlaller.push({
       tur: 'istaka-gorunum-disi',
@@ -140,18 +200,18 @@ export function tasmaIhlalleri(olcum, { esik = 0 } = {}) {
   for (const kutu of kaydirma) {
     const denetim = kutu.denetim ?? ['dikey', 'yatay'];
     if (denetim.includes('dikey') && kutu.scrollYukseklik - kutu.clientYukseklik > esik) {
-      ihlaller.push({
+      ihlaller.push(tasanlariEkle({
         tur: 'dikey-tasma',
         anahtar: kutu.anahtar,
         miktar: kutu.scrollYukseklik - kutu.clientYukseklik,
-      });
+      }, kutu, 'dikey'));
     }
     if (denetim.includes('yatay') && kutu.scrollGenislik - kutu.clientGenislik > esik) {
-      ihlaller.push({
+      ihlaller.push(tasanlariEkle({
         tur: 'yatay-tasma',
         anahtar: kutu.anahtar,
         miktar: kutu.scrollGenislik - kutu.clientGenislik,
-      });
+      }, kutu, 'yatay'));
     }
   }
   return ihlaller;
@@ -174,6 +234,47 @@ export function ciftFarki(tabanCiftler, denemeCiftler, { esik = ESIK_PX } = {}) 
     else if (cift.alan - taban.get(ad) > esik) buyuyen.push({ ...cift, tabanAlan: taban.get(ad) });
   }
   return { yeni, buyuyen };
+}
+
+/**
+ * Taşma ihlalinin okunur metni: nerede, ne kadar ve TAŞAN ÖĞE (tasokey#72). Taşan öğe
+ * ölçülmemişse eski biçim aynen kalır (ekran görüntüsünden okunan satır değişmesin).
+ *
+ * `kisa`: muaf merdiveninin tek satırlık özeti için daraltılmış biçim (`kok/yatay 13px <#oge`) —
+ * o satır dört basamağı birden taşıyor ve yazı katmanı 800 px görünümde yatayda kırpıyor.
+ * İki biçim de AYNI yerden gelir, sayıları ayrışmaz.
+ */
+export function tasmaMetni(ihlal, { kisa = false } = {}) {
+  const kutuAdi = kisa && ihlal.anahtar === 'scrollingElement' ? 'kok' : ihlal.anahtar;
+  const tur = kisa ? String(ihlal.tur).replace('-tasma', '') : ihlal.tur;
+  const kok = `${kutuAdi}${kisa ? '/' : ' '}${tur} ${Math.round(ihlal.miktar)}px`;
+  if (!ihlal.tasanlar || ihlal.tasanlar.length === 0) return kok;
+  if (kisa) return `${kok} <${ihlal.tasanlar[0].anahtar}`;
+  return `${kok} <- ${ihlal.tasanlar.map((t) => `${t.anahtar} ${Math.round(t.miktar)}px`).join(' + ')}`;
+}
+
+/**
+ * Bir deneme listesinin üç ÖLÇÜLEN tavanı (ADR-022/9 — tasokey#72): yeni çift yok · yeni+büyüyen
+ * yok · sayfa taşması yok. Ölçüt sağlanmıyorsa `null` (tabanda bile ihlal var). TEK KAYNAK: ekran
+ * özetindeki `ARAMA enCok` satırı da, muaf merdiveninin satırları da bunu okur.
+ */
+export function aramaTavanlari(denemeler = []) {
+  const enBuyuk = (sart) => {
+    const uygun = denemeler.filter(sart).map((deneme) => deneme.olcek);
+    return uygun.length === 0 ? null : Math.max(...uygun);
+  };
+  return {
+    yeni0: enBuyuk((d) => d.yeni === 0 && d.tasma === 0),
+    buyumez0: enBuyuk((d) => d.yeni === 0 && d.buyuyen === 0 && d.tasma === 0),
+    tasma0: enBuyuk((d) => d.tasma === 0),
+  };
+}
+
+/** Taşmanın İLK göründüğü deneme (`tasma0`+1 basamağı) ve orada taşan ilk kayıt; yoksa `null`. */
+export function ilkTasmaDenemesi(denemeler = []) {
+  const deneme = denemeler.find((aday) => (aday.tasma ?? 0) > 0);
+  if (!deneme) return null;
+  return { olcek: deneme.olcek, ihlal: (deneme.tasmaListesi ?? [])[0] ?? null };
 }
 
 /** `308x100` biçiminde ölçü metni (yuvarlanmış). */
@@ -200,7 +301,7 @@ export function ozetSatirlari(olcum, { enCokCift = 6 } = {}) {
     + ` kasitli=${kasitli.length}`,
     tasmalar.length === 0
       ? 'TASMA yok'
-      : `TASMA ${tasmalar.map((t) => `${t.anahtar} ${t.tur} ${Math.round(t.miktar)}px`).join(' | ')}`,
+      : `TASMA ${tasmalar.map((t) => tasmaMetni(t)).join(' | ')}`,
   ];
   for (const cift of ihlaller.slice(0, enCokCift)) {
     satirlar.push(`  x ${cift.a} n ${cift.b}  ${olcuMetni(cift.kutu)} = ${Math.round(cift.alan)}px2`);
@@ -213,12 +314,46 @@ export function ozetSatirlari(olcum, { enCokCift = 6 } = {}) {
 }
 
 /**
+ * Muaf ölçek merdiveninin BİR basamağının tek satırlık özeti (tasokey#72, ADR-022/8):
+ * o `--rakip-acik-olcek` değerinde ölçülen üç tavan + açık taşın ölçüsü + rakamın taşın kutusuna
+ * kalan payı + taşmanın ilk göründüğü basamak ve TAŞAN ÖĞE.
+ *
+ * Niçin tek satır: ekran görüntüsü yolunda (ADR-023) ölçüm yalnız yazı katmanından okunur ve
+ * katman 800x360'ta satır sayısına göre küçülür — dört basamak × çok satır kırpılma riskidir.
+ */
+export function muafSatiri(kayit) {
+  const sayi1 = (deger) => (typeof deger === 'number' ? Math.round(deger * 10) / 10 : '—');
+  const olcekMetni = (deger) => (typeof deger === 'number' ? deger.toFixed(2) : '—');
+  const { yeni0, buyumez0, tasma0 } = aramaTavanlari(kayit.denemeler);
+  const acik = kayit.acikTas ?? null;
+  const ilk = ilkTasmaDenemesi(kayit.denemeler);
+  const parcalar = [
+    `MUAF ${Number(kayit.muaf).toFixed(2)}`,
+    `y0=${olcekMetni(yeni0)}`,
+    `b0=${olcekMetni(buyumez0)}`,
+    `t0=${olcekMetni(tasma0)}`,
+    `tas=${acik ? `${sayi1(acik.genislik)}x${sayi1(acik.yukseklik)}` : '—'}`,
+    `rk=${acik && typeof acik.tasPayi === 'number' ? sayi1(acik.tasPayi) : '—'}`,
+  ];
+  if (ilk) {
+    parcalar.push(
+      `! ${olcekMetni(ilk.olcek)} ${ilk.ihlal ? tasmaMetni(ilk.ihlal, { kisa: true }) : 'kayit yok'}`,
+    );
+  }
+  return parcalar.join(' ');
+}
+
+/**
  * Ölçek aramasının (tasokey#68) ekrandan okunabilir özeti. Deneme satırları KISA tutulur
  * (`ölçek:yeni/büyüyen/taşma`, satır başına beşi): yazı katmanı `white-space: pre` olduğu için
  * uzun satır 800px görünümde yatayda kırpılır. Saf: yalnız sayı ve metin.
+ *
+ * tasokey#72: KRİTİK satırlar başa alındı (ölçülen bütçe terimleri → muaf merdiveni → üç tavan),
+ * ayrıntı dökümü sona. Gerekçe ölçüm: katman sığmazsa SONDAN kırpılır (`yaziKatmaniBicimi` yazıyı
+ * 7 px'in altına indirmez), yani ölçeği seçen sayılar hiçbir boyutta kırpılmasın.
  */
 export function aramaSatirlari(arama, { satirBasinaDeneme = 5, enCokAyrinti = 3 } = {}) {
-  const { taban, denemeler = [], olculenler = {} } = arama;
+  const { taban, denemeler = [], olculenler = {}, muaflar = [] } = arama;
   const sayi = (deger) => (typeof deger === 'number' ? Math.round(deger * 10) / 10 : '—');
   const satirlar = [
     `BUTCE masaIc=${olcuMetni(olculenler.masaIc)} rafBaslik=${sayi(olculenler.rafBaslik)}`
@@ -239,6 +374,10 @@ export function aramaSatirlari(arama, { satirBasinaDeneme = 5, enCokAyrinti = 3 
     `ARAMA taban(olcek 1) ihlal=${taban?.ihlal ?? '?'} tasma=${taban?.tasma ?? '?'}`
     + '  satir bicimi: olcek:yeni/buyuyen/tasma',
   ];
+  // Muaf açık el yığınının kendi ölçeği basamak basamak küçültülürken ölçülen tavanlar
+  // (tasokey#72, ADR-022/8). İlk basamak CSS'in kendi değeridir → "küçültmeden önce" de burada.
+  for (const kayit of muaflar) satirlar.push(muafSatiri(kayit));
+  satirlar.push(enCokSatiri(denemeler));
   for (let i = 0; i < denemeler.length; i += satirBasinaDeneme) {
     satirlar.push(`  ${denemeler.slice(i, i + satirBasinaDeneme)
       .map((d) => `${d.olcek.toFixed(2)}:${d.yeni}/${d.buyuyen}/${d.tasma}`).join(' ')}`);
@@ -257,18 +396,17 @@ export function aramaSatirlari(arama, { satirBasinaDeneme = 5, enCokAyrinti = 3 
   };
   dokum('yeni', 'yeniCiftler', '+', (c) => `${c.a} n ${c.b}  ${olcuMetni(c.kutu)}`);
   dokum('buyuyen', 'buyuyenCiftler', '>', (c) => `${c.a} n ${c.b}  ${olcuMetni(c.kutu)}`);
-  dokum('tasma', 'tasmaListesi', '!', (t) => `${t.anahtar} ${t.tur} ${Math.round(t.miktar)}px`);
+  dokum('tasma', 'tasmaListesi', '!', (t) => tasmaMetni(t));
 
-  const enBuyuk = (sart) => {
-    const uygun = denemeler.filter(sart).map((d) => d.olcek);
-    return uygun.length === 0 ? '—' : Math.max(...uygun).toFixed(2);
-  };
-  satirlar.push(
-    `ARAMA enCok yeni0=${enBuyuk((d) => d.yeni === 0 && d.tasma === 0)}`
-    + ` yeni0buyumez0=${enBuyuk((d) => d.yeni === 0 && d.buyuyen === 0 && d.tasma === 0)}`
-    + ` tasma0=${enBuyuk((d) => d.tasma === 0)}`,
-  );
   return satirlar;
+}
+
+/** `ARAMA enCok …` satırı: üç ölçütün ölçülen en büyük ölçeği (tek kaynak `aramaTavanlari`). */
+function enCokSatiri(denemeler) {
+  const { yeni0, buyumez0, tasma0 } = aramaTavanlari(denemeler);
+  const metin = (deger) => (typeof deger === 'number' ? deger.toFixed(2) : '—');
+  return `ARAMA enCok yeni0=${metin(yeni0)} yeni0buyumez0=${metin(buyumez0)}`
+    + ` tasma0=${metin(tasma0)}`;
 }
 
 /**

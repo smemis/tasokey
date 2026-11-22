@@ -38,10 +38,12 @@ export const BOYUTLAR = Object.freeze([
 /** Saf çekirdeğin sayfa katmanına verilen adları (tek liste; öz-test modülle karşılaştırır). */
 export const GEOMETRI_ADLARI = Object.freeze([
   'ESIK_PX', 'HALKA_EKI', 'CIFT_ISTISNALARI',
+  'MUAF_OLCEK_TABANI', 'MUAF_OLCEK_BASAMAGI',
   'kutuAlani', 'kutuBosMu', 'kutuGenislet', 'kesisim', 'ataCocukMu',
   'cakisanCiftler', 'ciftleriAyir', 'muafListesi', 'halkaCiftleriniAyir', 'tasmaIhlalleri',
-  'ciftFarki',
-  'olcuMetni', 'ozetSatirlari', 'aramaSatirlari', 'yaziKatmaniBicimi', 'markdownTablosu',
+  'ciftFarki', 'muafOlcekMerdiveni', 'tasanOgeler', 'aramaTavanlari', 'ilkTasmaDenemesi',
+  'olcuMetni', 'tasmaMetni', 'ozetSatirlari', 'muafSatiri', 'aramaSatirlari',
+  'yaziKatmaniBicimi', 'markdownTablosu',
   'olcumSatiri',
   'TABLO_BASLIKLARI',
 ]);
