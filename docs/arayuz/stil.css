@@ -88,6 +88,12 @@
   /* Rakam/gövde oranı tek kaynak: küçültülmüş taşlar (rakip ıstakası açıkken) da bunu kullanır. */
   --tas-rakam-oran: 0.42;
   --tas-rakam-font-boyutu: calc(var(--tas-yukseklik) * var(--tas-rakam-oran));
+  /* Sahte okeyin DEĞER yazısı (ADR-027, tasokey#82): yıldızın üstündeki boş band (SVG y 0-29,
+     yani taş boyunun ilk %21'i). Rakamla aynı tabandan türer, kademelerde birlikte küçülür. */
+  --tas-deger-ust: 2%;
+  --tas-deger-yukseklik: 19%;
+  --tas-deger-oran: 0.2;
+  --tas-deger-font-boyutu: calc(var(--tas-yukseklik) * var(--tas-deger-oran));
   /* El bittiğinde açılan rakip ıstakası (Sahip ek bilgisi, 2026-11-20): taşlar kendi ölçüsünün
      bu oranında çizilir ki 14-15 taş kenara sığsın; sütun sayıları yatay (üst) ve dikey
      (sol/sağ) kenar için ayrı. Ölçek her duyarlı kademede kendiliğinden küçülür, çünkü taban
@@ -630,6 +636,36 @@ html, body {
   pointer-events: none;
   user-select: none;
 }
+
+/* ADR-027 (tasokey#82): sahte okeyin taşıdığı DEĞER (o elin okeyi) yıldızın üstündeki boş banda
+   küçük yazıyla basılır. Yıldız gövdesi (tas-sahte-okey.svg: yıldız y 29-81, nokta y ~110) olduğu
+   gibi kalır; bu yazı o ikisinin DIŞINDAKİ üst banda oturur, rakam katmanıyla çakışmaz.
+   Oran rakamla aynı kaynaktan türer (--tas-yukseklik), böylece her duyarlı kademede birlikte
+   küçülür. Boyut/yer görsel beğenidir (K4, Sahip onayı) — değişirse yalnız bu iki değişken değişir. */
+.tas-deger {
+  position: absolute;
+  left: 0;
+  top: var(--tas-deger-ust);
+  width: 100%;
+  height: var(--tas-deger-yukseklik);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-weight: 700;
+  font-size: var(--tas-deger-font-boyutu);
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+.tas-deger.kirmizi { color: var(--renk-kirmizi); }
+.tas-deger.siyah { color: var(--renk-siyah); }
+.tas-deger.mavi { color: var(--renk-mavi); }
+.tas-deger.sari { color: var(--renk-sari); }
+
+/* Küçültülmüş taşlar (rakip ıstakası açıkken): rakamla aynı kaynaktan, aynı kademede. */
+.kenar-taslar .tas-deger { font-size: calc(var(--rakip-acik-tas-yukseklik) * var(--tas-deger-oran)); }
 
 .tas-cerceve {
   position: absolute;
