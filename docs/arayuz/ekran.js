@@ -2,7 +2,10 @@
 // Kural bilgisi burada yok: her çek/at çağrısı `cekirdek/el.js`'e gider; bu dosya yalnız
 // sonucu DOM'a yansıtır (R-003, R-005, R-006, R-009; tasokey#10).
 
-import { elBaslat, cek, at, KAYNAK, EL_SONUCU, sonrakiOyuncu, oncekiOyuncu } from '../cekirdek/el.js';
+import {
+  elBaslat, cek, at, cekmeyiGeriAl, geriBirakilabilirTasId,
+  KAYNAK, EL_SONUCU, sonrakiOyuncu, oncekiOyuncu,
+} from '../cekirdek/el.js';
 import { tasOkeyMi, tasOzelMi, tasDegeri } from '../cekirdek/dagitim.js';
 import {
   elBitirenTaslar, elDokumu, dokumGruplari, DOKUM_ONCELIGI,
@@ -35,6 +38,10 @@ const INSAN_OYUNCUSU = 0;
 // (tasokey#86): ıstakadaki "gruplar arası tam bir boş yuva" kuralının (ADR-028/3) kenar
 // ızgarasındaki karşılığı. Ölçüsü stil.css'te (`--rakip-acik-ayrac-genislik`).
 const GRUP_AYRACI_SINIFI = 'kenar-ayrac';
+
+// tasokey#87: o turda köşeden çekilen taşın ve geri bırakılabilecek köşenin ortak vurgu sınıfı.
+// Tek sabit: ıstakadaki taş da, köşe kutusu da aynı adı kullanır (stil.css iki yerde biçimlendirir).
+const GERI_BIRAKILABILIR_SINIFI = 'geri-birakilabilir';
 
 // Her bırakmadan (atmadan) sonra sıra 1 saniye sonra geçer (Sahip isteği, tasokey#49): oyuncu
 // hamlesinin masaya yansımasını görsün, botlar da birbirinin hamlesini anlaşılır bir ritimle
@@ -360,6 +367,13 @@ function grupAyraciOlustur() {
   return ayrac;
 }
 
+// tasokey#87: "bu turda çekilen taşı geri bırakabilir miyim?" sorusunun arayüzdeki tek çağrı yeri.
+// Cevabı motor verir (`el.js` `geriBirakilabilirTasId`): sıra, çekme kaynağı, atılmış olup olmama
+// ve kapatma anahtarı orada denetlenir — burada hiçbir koşul tekrar edilmez.
+function insanGeriBirakilabilirTasId(durum) {
+  return geriBirakilabilirTasId(durum, INSAN_OYUNCUSU);
+}
+
 // R-013: elin bitirilebilir olup olmadığı yalnız iş 3'ün sorgusuyla (`elBitirenTaslar`) anlaşılır;
 // kural burada yeniden yazılmaz. Çekilmeden önce ya da sıra bende değilken anlamsız olduğundan
 // o durumlarda boş liste döner.
@@ -399,11 +413,19 @@ function masaCiz() {
   // R-012: yalnız önceki oyuncunun köşesi geçerli çekme kaynağıdır; o köşe `cekilebilir` sınıfıyla
   // işaretlenir (tıklama da yalnız o köşeye bağlıdır, bkz. olaylariBagla).
   const cekilebilirKoseAdi = KOSE_HARITASI[oncekiOyuncu(durum.sira)];
+  // tasokey#87: o turda köşeden çekilen taş geri bırakılabiliyorsa AYNI köşe ayrıca
+  // `geri-birakilabilir` ile işaretlenir. Kararı motor verir (`geriBirakilabilirTasId`); burada
+  // kural yok — anahtar kapanınca ya da taş desteden çekilmişse vurgu kendiliğinden kaybolur.
+  const geriBirakilacakTasId = insanGeriBirakilabilirTasId(durum);
   for (const oyuncu of [0, 1, 2, 3]) {
     const koseAdi = KOSE_HARITASI[oyuncu];
     const { kutu, yigin, sayac } = KOSE_ELEMAN_ADLARI[koseAdi];
     koseYiginiCiz(eleman[kutu], eleman[yigin], eleman[sayac], durum.atilanYiginlar[oyuncu], oyuncu, durum.okeyTasi);
     eleman[kutu].classList.toggle('cekilebilir', koseAdi === cekilebilirKoseAdi);
+    eleman[kutu].classList.toggle(
+      GERI_BIRAKILABILIR_SINIFI,
+      geriBirakilacakTasId !== null && koseAdi === cekilebilirKoseAdi,
+    );
   }
 }
 
@@ -438,6 +460,8 @@ function rafCiz() {
     eleman[ad].title = metinAl(`${anahtar}.tarif`);
   }
   const elMap = new Map(durum.eller[INSAN_OYUNCUSU].map((tas) => [tas.id, tas]));
+  // tasokey#87: o turda köşeden çekilen taş, geri bırakılabildiği sürece ıstakada işaretli durur.
+  const geriBirakilacakTasId = insanGeriBirakilabilirTasId(durum);
   eleman.raf.innerHTML = '';
   for (let index = 0; index < rafYerlesimi.length; index++) {
     const yuva = document.createElement('div');
@@ -454,6 +478,7 @@ function rafCiz() {
       const tasElemani = tasElemaniOlustur(tas, durum.okeyTasi);
       const seciliMi = id === secilenTasId;
       if (seciliMi) tasElemani.classList.add('secili');
+      if (id === geriBirakilacakTasId) tasElemani.classList.add(GERI_BIRAKILABILIR_SINIFI);
       // Sürüklemesi süren taş yeniden çizildikten sonra da görünmez kalır (ADR-021/5).
       if (id === suruklenenTasId) tasElemani.classList.add(SURUKLENIYOR_SINIFI);
       tasElemani.setAttribute('tabindex', '0');
@@ -651,6 +676,24 @@ function atVeyaBitirUygula(tasId) {
   botSirasiniBaslat();
 }
 
+// tasokey#87: çekmeyi geri alır (taş yığının üstüne döner, tur yeniden "çekilmedi" olur).
+// Hamle DEĞİLDİR: bot sırası başlatılmaz, bilgilendirme penceresi açılmaz, `turSayaci` değişmez —
+// bunların hepsine motor karar verir (`cekmeyiGeriAl`), burada yalnız sonucu ekrana yansıtılır.
+// El küçüldüğü için ıstaka yerleşimi tazelenir: taşın yuvası boşalır, kalanlar yerinde kalır (ADR-019).
+function geriBirakUygula() {
+  const sonuc = cekmeyiGeriAl(durumKutu.durum, INSAN_OYUNCUSU);
+  if (!sonuc.basarili) {
+    mesajGoster(sonuc.sebep);
+    ciz();
+    return;
+  }
+  durumuIlerlet(sonuc.durum);
+  durumKutu.secilenTasId = null;
+  rafYerlesiminiTazele(sonuc.durum.eller[INSAN_OYUNCUSU]);
+  mesajGoster(null);
+  ciz();
+}
+
 // `etkilesim.js`in döndürdüğü eylem kararını uygular: sürükleme, dokunma (tıklama) ve klavye
 // yolu hepsi buraya varır (tasokey#30). Doğrulama burada yok — yalnız hangi motor çağrısının
 // (`cek`/`at`) yapılacağına ya da rafta taşıma olduğuna göre dağıtır.
@@ -671,6 +714,10 @@ function eylemiUygula(karar, yeniTasYuvasi) {
   }
   if (karar.eylem === EYLEM.CEK_KOSE) {
     cekSonucunuIsle(cek(durumKutu.durum, INSAN_OYUNCUSU, KAYNAK.ATILAN), yeniTasYuvasi);
+    return;
+  }
+  if (karar.eylem === EYLEM.GERI_BIRAK) {
+    geriBirakUygula();
     return;
   }
   atVeyaBitirUygula(karar.tasId);

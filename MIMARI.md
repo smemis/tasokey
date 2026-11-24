@@ -4,9 +4,9 @@
 > **K1 onayı alındı** (Sahip, 2026-11-19, toplu onay — bütün sorular önerilen seçenekle): kural seti, yığın,
 > barındırma, 4 kural ayrıntısı ve görsel ton onaylı; ADR durumları ve karar verenler [ayrıntı](MIMARI-AYRINTI.md#başlıktaki-k1-onayı-bloğu--tam-metin).
 
-> **Son sürüm: 27** (`tasokey#81`, 2026-11-24) — **ADR-027**: sahte okey joker değildir, o elin okey
-> taşının değerini alır. Belge düzeni ADR-026'dır: ayrıntı [MIMARI-AYRINTI.md](MIMARI-AYRINTI.md)'de,
-> karar gövdeleri `adr/`de, tarihsel gerekçe [DEGISIKLIK.md](DEGISIKLIK.md#sürüm-27--tasokey81)'de.
+> **Son sürüm: 28** (`tasokey#87`, 2026-11-24) — **GDD §1 kural 14**: önceki oyuncudan çekilen taş,
+> atmadan önce aynı köşeye geri bırakılabilir (`cekirdek/el.js` `cekmeyiGeriAl`; yeni ADR açılmadı). Belge düzeni ADR-026'dır: ayrıntı [MIMARI-AYRINTI.md](MIMARI-AYRINTI.md)'de,
+> karar gövdeleri `adr/`de, tarihsel gerekçe [DEGISIKLIK.md](DEGISIKLIK.md#sürüm-28--tasokey87)'de.
 
 | Alan | Değer |
 |---|---|

@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  elBaslat, cek, at, KAYNAK, REDDEDILME_SEBEBI, EL_SONUCU, VARSAYILAN_MAKSIMUM_TUR,
+  elBaslat, cek, at, cekmeyiGeriAl, geriBirakilabilirTasId,
+  KAYNAK, REDDEDILME_SEBEBI, EL_SONUCU, VARSAYILAN_MAKSIMUM_TUR,
   sonrakiOyuncu, oncekiOyuncu,
 } from '../docs/cekirdek/el.js';
 import { tasOkeyMi, OYUNCU_SAYISI } from '../docs/cekirdek/dagitim.js';
@@ -29,6 +30,8 @@ function temelDurum(ekler = {}) {
     okeyTasi: OKEY_TASI,
     sira: 0,
     cekildiMi: false,
+    // tasokey#87: bu turda çekilen taş (`{ tasId, kaynak }`) — geri bırakmanın tek dayanağı.
+    sonCekilen: null,
     turSayaci: 0,
     sonuc: EL_SONUCU.SUREN,
     kazanan: null,
@@ -432,4 +435,147 @@ test('elBaslat: başlayan oyuncu (15 taş) zaten çekmiş sayılır, ilk hamlesi
     assert.equal(sonuc.durum.sira, 1);
     assert.equal(sonuc.durum.cekildiMi, false);
   }
+});
+
+// --- (f) tasokey#87: köşeden çekilen taşı geri bırakma (GDD §1 kural 14, Sahip kararı) ---
+
+// Oyuncu 0'ın çekebildiği yığın önceki oyuncunun (3) yığınıdır — yön `oncekiOyuncu`dan gelir,
+// burada yeniden hesaplanmaz (ADR-010).
+const CEKILEBILIR_YIGIN = oncekiOyuncu(0);
+
+function cekmeyeHazirDurum(ekler = {}) {
+  const atilanYiginlar = [[], [], [], []];
+  atilanYiginlar[CEKILEBILIR_YIGIN] = [t('sari', 8), t('sari', 13)];
+  return temelDurum({ sira: 0, cekildiMi: false, atilanYiginlar, ...ekler });
+}
+
+/** Köşeden çekmiş, henüz atmamış oyuncu 0 durumu + çekme öncesi durum. */
+function koseyiCekmisDurum(ekler = {}) {
+  const once = cekmeyeHazirDurum(ekler);
+  const cekme = cek(once, 0, KAYNAK.ATILAN);
+  assert.equal(cekme.basarili, true, 'ön koşul: köşeden çekme başarılı olmalı');
+  return { once, sonra: cekme.durum };
+}
+
+test('ASIL KABUL (f): geri bırakılan durum, çekme ÖNCESİ durumla BİREBİR aynıdır', () => {
+  const { once, sonra } = koseyiCekmisDurum();
+  // Ön koşul: çekme gerçekten bir şey değiştirdi (yoksa "birebir aynı" savı boş olurdu).
+  assert.equal(sonra.eller[0].length, once.eller[0].length + 1);
+  assert.equal(sonra.atilanYiginlar[CEKILEBILIR_YIGIN].length, once.atilanYiginlar[CEKILEBILIR_YIGIN].length - 1);
+  assert.equal(sonra.cekildiMi, true);
+
+  const geri = cekmeyiGeriAl(sonra, 0);
+  assert.equal(geri.basarili, true, `geri bırakma reddedildi: ${geri.sebep}`);
+  // Derin karşılaştırma: eller, atilanYiginlar, cekildiMi, turSayaci, sira ve sonCekilen dahil
+  // bütün alanlar çekme öncesine döner. Geri bırakma bir hamle DEĞİLDİR.
+  assert.deepEqual(geri.durum, once, 'geri alınan durum çekme öncesiyle birebir aynı olmalı');
+  assert.equal(geri.durum.turSayaci, once.turSayaci, 'geri bırakma tur sayacını artırmamalı');
+  assert.equal(geri.durum.sira, once.sira, 'geri bırakma sırayı geçirmemeli');
+  assert.equal(geri.durum.cekildiMi, false, 'geri bırakmadan sonra oyuncu yeniden çekebilmeli');
+});
+
+test('ASIL KABUL (f): geri bıraktıktan sonra oyuncu bu kez DESTEDEN çekebilir', () => {
+  const { sonra } = koseyiCekmisDurum();
+  const geri = cekmeyiGeriAl(sonra, 0);
+  const yenidenCekme = cek(geri.durum, 0, KAYNAK.YER);
+  assert.equal(yenidenCekme.basarili, true, `desteden çekme reddedildi: ${yenidenCekme.sebep}`);
+  assert.equal(yenidenCekme.durum.sonCekilen.kaynak, KAYNAK.YER);
+  // ...ve desteden çekilen taş artık geri bırakılamaz (aşağıdaki ret tablosunun ölçtüğü kural).
+  assert.equal(geriBirakilabilirTasId(yenidenCekme.durum, 0), null);
+});
+
+test('ASIL KABUL (f): geri bırakılan taş yığının ÜSTÜNE döner (sıra bozulmaz)', () => {
+  const { once, sonra } = koseyiCekmisDurum();
+  const ustTas = once.atilanYiginlar[CEKILEBILIR_YIGIN].at(-1);
+  const geri = cekmeyiGeriAl(sonra, 0);
+  assert.deepEqual(
+    geri.durum.atilanYiginlar[CEKILEBILIR_YIGIN].at(-1), ustTas,
+    'geri bırakılan taş yığının üstünde olmalı',
+  );
+  assert.ok(!geri.durum.eller[0].some((tas) => tas.id === ustTas.id), 'taş hâlâ elde duruyor');
+});
+
+// Reddedilen yollar: her satır "geri bırakma neden olmaz"ı ölçer. Tablo, kabul ölçütündeki
+// altı yolu da kapsar (hiç çekilmedi, desteden çekildi, zaten attı, sıra değil, el bitti,
+// anahtar kapalı).
+const KURAL_ANAHTAR_KAPALI = { ...KURAL_VARSAYILAN, cekilenTasGeriBirakilabilir: false };
+
+function attiktanSonrakiDurum() {
+  const { sonra } = koseyiCekmisDurum();
+  const atilacak = sonra.eller[0].find((tas) => !tasOkeyMi(tas, sonra.okeyTasi));
+  const atma = at(sonra, 0, atilacak.id);
+  assert.equal(atma.basarili, true, 'ön koşul: atma başarılı olmalı');
+  return atma.durum;
+}
+
+const GERI_BIRAKMA_RET_TABLOSU = [
+  {
+    ad: 'bu turda hiç çekilmedi',
+    durum: () => cekmeyeHazirDurum(),
+    oyuncu: 0,
+    sebep: REDDEDILME_SEBEBI.GERI_BIRAKILAMAZ,
+  },
+  {
+    ad: 'taş DESTEDEN çekildi (yer destesinin sırası bozulmasın)',
+    durum: () => cek(cekmeyeHazirDurum(), 0, KAYNAK.YER).durum,
+    oyuncu: 0,
+    sebep: REDDEDILME_SEBEBI.GERI_BIRAKILAMAZ,
+  },
+  {
+    ad: 'oyuncu zaten attı (sıra artık onda değil)',
+    durum: attiktanSonrakiDurum,
+    oyuncu: 0,
+    sebep: REDDEDILME_SEBEBI.SIRA_DEGIL,
+  },
+  {
+    ad: 'oyuncu zaten attı (sıra yapay olarak onda bırakılsa bile)',
+    durum: () => ({ ...attiktanSonrakiDurum(), sira: 0 }),
+    oyuncu: 0,
+    sebep: REDDEDILME_SEBEBI.GERI_BIRAKILAMAZ,
+  },
+  {
+    ad: 'sıra o oyuncuda değil',
+    durum: () => koseyiCekmisDurum().sonra,
+    oyuncu: 1,
+    sebep: REDDEDILME_SEBEBI.SIRA_DEGIL,
+  },
+  {
+    ad: 'el bitti',
+    durum: () => ({ ...koseyiCekmisDurum().sonra, sonuc: EL_SONUCU.BITTI, kazanan: 2 }),
+    oyuncu: 0,
+    sebep: REDDEDILME_SEBEBI.EL_BITTI,
+  },
+  {
+    ad: 'kapatma anahtarı kapalı (cekilenTasGeriBirakilabilir: false)',
+    durum: () => koseyiCekmisDurum().sonra,
+    oyuncu: 0,
+    kural: KURAL_ANAHTAR_KAPALI,
+    sebep: REDDEDILME_SEBEBI.GERI_BIRAKILAMAZ,
+  },
+];
+
+for (const satir of GERI_BIRAKMA_RET_TABLOSU) {
+  test(`(f) ret: ${satir.ad} → ${satir.sebep}`, () => {
+    const durum = satir.durum();
+    const sonuc = cekmeyiGeriAl(durum, satir.oyuncu, satir.kural ?? KURAL_VARSAYILAN);
+    assert.equal(sonuc.basarili, false);
+    assert.equal(sonuc.sebep, satir.sebep);
+    assert.deepEqual(sonuc.durum, durum, 'reddedilen geri bırakma durumu değiştirmemeli');
+    // Arayüzün sorduğu saf soru da aynı cevabı verir (tek kaynak: ikisi aynı kapıdan geçer).
+    assert.equal(geriBirakilabilirTasId(durum, satir.oyuncu, satir.kural ?? KURAL_VARSAYILAN), null);
+  });
+}
+
+test('(f) geriBirakilabilirTasId, geri bırakılabilen durumda ÇEKİLEN taşın kimliğini verir', () => {
+  const { once, sonra } = koseyiCekmisDurum();
+  const cekilenTas = once.atilanYiginlar[CEKILEBILIR_YIGIN].at(-1);
+  assert.equal(geriBirakilabilirTasId(sonra, 0), cekilenTas.id);
+  assert.equal(geriBirakilabilirTasId(sonra, 0, KURAL_ANAHTAR_KAPALI), null);
+});
+
+test('(f) elBaslat: başlayan oyuncunun 15 taşı çekme SAYILMAZ (sonCekilen null, geri bırakılamaz)', () => {
+  const durum = elBaslat(4242);
+  assert.equal(durum.sonCekilen, null);
+  assert.equal(geriBirakilabilirTasId(durum, 0), null);
+  assert.equal(cekmeyiGeriAl(durum, 0).sebep, REDDEDILME_SEBEBI.GERI_BIRAKILAMAZ);
 });

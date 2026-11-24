@@ -25,6 +25,7 @@
   "reddedilme.tasSecilmedi": "Select a tile first.",
   "reddedilme.yanlisKose": "You can't drop it there.",
   "reddedilme.bitirilemez": "You can't finish the hand with this tile.",
+  "reddedilme.geriBirakilamaz": "You can only put back the tile you drew from the corner this turn, before discarding.",
   "yerDestesi.bitirilebilirIpucu": "You can finish the hand — drop the selected tile on the pile.",
   "renk.kirmizi": "Red",
   "renk.siyah": "Black",

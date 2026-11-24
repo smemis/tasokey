@@ -9,7 +9,7 @@
 > Burada **tarihsel** gerekçe durur; tablo hücrelerinin **yürürlükteki** ayrıntısı
 > [MIMARI-AYRINTI.md](MIMARI-AYRINTI.md)'de, karar gövdeleri [adr/](adr/ADR-026-mimari-dizin-ayrinti-eki.md)'dedir (ADR-026).
 
-**Son sürüm: 27** (`tasokey#81`, 2026-11-24) → [Sürüm 27](#sürüm-27--tasokey81)
+**Son sürüm: 28** (`tasokey#87`, 2026-11-24) → [Sürüm 28](#sürüm-28--tasokey87)
 
 > *Birleştirme notu (Masa, 2026-11-22):* `tasokey#66` (main) ile `tasokey#64` zinciri aynı anda ilerlediği için ikisi de "sürüm 20" yazmıştı. Birleştirmede sıraya konuldu: **20** = `tasokey#66`, **21** = `tasokey#67` (ADR-023), **22** = `tasokey#69` (ADR-022 §0). Metinlerdeki "20 numarası ADR-023'e verilmişti, bu yüzden 21" ifadesi bu sıralamadan önce yazıldı.
 
@@ -316,6 +316,41 @@
 > `GDD.md` **v7** (kural 4 yeniden yazıldı, kural 6-7 ve bitiş paragrafı düzeltildi).
 > Arayüzün sahte okeyi kendi kimliğiyle çizmesi ve metinlerin ayrışması (`tasokey#80` planı İş 2) ile
 > bot kademelerinin yeniden ölçümü (İş 3) bu işe **konmadı**; kayıt şeması ve `android/` değişmedi.
+
+## Sürüm 28 — tasokey#87
+
+> **Sürüm 28** (`tasokey#87` — üst iş `tasokey#84`, planın İş 3'ü; Sahip kural kararı + Geliştirici
+> uygulaması, 2026-11-24): **önceki oyuncudan çekilen taş geri bırakılabilir** (`GDD.md` §1 **kural
+> 14**, §2'ye "Çekmeyi geri alma" satırı). Yeni ADR açılmadı: karar bir KURAL kararıdır ve mevcut
+> kapılara oturuyor — doğrulama yine `cekirdek/el.js`'te (ADR-002), köşe yönü yine `oncekiOyuncu`
+> (ADR-010), etkileşim kararı yine `arayuz/etkilesim.js`'te.
+>
+> Motor tarafı: `el.js`'e `sonCekilen` alanı (`{ tasId, kaynak }`) eklendi — "hangi taş, nereden"
+> sorusunun tek dayanağı budur, arayüz kendi defterini tutmaz. `cek` onu yazar, `at` siler,
+> `elBaslat`ta `null`'dur (başlayan oyuncunun 15 taşı çekme SAYILMAZ). İki yeni kapı: `cekmeyiGeriAl`
+> (hamleyi geri alır) ve `geriBirakilabilirTasId` (arayüzün sorduğu saf soru) — ikisi de aynı iç
+> karar işlevinden geçer, kural ikinci bir yerde yazılmaz. Yeni ret sebebi `geriBirakilamaz`; sıra ve
+> el sonu kısıtları kendi sebeplerini korur. **Ölçülen değişmez:** geri alınan durum, çekme ÖNCESİ
+> durumun **derin karşılaştırmayla birebir aynısıdır** (eller, atilanYiginlar, cekildiMi, turSayaci,
+> sira, sonCekilen) — geri bırakma hamle değildir, sıra geçmez ve tur sayacı artmaz. Yalnız KÖŞEDEN
+> çekilen taş geri bırakılabilir: desteden çekileni geri koymak yer destesinin sırasını bozardı.
+>
+> Kapatma anahtarı: `kural.js` → `cekilenTasGeriBirakilabilir` (varsayılan `true`). Kapatıldığında
+> motorun tek kapısı her denemeyi reddeder ve arayüzün vurgusu da aynı kapıdan geldiği için
+> kendiliğinden kaybolur — öz-test iki yönü de ölçer (ADR-008 sürüm 2/3 deseni).
+>
+> Arayüz: çekilen taş ıstakada, çekildiği köşe de masada `geri-birakilabilir` vurgusunu alır (kesikli
+> yeşil çerçeve; çekme vurgusunun sarısından ayrı, ikisi aynı anda görünebiliyor). Yeni dil anahtarı
+> `reddedilme.geriBirakilamaz` (tr + en). Kendi köşesine bırakmak **hâlâ atmadır** — gerileme savıyla
+> çivili. Mutasyon denemesiyle doğrulandı (4 bozma, 4'ü de yakalandı: yanlış yığına koyma, `at`in
+> `sonCekilen`i temizlememesi, çekme kaynağını denetlememe, anahtarı yok sayma).
+>
+> Ölçüldü (tarayıcı, `is/tasokey-87/ekran/`): `1920x1080` ve `800x360`'ta `surukle-hedef` sahnesi
+> `yol=5 gecti=5 kaldi=0`; yeni `geriBirak` yolu **geçti** — el 15→14, yığın 1→2, iki vurgu da
+> kalktı, durum satırı yine "Sıra sende — çek ya da at." ve ardından desteden çekilebildi.
+> `npm test` **819/819**; bot dayanıklılık koşusunda ihlal **0**, sonlanmayan el **0**.
+> `PRD.md` R-003'ün yalnız KANIT sütununa ek yazıldı: metin ve ölçüt değişmedi, gevşetilmedi,
+> **PRD sürümü artmadı**. Kayıt şeması ve `android/` değişmedi.
 
 ## Ek — özet tablodan taşınan sürüm zinciri
 

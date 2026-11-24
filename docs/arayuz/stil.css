@@ -23,6 +23,9 @@
   --tas-kenar-kalinlik: 1.6;
   --tas-kenar-renk: #3a3226;
   --tas-kenar-opaklik: 0.2;
+  /* tasokey#87: "geri bırakılabilir" vurgusunun rengi (çekilen taş + çekildiği köşe). Çekme
+     vurgusunun sarısından (#e8c547) ayrı bir renk: iki vurgu aynı anda görünebiliyor. */
+  --geri-birak-vurgu: #6fd08c;
 
   /* Taş ölçüsü İKİ KATMANLIDIR (ADR-022, tasokey#64 iş 2): kademe merdiveni artık TABAN'dır,
      görünen ölçü tabanın --istaka-olcek katıdır. Taban değerleri tasokey#13'ten beri aynıdır
@@ -613,6 +616,24 @@ html, body {
 .kose.cekilebilir .kose-yigin .tas:last-child {
   cursor: pointer;
   outline: 2px solid #e8c547;
+}
+
+/* tasokey#87 (GDD §1 kural 14): o turda bu köşeden çekilen taş geri bırakılabildiği sürece köşe
+   "geri bırakılabilir" vurgusunu taşır (ekran.js masaCiz, kararı `el.js` verir). Çekme vurgusundan
+   AYRI bir dil: çekme sarı dış çizgi (yığının üst taşında), geri bırakma kesikli yeşil çerçeve
+   (köşe KUTUSUNUN kendisinde) — ikisi aynı anda görünebilir, karışmasınlar diye farklı öğede ve
+   farklı biçimde. Boş köşede de görünür, çünkü çekilen taş yığından kalkmış olabilir. */
+.kose.geri-birakilabilir {
+  outline: 2px dashed var(--geri-birak-vurgu);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Istakadaki karşılığı: "bu, bu turda çektiğin taş" (ekran.js rafCiz). Seçim vurgusunun
+   (`.tas.secili`) üstüne BİNMEZ — o kalkık duruş + gölge, bu kesikli çerçevedir. */
+.raf-yuva .tas.geri-birakilabilir {
+  outline: 2px dashed var(--geri-birak-vurgu);
+  outline-offset: -3px;
 }
 
 /* Sayaç yığının altındaki satırda, satırın BAŞINDA (yığına yakın): yığının ortalanmasına katılmaz. */
