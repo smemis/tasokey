@@ -5,7 +5,7 @@
 import { elBaslat, cek, at, KAYNAK, EL_SONUCU, sonrakiOyuncu, oncekiOyuncu } from '../cekirdek/el.js';
 import { tasOkeyMi, tasOzelMi, tasDegeri } from '../cekirdek/dagitim.js';
 import {
-  elBitirenTaslar, elDokumu, dokumSirasi, dokumGruplari, DOKUM_ONCELIGI,
+  elBitirenTaslar, elDokumu, dokumGruplari, DOKUM_ONCELIGI,
 } from '../cekirdek/cozucu.js';
 import { KURAL_VARSAYILAN } from '../cekirdek/kural.js';
 import { elSonucunuHesapla } from '../cekirdek/puan.js';
@@ -30,6 +30,11 @@ import {
 const GORSEL_DOSYALARI = ['tas-govde.svg', 'tas-sahte-okey.svg', 'tas-okey-cerceve.svg', 'tas-arka.svg', 'yuva-bos.svg'];
 
 const INSAN_OYUNCUSU = 0;
+
+// El bitince açılan rakip ıstakasında grupların ARASINA konan ayraç hücresinin sınıfı
+// (tasokey#86): ıstakadaki "gruplar arası tam bir boş yuva" kuralının (ADR-028/3) kenar
+// ızgarasındaki karşılığı. Ölçüsü stil.css'te (`--rakip-acik-ayrac-genislik`).
+const GRUP_AYRACI_SINIFI = 'kenar-ayrac';
 
 // Her bırakmadan (atmadan) sonra sıra 1 saniye sonra geçer (Sahip isteği, tasokey#49): oyuncu
 // hamlesinin masaya yansımasını görsün, botlar da birbirinin hamlesini anlaşılır bir ritimle
@@ -162,12 +167,18 @@ function rafYuvasinaBirak(tasId, hedefIndex) {
 // Hiçbir kural burada yazılmaz: blokların İÇERİĞİNE ve SIRASINA çekirdek (`dokumGruplari`),
 // blokların yuvalara yerleşimine (aralar, satır bölünmezliği, taşma) `raf.js` (`yerlesimDiz`)
 // karar verir; bu işlev yalnız ikisini bağlar ve ıstakayı yeniden çizer.
-function istakayiDiz(oncelik) {
+// Yerleşimi hesaplayıp yazan kapı; ÇİZİMİ çağırana bırakır. El sonu yolunda (`durumuIlerlet`)
+// ardından zaten `ciz()` geliyor — ıstaka iki kez çizilmesin diye ayrıldı (tasokey#86).
+function istakaYerlesiminiDiz(oncelik) {
   const { durum } = durumKutu;
   const dokum = elDokumu(
     durum.eller[INSAN_OYUNCUSU], durum.okeyTasi, KURAL_VARSAYILAN, durum.gosterge, { oncelik },
   );
   durumKutu.rafYerlesimi = yerlesimDiz(dokumGruplari(dokum).map((grup) => grup.map((tas) => tas.id)));
+}
+
+function istakayiDiz(oncelik) {
+  istakaYerlesiminiDiz(oncelik);
   rafCiz();
 }
 
@@ -318,19 +329,35 @@ function yerDestesiYiginiCiz(alan, adet) {
 // çizim var. El sürerken kutu boşaltılır — rakip taşı bir an bile görünmez.
 // Taşlar DİZİLİ serilir (Sahip ek bilgisi, 2026-11-20): sıra `cekirdek/cozucu.js` dökümünden gelir
 // (perler → çiftler → per dışı kalanlar); arayüz kendi sıralama kuralı yazmaz.
+// tasokey#86: aynı sıra artık GRUPLU serilir — grup listesi yine çekirdeğin tek kapısından
+// (`dokumGruplari`) gelir, arayüz yalnız grupların ARASINA bir ayraç hücresi koyar. Ayraç sayısı
+// bu yüzden her zaman "grup sayısı - 1"dir (ilk grup hariç her grubun önüne bir tane). Ayraç
+// ızgaranın bir hücresi olduğundan satır düzenini kendiliğinden izler; ölçüsü stil.css'te.
 function rakipTaslariCiz(kutu, el, okeyTasi, acikMi, oyuncu, gosterge) {
   kutu.innerHTML = '';
   if (!acikMi) {
     kutu.removeAttribute('aria-label');
     return;
   }
-  const sirali = dokumSirasi(elDokumu(el, okeyTasi, KURAL_VARSAYILAN, gosterge));
-  for (const tas of sirali) {
-    const tasElemani = tasElemaniOlustur(tas, okeyTasi);
-    tasElemani.setAttribute('aria-label', tasAriaEtiketi(tas, okeyTasi));
-    kutu.appendChild(tasElemani);
+  const gruplar = dokumGruplari(elDokumu(el, okeyTasi, KURAL_VARSAYILAN, gosterge));
+  for (const [grupSirasi, grup] of gruplar.entries()) {
+    if (grupSirasi > 0) kutu.appendChild(grupAyraciOlustur());
+    for (const tas of grup) {
+      const tasElemani = tasElemaniOlustur(tas, okeyTasi);
+      tasElemani.setAttribute('aria-label', tasAriaEtiketi(tas, okeyTasi));
+      kutu.appendChild(tasElemani);
+    }
   }
   kutu.setAttribute('aria-label', metinAl('rakipAcikEl', [oyuncuAdi(oyuncu), el.length]));
+}
+
+// Ayraç yalnız görseldir: ekran okuyucuya hiçbir şey söylemez (kutunun kendi `aria-label`'ı
+// taş sayısını zaten veriyor) ve tıklama hedefi değildir (`.kenar-taslar` pointer-events: none).
+function grupAyraciOlustur() {
+  const ayrac = document.createElement('div');
+  ayrac.className = GRUP_AYRACI_SINIFI;
+  ayrac.setAttribute('aria-hidden', 'true');
+  return ayrac;
 }
 
 // R-013: elin bitirilebilir olup olmadığı yalnız iş 3'ün sorgusuyla (`elBitirenTaslar`) anlaşılır;
@@ -562,6 +589,11 @@ function durumuIlerlet(yeniDurum) {
   durumKutu.durum = yeniDurum;
   if (yeniDurum.sonuc !== EL_SONUCU.SUREN) {
     durumKutu.kabuk = gecis(durumKutu.kabuk, OLAY.EL_BITTI);
+    // tasokey#86: el bitince oyuncunun kendi ıstakası da gruplu dizilir — yerleşim BİR KEZ,
+    // burada kurulur. Çizim işlevleri (`rafCiz`) dizilim kurmaz, bu yüzden sonuç penceresi
+    // küçültülüp masa yeniden çizildiğinde dizilim olduğu gibi kalır; el SÜRERKEN de bu kapıya
+    // hiç uğranmaz, oyuncunun kendi dizilimine dokunulmaz (`rafYerlesiminiTazele` yolu).
+    istakaYerlesiminiDiz(DOKUM_ONCELIGI.PER);
   }
 }
 

@@ -27,17 +27,19 @@ const DOKUM_ANAHTARLARI = ['sonuc.dokumPer', 'sonuc.dokumCift', 'sonuc.dokumPerD
 test('ek bilgi 1: rakip ıstakası dizilimi çekirdeğin döküm sırasından geliyor (arayüz kendi sıralamıyor)', () => {
   assert.match(
     EKRAN_JS,
-    /import \{[^}]*elDokumu[^}]*dokumSirasi[^}]*\} from '\.\.\/cekirdek\/cozucu\.js'/,
+    /import \{[^}]*elDokumu[^}]*dokumGruplari[^}]*\} from '\.\.\/cekirdek\/cozucu\.js'/,
     'ekran.js döküm/dizilim işlevlerini çekirdekten almıyor',
   );
+  // tasokey#86: sıra artık GRUP listesi olarak alınır (`dokumGruplari` = `dokumSirasi`nin
+  // gruplanmış hâli, ADR-028/2); taşlar aynı sırada ama grup grup serilir.
   assert.match(
     EKRAN_JS,
-    /const sirali = dokumSirasi\(elDokumu\(el, okeyTasi, KURAL_VARSAYILAN, gosterge\)\);/,
+    /const gruplar = dokumGruplari\(elDokumu\(el, okeyTasi, KURAL_VARSAYILAN, gosterge\)\);/,
     'rakipTaslariCiz taşları döküm sırasına göre sermiyor',
   );
   assert.match(
     EKRAN_JS,
-    /for \(const tas of sirali\)/,
+    /for \(const tas of grup\)/,
     'rakipTaslariCiz hâlâ elin ham sırasını (durum.eller) basıyor olabilir',
   );
   // Sıralama/karşılaştırma mantığı arayüzde tekrar edilmemeli (tek kaynak: cozucu.js).

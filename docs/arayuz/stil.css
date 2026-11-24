@@ -109,8 +109,24 @@
   --rakip-acik-tas-genislik: calc(var(--tas-taban-genislik) * var(--rakip-acik-olcek));
   --rakip-acik-tas-yukseklik: calc(var(--tas-taban-yukseklik) * var(--rakip-acik-olcek));
   --rakip-acik-bosluk: 2px;
-  --rakip-acik-sutun-yatay: 8;
-  --rakip-acik-sutun-dikey: 2;
+  /* Sütun sayıları ayraç hücrelerini de TAŞIR (tasokey#86): açılan el artık "taş + ayraç" kadar
+     hücredir (en çok 15 taş + 5 ayraç = 20 hücre; grup sayısının ölçülen tavanı 6, günlük
+     is/tasokey-86). Satır sayısı ayraçlar yüzünden ARTMAMALIDIR — arttığında yan yığın bandı
+     aşıp köşe hücrelerine, ADR-014'ün hedef halkasına girer (ölçüldü: 2 sütunla 1180x820'de
+     +8 çakışma, is/tasokey-86/ekran-once ↔ ekran). Bu yüzden sütunlar hücre sayısına göre
+     açıldı: yatay 8 → 10 (20 hücre / 10 = 2 satır, eskisiyle aynı), dikey 2 → 3 (20/3 = 7 satır,
+     14 taşın 2 sütundaki satır sayısıyla aynı). Aynı kural varyantta da uygulanır (aşağıda). */
+  --rakip-acik-sutun-yatay: 10;
+  --rakip-acik-sutun-dikey: 3;
+  /* Gruplar arası ayracın genişliği (tasokey#86): açılan rakip ıstakasında perler/çiftler/kalanlar
+     görünür bir boşlukla ayrılır. Istakadaki kural "TAM BİR boş yuva"dır (ADR-028/3); burada aynı
+     oran TAŞ GENİŞLİĞİNİN bir çarpanı olarak yazılır, çünkü ayraç ızgaranın bir hücresini tutar ve
+     hücre sayısı artınca satır sayısı da artar — yani ayracın genişliği ADR-022 madde 10 bandına
+     (taşma/çakışma) doğrudan girer ve ÖLÇÜLEREK seçilir. Tek değişken: daraltmak ya da kapatmak
+     (0) için tek yer. Taşın kendi ölçüsünden türediği için her duyarlı kademede kendiliğinden
+     küçülür, ölçeğe bağlanmaz (madde 6 muafiyeti yukarıda). */
+  --rakip-acik-ayrac-orani: 0.5;
+  --rakip-acik-ayrac-genislik: calc(var(--rakip-acik-tas-genislik) * var(--rakip-acik-ayrac-orani));
   /* Taşlar ıstakada bitişik durur (Sahip ek bilgisi, 2026-11-20): yuva arası boşluk her kademede
      sıfır, sütun sayısı 12 (ekran.js RAF_SUTUN_SAYISI). Kademe geçişlerinde yalnız --tas-genislik
      küçülür; boşluk değişkeni tek yerde kalır ki "bitişik" kuralı bir kademede kaçmasın.
@@ -531,6 +547,15 @@ html, body {
   width: var(--rakip-acik-tas-genislik);
   height: var(--rakip-acik-tas-yukseklik);
   cursor: default;
+}
+
+/* Grup ayracı (tasokey#86, ekran.js grupAyraciOlustur): ızgaranın BİR hücresini boş tutar —
+   ıstakadaki boş yuvanın kenar ızgarasındaki karşılığı. Yüksekliği taşla aynı ki tek başına
+   kaldığı satırda satır yüksekliği çökmesin; genişliği tek değişkenden gelir. Görünmez ama yer
+   tutar: arka planı yok, kenarlığı yok. */
+.kenar-taslar .kenar-ayrac {
+  width: var(--rakip-acik-ayrac-genislik);
+  height: var(--rakip-acik-tas-yukseklik);
 }
 
 /* Rakam oranı --tas-rakam-font-boyutu'yla aynı kaynaktan (--tas-rakam-oran), yalnız taban ölçü
@@ -1285,8 +1310,11 @@ html, body {
        Üst kenar: taşlar `top: 100%` ile çubuğun ALTINA, yani varyantta üst içerik bandına
        (#merkez'in bandına) sarkar; iki satırlık yığın #merkez'e çarpıyordu → en yüksek el
        (15 taş, dagitim.js) TEK SIRA serilir, sıra Sahip'in ıstaka genişliğini aşmaz. */
-    --rakip-acik-sutun-yatay: 15;
-    --rakip-acik-sutun-dikey: 4;
+       tasokey#86: aynı iki gerekçe ayraç hücreleri eklenince de korunsun diye sütunlar hücre
+       sayısına göre yeniden açıldı — üst kenar 15 → 20 (20 hücre tek sırada kalır), yan kenar
+       4 → 5 (20/5 = 4 satır, 15 taşın 4 sütundaki satır sayısıyla aynı). */
+    --rakip-acik-sutun-yatay: 20;
+    --rakip-acik-sutun-dikey: 5;
     /* Rakip ADININ kutu kalınlığı (dikey yazıda genişlik, üstte yükseklik). Ad çubuğun ORTASINA
        bindirilir (tasokey#33 madde 1), yani çubuktan kalınsa iki yana (ad − çubuk)/2 kadar taşar.
        Taban kademelerde çubuk 26..14px, yani addan kalın → taşma yok; varyantta çubuk 8px olduğu
