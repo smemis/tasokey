@@ -4,7 +4,9 @@
 
 import { elBaslat, cek, at, KAYNAK, EL_SONUCU, sonrakiOyuncu, oncekiOyuncu } from '../cekirdek/el.js';
 import { tasOkeyMi, tasOzelMi, tasDegeri } from '../cekirdek/dagitim.js';
-import { elBitirenTaslar, elDokumu, dokumSirasi } from '../cekirdek/cozucu.js';
+import {
+  elBitirenTaslar, elDokumu, dokumSirasi, dokumGruplari, DOKUM_ONCELIGI,
+} from '../cekirdek/cozucu.js';
 import { KURAL_VARSAYILAN } from '../cekirdek/kural.js';
 import { elSonucunuHesapla } from '../cekirdek/puan.js';
 import { cevir } from '../dil/cevir.js';
@@ -18,7 +20,9 @@ import {
 import { kayitOku, kayitYaz } from '../kayit/depo.js';
 import { gorselOlustur, gorselleriOnYukle } from './gorseller.js';
 import { oyuncuKenarHaritasi, oyuncununAtilanKosesi } from './yerlesim.js';
-import { RAF_SUTUN_SAYISI, rafYerlesimiGuncelle, tasiYuvayaTasi, yerlesimKur } from './raf.js';
+import {
+  RAF_SUTUN_SAYISI, rafYerlesimiGuncelle, tasiYuvayaTasi, yerlesimDiz, yerlesimKur,
+} from './raf.js';
 
 // masa-zemin.svg ve istaka.svg CSS arka planı olarak kullanılır (arayuz/stil.css #masa / #rafAlani
 // — burada önceden yüklenmesi gerekmez). Sayı yüzü artık tek paylaşılan gövde (tas-govde.svg) +
@@ -73,6 +77,15 @@ const DESTE_GORUNEN_MAKSIMUM = 4;
 const ZORLUK_DUGME_ADLARI = Object.fromEntries(
   ZORLUKLAR.map((zorluk) => [zorluk, `zorluk${zorluk[0].toUpperCase()}${zorluk.slice(1)}`]),
 );
+
+// Istakanın dizme düğmeleri (tasokey#85, ADR-028): eleman kimliği → dil anahtarı → döküm önceliği.
+// TEK LİSTE: metin, açıklama (`<anahtar>.tarif`), olay bağlama ve eleman toplama hepsi buradan
+// türetilir; yeni bir dizme kipi eklenirse yalnız bu satır eklenir.
+const RAF_DUGMELERI = Object.freeze([
+  Object.freeze({ ad: 'perleriDizButonu', anahtar: 'raf.perleriDiz', oncelik: DOKUM_ONCELIGI.PER }),
+  Object.freeze({ ad: 'ciftleriDizButonu', anahtar: 'raf.ciftleriDiz', oncelik: DOKUM_ONCELIGI.CIFT }),
+]);
+const RAF_DUGME_ANAHTARLARI = RAF_DUGMELERI.map(({ ad, anahtar }) => [ad, anahtar]);
 
 const durumKutu = {
   durum: null,
@@ -141,6 +154,20 @@ function rafYuvasinaBirak(tasId, hedefIndex) {
   const yeniYerlesim = tasiYuvayaTasi(durumKutu.rafYerlesimi, tasId, hedefIndex);
   if (yeniYerlesim === durumKutu.rafYerlesimi) return;
   durumKutu.rafYerlesimi = yeniYerlesim;
+  rafCiz();
+}
+
+// "Perleri diz" / "Çiftleri diz" (tasokey#85, ADR-028). Dizmek HAMLE DEĞİLDİR: motor durumuna
+// (`durumKutu.durum`) hiç dokunulmaz, kayıt yazılmaz — bu yüzden sıra rakipteyken de çalışır.
+// Hiçbir kural burada yazılmaz: blokların İÇERİĞİNE ve SIRASINA çekirdek (`dokumGruplari`),
+// blokların yuvalara yerleşimine (aralar, satır bölünmezliği, taşma) `raf.js` (`yerlesimDiz`)
+// karar verir; bu işlev yalnız ikisini bağlar ve ıstakayı yeniden çizer.
+function istakayiDiz(oncelik) {
+  const { durum } = durumKutu;
+  const dokum = elDokumu(
+    durum.eller[INSAN_OYUNCUSU], durum.okeyTasi, KURAL_VARSAYILAN, durum.gosterge, { oncelik },
+  );
+  durumKutu.rafYerlesimi = yerlesimDiz(dokumGruplari(dokum).map((grup) => grup.map((tas) => tas.id)));
   rafCiz();
 }
 
@@ -377,6 +404,12 @@ function suruklemeDurumunuYaz(tasId) {
 function rafCiz() {
   const { durum, rafYerlesimi, secilenTasId, suruklenenTasId } = durumKutu;
   eleman.rafBaslik.textContent = metinAl('rafim');
+  // Dizme düğmelerinin metni ve açıklaması da her çizimde dil anahtarından tazelenir (dil
+  // değişince düğmeler de çevrilsin; ikinci bir "dili uygula" kapısı yazılmaz).
+  for (const [ad, anahtar] of RAF_DUGME_ANAHTARLARI) {
+    eleman[ad].textContent = metinAl(anahtar);
+    eleman[ad].title = metinAl(`${anahtar}.tarif`);
+  }
   const elMap = new Map(durum.eller[INSAN_OYUNCUSU].map((tas) => [tas.id, tas]));
   eleman.raf.innerHTML = '';
   for (let index = 0; index < rafYerlesimi.length; index++) {
@@ -803,6 +836,7 @@ function elemanlariTopla() {
     'koseSolAlt', 'koseSolAltYigin', 'koseSolAltSayac',
     'koseSagAlt', 'koseSagAltYigin', 'koseSagAltSayac',
     'rafBaslik', 'raf',
+    ...RAF_DUGMELERI.map(({ ad }) => ad),
     'sonucPaneli', 'sonucMetni', 'kucultAcKapaButonu', 'dokumAcKapaButonu', 'sonucKalanTaslar',
     'yeniElButonu', 'baslangicaDonButonu',
     'baslangicPaneli', 'baslangicBaslik', 'zorlukBaslik', 'yeniOyunButonu',
@@ -833,6 +867,11 @@ function olaylariBagla() {
   eleman.yeniOyunButonu.addEventListener('click', yeniOyunBaslat);
   for (const zorluk of ZORLUKLAR) {
     eleman[ZORLUK_DUGME_ADLARI[zorluk]].addEventListener('click', () => zorlukSec(zorluk));
+  }
+  // Dizme düğmeleri. Gerçek `<button>` oldukları için klavye (Enter/Space) zaten `click` üretir —
+  // `tiklanabilirYap` burada kullanılmaz, yoksa aynı tıklama iki kez işlenirdi.
+  for (const { ad, oncelik } of RAF_DUGMELERI) {
+    eleman[ad].addEventListener('click', () => istakayiDiz(oncelik));
   }
   surukleBagla(eleman.raf, hedefeBirakUygula, suruklemeDurumunuYaz);
   cekmeSurukleBagla(eleman.masa, eleman.raf, kaynaktanCekUygula);

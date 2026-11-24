@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { elDokumu, dokumSirasi } from '../docs/cekirdek/cozucu.js';
+import { elDokumu, dokumSirasi, dokumGruplari, DOKUM_ONCELIGI } from '../docs/cekirdek/cozucu.js';
 import { tasOlustur, sahteOkeyOlustur } from '../docs/cekirdek/tas.js';
 import { karistir } from '../docs/cekirdek/karma.js';
 import { dagit } from '../docs/cekirdek/dagitim.js';
@@ -122,6 +122,146 @@ test('kabul-6: sayılar eli iki kez saymaz — perTasSayisi + perDisiSayisi = el
       );
       assert.equal(dokum.perTasSayisi, dokum.perler.flat().length);
     }
+  }
+});
+
+/* ----------------------------------------------- tasokey#85 (ADR-028): döküm ÖNCELİĞİ + gruplar */
+
+// Istakadaki "Perleri diz" / "Çiftleri diz" düğmelerinin (tasokey#85) tek kural kaynağı burasıdır:
+// aynı taşlar hem pere hem çifte girebildiğinde hangisinin ÖNCE ayrılacağı seçenektir.
+// Tablo elle kurulur ki beklenen sayı ölçümden değil KURALDAN gelsin (A9: tahmin yok).
+const CIFT_ONCELIGI_TABLOSU = [
+  {
+    ad: 'üç ikili seri: per önceliği 2 seri, çift önceliği 3 çift',
+    el: [...cift('kirmizi', 5), ...cift('kirmizi', 6), ...cift('kirmizi', 7)],
+    per: { perSayisi: 2, ciftSayisi: 0, kalanSayisi: 0 },
+    cift: { perSayisi: 0, ciftSayisi: 3, kalanSayisi: 0 },
+  },
+  {
+    ad: 'çift kurulamayan seri: iki öncelik AYNI (tek seri)',
+    el: [t('siyah', 1), t('siyah', 2), t('siyah', 3)],
+    per: { perSayisi: 1, ciftSayisi: 0, kalanSayisi: 0 },
+    cift: { perSayisi: 1, ciftSayisi: 0, kalanSayisi: 0 },
+  },
+  {
+    ad: 'tamamen perli el (birebir aynı taş yok): iki öncelik AYNI',
+    el: TAMAMEN_PER,
+    per: { perSayisi: 4, ciftSayisi: 0, kalanSayisi: 0 },
+    cift: { perSayisi: 4, ciftSayisi: 0, kalanSayisi: 0 },
+  },
+  {
+    ad: 'tam 7 çift: per hiç kurulmaz, iki öncelik AYNI',
+    el: TAM_YEDI_CIFT,
+    per: { perSayisi: 0, ciftSayisi: 7, kalanSayisi: 0 },
+    cift: { perSayisi: 0, ciftSayisi: 7, kalanSayisi: 0 },
+  },
+  {
+    // Per önceliği sayı perini kurar ve artan iki nüsha (kirmizi-4-2, siyah-4-2) ÇİFT DEĞİLDİR:
+    // çift birebir aynı taş ister, farklı renkteki iki 4 eşleşmez → ikisi de kalanlara düşer.
+    ad: 'sayı peri ile çift yarışı: per önceliği 1 sayı peri + 2 kalan, çift önceliği 2 çift',
+    el: [...cift('kirmizi', 4), ...cift('siyah', 4), t('mavi', 4)],
+    per: { perSayisi: 1, ciftSayisi: 0, kalanSayisi: 2 },
+    cift: { perSayisi: 0, ciftSayisi: 2, kalanSayisi: 1 },
+  },
+];
+
+test('ADR-028 kabul-a: çift önceliği tablosu — her satırda iki öncelik beklenen bölümü verir', () => {
+  for (const satir of CIFT_ONCELIGI_TABLOSU) {
+    for (const [oncelik, beklenen] of [[DOKUM_ONCELIGI.PER, satir.per], [DOKUM_ONCELIGI.CIFT, satir.cift]]) {
+      const dokum = elDokumu(satir.el, OKEY_TASI, undefined, null, { oncelik });
+      assert.deepEqual(
+        { perSayisi: dokum.perSayisi, ciftSayisi: dokum.ciftSayisi, kalanSayisi: dokum.kalanSayisi },
+        beklenen,
+        `${satir.ad} — öncelik ${oncelik}`,
+      );
+    }
+  }
+});
+
+test('ADR-028 kabul-b: çift önceliği hiçbir elde per önceliğinden AZ çift bulmaz (40 gerçek el)', () => {
+  for (let tohum = 7300; tohum < 7340; tohum++) {
+    const { eller, gosterge, okeyTasi } = dagit(tohum);
+    for (const el of eller) {
+      const perOnce = elDokumu(el, okeyTasi, undefined, gosterge);
+      const ciftOnce = elDokumu(el, okeyTasi, undefined, gosterge, { oncelik: DOKUM_ONCELIGI.CIFT });
+      assert.ok(
+        ciftOnce.ciftSayisi >= perOnce.ciftSayisi,
+        `tohum ${tohum}: çift önceliği ${ciftOnce.ciftSayisi} çift buldu, per önceliği ${perOnce.ciftSayisi}`,
+      );
+    }
+  }
+});
+
+test('ADR-028 kabul-c: sayı özdeşlikleri İKİ öncelikte de bozulmaz (40 gerçek el)', () => {
+  for (const oncelik of [DOKUM_ONCELIGI.PER, DOKUM_ONCELIGI.CIFT]) {
+    for (let tohum = 7400; tohum < 7440; tohum++) {
+      const { eller, gosterge, okeyTasi } = dagit(tohum);
+      for (const el of eller) {
+        const dokum = elDokumu(el, okeyTasi, undefined, gosterge, { oncelik });
+        assert.equal(dokum.perTasSayisi + dokum.perDisiSayisi, el.length, `${oncelik}/${tohum}: el iki kez sayıldı`);
+        assert.equal(dokum.ciftTasSayisi + dokum.kalanSayisi, dokum.perDisiSayisi, `${oncelik}/${tohum}: per dışı toplamı tutmuyor`);
+        assert.deepEqual(
+          dokumSirasi(dokum).map((tas) => tas.id).slice().sort(),
+          el.map((tas) => tas.id).slice().sort(),
+          `${oncelik}/${tohum}: dizilim elin taşlarını kaybediyor ya da çoğaltıyor`,
+        );
+      }
+    }
+  }
+});
+
+test('ADR-028 kabul-d: tanınmayan ve verilmeyen öncelik per önceliğine düşer (kapatma anahtarı)', () => {
+  const el = CIFT_ONCELIGI_TABLOSU[0].el;
+  const beklenen = dokumSirasi(elDokumu(el, OKEY_TASI)).map((tas) => tas.id);
+  for (const secenekler of [undefined, {}, { oncelik: 'per' }, { oncelik: 'yok-boyle-bir-sey' }, { oncelik: null }]) {
+    assert.deepEqual(dokumSirasi(elDokumu(el, OKEY_TASI, undefined, null, secenekler)).map((tas) => tas.id), beklenen);
+  }
+});
+
+// `dokumGruplari` ıstakaya gruplu dizmenin (raf.js `yerlesimDiz`) tek sıralama kaynağıdır: her per
+// ve her çift kendi bloğu, per dışı tek kalanların tamamı tek blok.
+test('ADR-028 kabul-e: dokumGruplari = perler + çiftler + (varsa) kalanlar bloğu', () => {
+  const dokum = elDokumu(
+    [...cift('kirmizi', 5), t('siyah', 1), t('siyah', 2), t('siyah', 3), t('mavi', 9)],
+    OKEY_TASI,
+  );
+  const gruplar = dokumGruplari(dokum);
+  assert.deepEqual(gruplar.map((grup) => grup.map((tas) => tas.id)), [
+    ['siyah-1-1', 'siyah-2-1', 'siyah-3-1'],
+    ['kirmizi-5-1', 'kirmizi-5-2'],
+    ['mavi-9-1'],
+  ]);
+  assert.deepEqual(dokumSirasi(dokum).map((tas) => tas.id), gruplar.flat().map((tas) => tas.id));
+
+  // Kalan yoksa kalanlar bloğu HİÇ eklenmez (boş blok ıstakada boş yuva israfı olurdu).
+  const kalansiz = dokumGruplari(elDokumu(TAMAMEN_PER, OKEY_TASI));
+  assert.equal(kalansiz.length, 4);
+  assert.ok(kalansiz.every((grup) => grup.length > 0));
+  assert.deepEqual(dokumGruplari(elDokumu([], OKEY_TASI)), []);
+});
+
+// GERİLEME ÇAPASI (ADR-028): per önceliği tasokey#81'den (sahte okey artık joker değil) SONRA
+// ölçülen çıktının BİREBİR aynısını vermek zorundadır — düğme işi varsayılan dizilimi değiştirmez.
+// Tablo `is/tasokey-85/uret-tablo.mjs` ile diskteki koddan üretildi, eski bir nottan kopyalanmadı.
+const PER_ONCELIGI_GERILEME = [
+  // tohum 20261122 — okey sari-12
+  [20261122, 0, 'kirmizi-1-2+kirmizi-2-2+kirmizi-3-2 | kirmizi-13-2+mavi-13-1+sari-13-1 | kirmizi-8-2+kirmizi-10-2+siyah-8-2+siyah-10-1+siyah-11-1+mavi-1-1+mavi-9-2+sari-2-2+sari-6-1'],
+  [20261122, 1, 'kirmizi-6-1+siyah-6-1+sari-6-2 | sari-1-2+sari-1-1 | kirmizi-8-1+siyah-3-2+siyah-7-1+siyah-13-2+mavi-12-2+sari-3-1+sari-7-1+sari-8-2+sari-13-2'],
+  [20261122, 2, 'sari-9-1+sari-9-2 | kirmizi-3-1+kirmizi-4-2+kirmizi-6-2+kirmizi-7-1+siyah-5-2+siyah-10-2+mavi-2-2+mavi-4-1+mavi-5-2+mavi-7-1+sari-2-1+sari-11-2'],
+  [20261122, 3, 'kirmizi-12-2+siyah-12-2+sahteOkey-2 | mavi-5-1+mavi-6-1+mavi-8-1+sari-12-2 | kirmizi-5-1+kirmizi-13-1+siyah-3-1+siyah-6-2+mavi-8-2+sari-4-2+sari-7-2'],
+  // tohum 7002 — okey sari-1
+  [7002, 0, 'kirmizi-6-1+siyah-6-2+sari-6-2 | sari-1-2+sari-3-1+sari-4-1+sahteOkey-1 | mavi-4-2+mavi-4-1 | siyah-2-2+siyah-6-1+siyah-11-2+siyah-13-2+mavi-7-1+sari-11-1'],
+  [7002, 1, 'kirmizi-10-2+kirmizi-11-1+kirmizi-12-2 | siyah-1-2+mavi-1-1+sahteOkey-2 | kirmizi-6-2+siyah-1-1+siyah-7-2+siyah-8-2+siyah-10-1+mavi-13-2+sari-4-2+sari-7-2'],
+  [7002, 2, 'siyah-5-2+siyah-7-1+siyah-8-1+sari-1-1 | siyah-9-2+mavi-9-2+sari-9-1 | kirmizi-1-2+siyah-3-2+siyah-13-1+mavi-5-2+mavi-8-2+sari-7-1+sari-13-2'],
+  [7002, 3, 'kirmizi-2-2+siyah-2-1+mavi-2-1+sari-2-2 | kirmizi-5-2+kirmizi-5-1 | kirmizi-13-2+kirmizi-13-1 | kirmizi-7-2+siyah-4-1+mavi-3-1+mavi-10-2+mavi-12-2+sari-5-1'],
+];
+
+test('ADR-028 kabul-f: per önceliğinin çıktısı BİREBİR aynı kaldı (8 gerçek el, gerileme)', () => {
+  const imza = (gruplar) => gruplar.map((grup) => grup.map((tas) => tas.id).join('+')).join(' | ');
+  for (const [tohum, oyuncu, beklenen] of PER_ONCELIGI_GERILEME) {
+    const { eller, gosterge, okeyTasi } = dagit(tohum);
+    const dokum = elDokumu(eller[oyuncu], okeyTasi, undefined, gosterge);
+    assert.equal(imza(dokumGruplari(dokum)), beklenen, `tohum ${tohum} oyuncu ${oyuncu}: per önceliği kaydı`);
   }
 });
 

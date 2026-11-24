@@ -61,8 +61,19 @@
           <div class="kose-yigin" id="koseSolAltYigin"></div>
           <div class="kose-sayac" id="koseSolAltSayac" aria-hidden="true"></div>
         </div>
+        <!-- Istaka paneli. Dizme düğmeleri (tasokey#85, ADR-028) panelin İÇİNDE, başlığın şeridinde
+             durur — yeni bir satır AÇMAZ, var olan boşluğa girer. Yeri ölçümle seçildi (ADR-028):
+             panelin GENİŞLEMESİ köşe atma alanı oranını düşürüyor (kose-atma-alani.test.js), dikey
+             büyümesi ise `--istaka-olcek` kademelerini aşağı çekiyor (ADR-022/5, panelin #merkez'i
+             örtme eşiği). Metinler dil anahtarından (ekran.js rafCiz); burada sabit metin yok (R-008). -->
         <div id="rafAlani" class="kenar kenar-alt">
-          <div id="rafBaslik"></div>
+          <div id="rafUstSatir">
+            <div id="rafBaslik"></div>
+            <div id="rafDugmeleri">
+              <button id="perleriDizButonu" class="raf-dugmesi" type="button"></button>
+              <button id="ciftleriDizButonu" class="raf-dugmesi" type="button"></button>
+            </div>
+          </div>
           <div id="raf"></div>
         </div>
         <div id="koseSagAlt" class="kose" data-kose="sagAlt" tabindex="0" role="button">

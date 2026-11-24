@@ -22,8 +22,8 @@ import { join } from 'node:path';
 const KOK = join(import.meta.dirname, '..');
 const HEDEF_BAYT = 25600;
 const ACIK = [8, 10, 15, 16, 18, 21, 22, 23, 29, 30];
-// tasokey#81: ADR dizini 26 → 27 (ADR-027 eklendi).
-const BEKLENEN_SATIR = { adr: 27, modul: 18, kanit: 14, risk: 30 };
+// tasokey#81: ADR dizini 26 → 27 (ADR-027 eklendi). tasokey#85: 27 → 28 (ADR-028 eklendi).
+const BEKLENEN_SATIR = { adr: 28, modul: 18, kanit: 14, risk: 30 };
 
 const git = (...a) => execFileSync('git', a, { cwd: KOK, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
 const normalize = (m) => m.replace(/\r\n/g, '\n');
@@ -124,6 +124,11 @@ function kimlikKaldi(etiket, simdiHucre, grup) {
 const SONRADAN_GUNCELLENEN = new Map([
   ['cekirdek/dizilim.js (ADR-017) — sorumluluk', 'tasokey#81 / ADR-027'],
   ['Risk 1 — konu', 'tasokey#81 / ADR-027'],
+  // tasokey#85 (ADR-028): iki modülün sorumluluğu GENİŞLEDİ — dökümün önceliği seçenek oldu
+  // (`cozucu.js`) ve gruplu dizme eklendi (`raf.js`); ayrıca iki hücre §3'te kısaltıldı, tam
+  // metin eke yazıldı (ADR-026 madde 1) — bu yüzden taban commit'le birebir olamazlar.
+  ['cekirdek/cozucu.js (ADR-017) — sorumluluk', 'tasokey#85 / ADR-028'],
+  ['arayuz/raf.js (ADR-019) — sorumluluk', 'tasokey#85 / ADR-028'],
 ]);
 
 function birebir(etiket, baslik, tabanHucre) {
@@ -261,7 +266,9 @@ for (const [numara, kalan] of adrler(tabanMd)) {
 }
 
 // ── (a') ekte taban karşılığı olmayan bölüm: yalnız bu işte YAZILAN ADR-026 satırı olabilir ──
-const YENI_BOLUMLER = ['ADR-026 — tek satır karar'];
+// tasokey#85: ADR-028'in tek satır kararı da bu listeye girer — taban commit'te (tasokey#78) o
+// karar henüz yoktu, yani eke TAŞINMADI, orada YAZILDI; birebirlik ölçülemez.
+const YENI_BOLUMLER = ['ADR-026 — tek satır karar', 'ADR-028 — tek satır karar'];
 const tabanAdrNumaralari = new Set(adrler(tabanMd).map(([n]) => n));
 const yeniAdr = adrler(simdiMd)
   .map(([n]) => n)
