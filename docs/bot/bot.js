@@ -15,11 +15,10 @@
 // kuralı değiştirmez, yalnız botun kendi önerisini ne kadar iyi seçtiğini değiştirir.
 
 import { cek, at, KAYNAK, VARSAYILAN_MAKSIMUM_TUR, oncekiOyuncu } from '../cekirdek/el.js';
-import { tasOkeyMi } from '../cekirdek/dagitim.js';
+import { tasOkeyMi, tasOzelMi, sorguJokeriOlustur } from '../cekirdek/dagitim.js';
 import { perGecerliMi, ciftGecerliMi } from '../cekirdek/dizilim.js';
 import { elBitirenTaslar, elDokumu } from '../cekirdek/cozucu.js';
 import { KURAL_VARSAYILAN } from '../cekirdek/kural.js';
-import { sahteOkeyOlustur } from '../cekirdek/tas.js';
 import { tohumluUretec } from '../cekirdek/karma.js';
 
 // ADR-017/ADR-018: bitiş ya tamamen per ya tam 7 birebir çifttir; karışık dizilim bitiş değildir.
@@ -59,11 +58,6 @@ export const KADEME_AYARI = Object.freeze({
     dokumleAtma: true, // atacağı taşı `elDokumu`nun gerçek bölümüne göre seçer
   }),
 });
-
-// Kural sorusu taşı: gerçek set yalnız 1. ve 2. nüshayı üretir, bu nüsha hiçbir elde bulunmaz.
-// "a ile b aynı perde buluşabilir mi?" sorusunu dizilim.js'e sormanın yolu araya bir joker koymak:
-// joker eksik taşın yerine geçtiğinden cevabı kural verir, bot kendi renk/sayı karşılaştırması yapmaz.
-const SORU_JOKERI = sahteOkeyOlustur(0);
 
 // Çift yoluna ancak el oraya gerçekten yakınsa yönelinir (7 çiftin en az 5'i elde). Bu bir sezgisel
 // eşiktir, kural değil — `kural.js`'e ayar olarak girmez (ADR-017/4, ADR-018 kapsamı).
@@ -108,8 +102,12 @@ function kademeZari(rastgele, oran) {
 // --- Kural soruları: cevabı her zaman cekirdek/dizilim.js verir ---
 
 // İki taş aynı perde buluşabilir mi? (seri ya da sayı peri — hangisi olduğunu bot bilmez, sormaz.)
+// Kural sorusu taşı çekirdekten gelir (`sorguJokeriOlustur`): o elin okey taşının, hiçbir elde
+// bulunmayan 0. nüshası — yani gerçek bir joker. Joker eksik taşın yerine geçtiğinden cevabı kural
+// verir, bot kendi renk/sayı karşılaştırması yapmaz. (ADR-027'den önce soru taşı sahte okeydi;
+// sahte okey artık joker olmadığı için soru taşı o elin okeyinden türetilir.)
 function perdeBulusabilirMi(tasA, tasB, okeyTasi, kural) {
-  return perGecerliMi([tasA, tasB, SORU_JOKERI], okeyTasi, kural);
+  return perGecerliMi([tasA, tasB, sorguJokeriOlustur(okeyTasi)], okeyTasi, kural);
 }
 
 // Hedef taş, elin iki gerçek taşıyla tamamlanmış (jokersiz) geçerli bir per kuruyor mu?
@@ -139,7 +137,7 @@ function ciftEslesmesi(el, okeyTasi, kural, gosterge) {
     if (kullanildi.has(tas.id)) continue;
     const uygun = (diger) => diger.id !== tas.id && !kullanildi.has(diger.id)
       && ciftGecerliMi(tas, diger, okeyTasi, kural, gosterge);
-    const es = el.find((diger) => uygun(diger) && !tasOkeyMi(diger, okeyTasi))
+    const es = el.find((diger) => uygun(diger) && !tasOkeyMi(diger, okeyTasi, kural))
       ?? el.find(uygun);
     if (!es) continue;
     kullanildi.add(tas.id);
@@ -173,7 +171,7 @@ function baglantiSayisi(hedef, el, okeyTasi, kural, yol, gosterge) {
 // baştan önerilmez. Havuz boşalırsa (el tamamen jokerse) hâlâ elden bir taş döner.
 function atilabilirHavuz(el, okeyTasi, kural) {
   const adaylar = kural.okeyVeSahteOkeyAtmaYasak
-    ? el.filter((tas) => !tasOkeyMi(tas, okeyTasi))
+    ? el.filter((tas) => !tasOzelMi(tas, okeyTasi))
     : el;
   return adaylar.length > 0 ? adaylar : el;
 }
@@ -270,7 +268,7 @@ export function cekimKaynaginiSec(durum, oyuncu, kademe = VARSAYILAN_KADEME, sec
     if (bitiren) return KAYNAK.ATILAN;
   }
 
-  const gercekler = el.filter((tas) => !tasOkeyMi(tas, durum.okeyTasi));
+  const gercekler = el.filter((tas) => !tasOkeyMi(tas, durum.okeyTasi, kural));
   const yol = bitisYolunuSec(el, durum.okeyTasi, kural, gosterge);
   const tamamliyor = yol === YOL.CIFT
     ? ciftTamamliyorMu(ustTas, gercekler, durum.okeyTasi, kural, gosterge)

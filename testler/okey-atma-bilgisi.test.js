@@ -287,7 +287,8 @@ test('kabul-c: ekran.js bilgilendirmeyi ve döküm bölümünü kabuk durum maki
   const atmaGovdesi = EKRAN_JS.match(/function atVeyaBitirUygula\([^)]*\)\s*\{([\s\S]*?)\n\}/);
   assert.ok(atmaGovdesi, 'ekran.js içinde atVeyaBitirUygula bulunamadı');
   assert.match(atmaGovdesi[1], /OLAY\.BILGI_GOSTER/, 'bilgilendirme insanın atma yolundan açılmıyor');
-  assert.match(atmaGovdesi[1], /tasOkeyMi\(/, '"atılan taş joker mi" sorusu çekirdeğe sorulmuyor');
+  // ADR-027: soru "joker mi" değil "özel taş mı" (okey ya da sahte okey) — kapı `tasOzelMi`.
+  assert.match(atmaGovdesi[1], /tasOzelMi\(/, '"atılan taş özel mi" sorusu çekirdeğe sorulmuyor');
   const botGovdesi = EKRAN_JS.match(/function botAdimiOyna\([^)]*\)\s*\{([\s\S]*?)\n\}/);
   assert.ok(botGovdesi, 'ekran.js içinde botAdimiOyna bulunamadı');
   assert.doesNotMatch(botGovdesi[1], /BILGI_GOSTER/, 'botun joker atışında da pencere açılıyor');

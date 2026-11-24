@@ -3,7 +3,7 @@
 // sonucu DOM'a yansıtır (R-003, R-005, R-006, R-009; tasokey#10).
 
 import { elBaslat, cek, at, KAYNAK, EL_SONUCU, sonrakiOyuncu, oncekiOyuncu } from '../cekirdek/el.js';
-import { tasOkeyMi } from '../cekirdek/dagitim.js';
+import { tasOkeyMi, tasOzelMi } from '../cekirdek/dagitim.js';
 import { elBitirenTaslar, elDokumu, dokumSirasi } from '../cekirdek/cozucu.js';
 import { KURAL_VARSAYILAN } from '../cekirdek/kural.js';
 import { elSonucunuHesapla } from '../cekirdek/puan.js';
@@ -533,10 +533,11 @@ function cekSonucunuIsle(sonuc, yeniTasYuvasi) {
 // kural tekrarı yok (ADR-002).
 function atVeyaBitirUygula(tasId) {
   // Atılan taşın okey/sahte okey olup olmadığı hamleden ÖNCE okunur (taş sonra elde değil);
-  // "okey mi" sorusunun tek kaynağı `cekirdek/dagitim.js` tasOkeyMi'dir, burada renk/sayı
-  // karşılaştırılmaz. Kural artık bu hamleyi engellemiyor (ADR-008 sürüm 2, tasokey#50).
+  // sorunun tek kaynağı `cekirdek/dagitim.js` tasOzelMi'dir, burada renk/sayı karşılaştırılmaz.
+  // ADR-027: soru "joker mi" değil "özel taş mı" — sahte okey joker olmasa da bilgilendirme
+  // penceresini açar (ADR-008 sürüm 2, tasokey#50; kural artık bu hamleyi engellemiyor).
   const atilanTas = durumKutu.durum.eller[INSAN_OYUNCUSU].find((tas) => tas.id === tasId);
-  const jokerAtiliyor = atilanTas !== undefined && tasOkeyMi(atilanTas, durumKutu.durum.okeyTasi);
+  const jokerAtiliyor = atilanTas !== undefined && tasOzelMi(atilanTas, durumKutu.durum.okeyTasi);
   const sonuc = at(durumKutu.durum, INSAN_OYUNCUSU, tasId);
   if (!sonuc.basarili) {
     mesajGoster(sonuc.sebep);

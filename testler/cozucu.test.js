@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { elBitirilebilirMi } from '../docs/cekirdek/cozucu.js';
 import { tasOlustur, sahteOkeyOlustur } from '../docs/cekirdek/tas.js';
 import { karistir } from '../docs/cekirdek/karma.js';
+import { KURAL_VARSAYILAN } from '../docs/cekirdek/kural.js';
 
 // tasokey#7 — R-005: bitirilebilirlik çözücüsü. Doğrulama tek kaynağı `cekirdek/dizilim.js`.
 // tasokey#37 (ADR-017, GDD §1 kural 13): bitiş iki ayrı denetimin VEYA'sıdır — el ya TAMAMEN per
@@ -14,6 +15,8 @@ const t = (renk, sayi, nusha = 1) => tasOlustur(renk, sayi, nusha);
 const sOkey = (nusha = 1) => sahteOkeyOlustur(nusha);
 // Birebir çift: aynı renk + aynı sayı, iki nüsha.
 const cift = (renk, sayi) => [t(renk, sayi, 1), t(renk, sayi, 2)];
+// ADR-027 kapatma anahtarı açık: sahte okey yine evrensel joker (K1, 2026-11-19 davranışı).
+const KURAL_ESKI_JOKER = { ...KURAL_VARSAYILAN, sahteOkeyJokerGibiDavranir: true };
 
 // Her vaka: ad, el (taş listesi), beklenen (true=bitebilir).
 const BITEBILEN = [
@@ -23,13 +26,22 @@ const BITEBILEN = [
     ad: 'seri + sayı peri: sari 1-2-3, 8 üç renkte',
     el: [t('sari', 1), t('sari', 2), t('sari', 3), t('kirmizi', 8), t('siyah', 8), t('sari', 8)],
   },
+  // ADR-027 (tasokey#81): sahte okey joker değildir, o elin okeyinin DEĞERİNİ (burada mavi-7)
+  // taşıyan sıradan taştır — bu yüzden mavi serisinin 7'si ve 7'lerin sayı perinin mavisi olur.
   {
-    ad: 'sahte okey seri boşluğunu dolduruyor: kirmizi 10-_-12',
-    el: [t('kirmizi', 10), sOkey(1), t('kirmizi', 12)],
+    ad: 'sahte okey okeyin değerini alıyor: mavi 5-6-★(=mavi 7)',
+    el: [t('mavi', 5), t('mavi', 6), sOkey(1)],
   },
   {
-    ad: 'sahte okey sayı perini tamamlıyor: 12 mavi/sari + joker',
-    el: [t('mavi', 12), t('sari', 12), sOkey(2)],
+    ad: 'sahte okey sayı perinde mavi-7 yerine geçiyor: 7 kirmizi/siyah/★',
+    el: [t('kirmizi', 7), t('siyah', 7), sOkey(1)],
+  },
+  {
+    ad: 'iki sahte okey çift kurar (ikisi de mavi-7 değerinde) + 6 birebir çift (14 taş)',
+    el: [
+      ...cift('kirmizi', 3), ...cift('siyah', 4), ...cift('mavi', 6), ...cift('sari', 11),
+      ...cift('kirmizi', 8), ...cift('siyah', 13), sOkey(1), sOkey(2),
+    ],
   },
   {
     ad: 'gerçek okey taşı (mavi-7) başka renkte seri boşluğu dolduruyor: kirmizi 9-_-11',
@@ -42,7 +54,6 @@ const BITEBILEN = [
       t('kirmizi', 9), t('siyah', 9), t('mavi', 9), t('sari', 9),
     ],
   },
-  { ad: 'üç joker tek grup (iki sahte okey + gerçek okey taşı)', el: [sOkey(1), sOkey(2), t('mavi', 7)] },
   {
     ad: 'tam 7 birebir çift (14 taş)',
     el: [
@@ -51,10 +62,10 @@ const BITEBILEN = [
     ],
   },
   {
-    ad: 'tam 7 çift, yedincisi jokerle tamamlanıyor (14 taş)',
+    ad: 'tam 7 çift, yedincisi gerçek okeyle tamamlanıyor (14 taş)',
     el: [
       ...cift('kirmizi', 3), ...cift('siyah', 4), ...cift('mavi', 6), ...cift('sari', 11),
-      ...cift('kirmizi', 8), ...cift('siyah', 13), t('sari', 9), sOkey(1),
+      ...cift('kirmizi', 8), ...cift('siyah', 13), t('sari', 9), t('mavi', 7),
     ],
   },
   {
@@ -69,8 +80,8 @@ const BITEBILEN = [
   // tasokey#66 (ADR-008 sürüm 3): dönüşlü seri (13 → 1) çözücünün aday üretecine de girer.
   { ad: 'dönüşlü seri: kirmizi 12-13-1', el: [t('kirmizi', 12), t('kirmizi', 13), t('kirmizi', 1)] },
   {
-    ad: 'dönüşlü serinin boşluğunu joker dolduruyor: siyah 13-_-2',
-    el: [t('siyah', 13), sOkey(1), t('siyah', 2)],
+    ad: 'dönüşlü serinin boşluğunu gerçek okey dolduruyor: siyah 13-_-2',
+    el: [t('siyah', 13), t('mavi', 7), t('siyah', 2)],
   },
   {
     ad: '14 taşlık tam el, dönüşlü seri(4) + seri(3) + iki sayı peri',
@@ -82,7 +93,45 @@ const BITEBILEN = [
     ],
   },
   {
-    ad: '14 taşlık tam el, iki joker iki ayrı per boşluğunu dolduruyor',
+    // ADR-027'den sonra elde yalnız İKİ gerçek joker vardır (okey taşının iki nüshası); bu el
+    // onların ikisini de iki ayrı per boşluğunda kullanır.
+    ad: '14 taşlık tam el, iki gerçek okey iki ayrı per boşluğunu dolduruyor',
+    el: [
+      t('kirmizi', 1), t('kirmizi', 2), t('kirmizi', 3), t('kirmizi', 4),
+      t('siyah', 7), t('mavi', 7, 1), t('siyah', 9),
+      t('mavi', 11), t('sari', 11), t('mavi', 7, 2),
+      t('mavi', 5), t('sari', 5), t('siyah', 5), t('kirmizi', 5),
+    ],
+  },
+];
+
+// ADR-027 kapatma anahtarı (tasokey#81): `sahteOkeyJokerGibiDavranir: true` K1'in (2026-11-19)
+// eski davranışını geri getirir — sahte okey yine EVRENSEL joker olur. Aşağıdaki eller bu yüzden
+// iki yönlü ölçülür: varsayılan kuralda bitmez, anahtar açıkken biter. (Hepsi tasokey#7/#37/#66
+// zamanından kalma, sahte okeyin joker olduğunu varsayan vakalardır.)
+const ESKI_JOKER_ILE_BITEN = [
+  {
+    ad: 'sahte okey seri boşluğunu dolduruyor: kirmizi 10-_-12',
+    el: [t('kirmizi', 10), sOkey(1), t('kirmizi', 12)],
+  },
+  {
+    ad: 'sahte okey sayı perini tamamlıyor: 12 mavi/sari + joker',
+    el: [t('mavi', 12), t('sari', 12), sOkey(2)],
+  },
+  { ad: 'üç joker tek grup (iki sahte okey + gerçek okey taşı)', el: [sOkey(1), sOkey(2), t('mavi', 7)] },
+  {
+    ad: 'tam 7 çift, yedincisi sahte okeyle tamamlanıyor (14 taş)',
+    el: [
+      ...cift('kirmizi', 3), ...cift('siyah', 4), ...cift('mavi', 6), ...cift('sari', 11),
+      ...cift('kirmizi', 8), ...cift('siyah', 13), t('sari', 9), sOkey(1),
+    ],
+  },
+  {
+    ad: 'dönüşlü serinin boşluğunu sahte okey dolduruyor: siyah 13-_-2',
+    el: [t('siyah', 13), sOkey(1), t('siyah', 2)],
+  },
+  {
+    ad: '14 taşlık tam el, iki sahte okey iki ayrı per boşluğunu dolduruyor',
     el: [
       t('kirmizi', 1), t('kirmizi', 2), t('kirmizi', 3), t('kirmizi', 4),
       t('siyah', 7), sOkey(1), t('siyah', 9),
@@ -173,6 +222,21 @@ for (const vaka of BITEBILEN) {
 for (const vaka of BITEMEYEN) {
   test(`bitemez: ${vaka.ad}`, () => {
     assert.equal(elBitirilebilirMi(vaka.el, OKEY_TASI), false, vaka.ad);
+  });
+}
+
+for (const vaka of ESKI_JOKER_ILE_BITEN) {
+  test(`ADR-027 iki yönlü: ${vaka.ad}`, () => {
+    assert.equal(
+      elBitirilebilirMi(vaka.el, OKEY_TASI, KURAL_VARSAYILAN),
+      false,
+      `varsayılan kuralda (sahte okey joker değil) bitmemeli: ${vaka.ad}`,
+    );
+    assert.equal(
+      elBitirilebilirMi(vaka.el, OKEY_TASI, KURAL_ESKI_JOKER),
+      true,
+      `kapatma anahtarı açıkken eski davranış dönmeli: ${vaka.ad}`,
+    );
   });
 }
 

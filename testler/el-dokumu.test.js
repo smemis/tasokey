@@ -5,6 +5,7 @@ import { elDokumu, dokumSirasi } from '../docs/cekirdek/cozucu.js';
 import { tasOlustur, sahteOkeyOlustur } from '../docs/cekirdek/tas.js';
 import { karistir } from '../docs/cekirdek/karma.js';
 import { dagit } from '../docs/cekirdek/dagitim.js';
+import { KURAL_VARSAYILAN } from '../docs/cekirdek/kural.js';
 
 // tasokey#39 ek bilgileri (Sahip, 2026-11-20):
 //   (1) "el bittiğinde rakip ıstakasında taşlar dizili olsun"
@@ -18,6 +19,8 @@ const OKEY_TASI = { renk: 'mavi', sayi: 7 };
 const t = (renk, sayi, nusha = 1) => tasOlustur(renk, sayi, nusha);
 const sOkey = (nusha = 1) => sahteOkeyOlustur(nusha);
 const cift = (renk, sayi) => [t(renk, sayi, 1), t(renk, sayi, 2)];
+// ADR-027 (tasokey#81) kapatma anahtarı açık: sahte okey yine evrensel joker (K1 davranışı).
+const KURAL_ESKI_JOKER = { ...KURAL_VARSAYILAN, sahteOkeyJokerGibiDavranir: true };
 
 // Tamamen perli 14 taş: seri(5) + seri(3) + sayı peri(3) + sayı peri(3).
 const TAMAMEN_PER = [
@@ -52,21 +55,41 @@ test('kabul-2: tam 7 çiftli el — per 0, çift 7, per dışı 14 taş', () => 
   assert.equal(dokum.kalanSayisi, 0);
 });
 
-test('kabul-3: okey ve sahte okey sayısı ayrı sayılır (perde/çiftte kullanılsa da)', () => {
-  // mavi-7 bu elde okey taşıdır (OKEY_TASI), sahte okey de joker: ikisi de okey sayısına girer.
+// ADR-027 (tasokey#81): `okeySayisi` yalnız GERÇEK okeyleri sayar — sahte okey joker değildir.
+// Kapatma anahtarı açıkken eski sayım (okey + sahte okey) geri gelir.
+test('kabul-3: okey sayısı yalnız gerçek okeyleri sayar (sahte okey joker değil)', () => {
   const el = [t('mavi', 7), sOkey(1), t('kirmizi', 4), t('kirmizi', 4, 2)];
-  const dokum = elDokumu(el, OKEY_TASI);
-  assert.equal(dokum.okeySayisi, 2, 'okey taşı + sahte okey = 2');
+  assert.equal(elDokumu(el, OKEY_TASI).okeySayisi, 1, 'yalnız gerçek okey taşı (mavi-7) sayılır');
+  assert.equal(
+    elDokumu(el, OKEY_TASI, KURAL_ESKI_JOKER).okeySayisi,
+    2,
+    'anahtar açıkken sahte okey yine joker: okey taşı + sahte okey = 2',
+  );
 });
 
 test('kabul-4: çift eşleştirme iki aşamalı — jokeri sınıf eşleşmesine kurban etmez', () => {
-  // Per kurulamayan el: kirmizi-5 x2 + kirmizi-9 + sahte okey. Tek aşamalı açgözlü eşleştirme
-  // jokeri önce kirmizi-5'e verip 1 çift bulurdu; doğru cevap 2 çift (5-5 ve 9+joker).
-  const el = [sOkey(1), t('kirmizi', 5, 1), t('kirmizi', 5, 2), t('kirmizi', 9)];
+  // Per kurulamayan el: kirmizi-5 x2 + kirmizi-9 + gerçek okey (mavi-7). Tek aşamalı açgözlü
+  // eşleştirme jokeri önce kirmizi-5'e verip 1 çift bulurdu; doğru cevap 2 çift (5-5 ve 9+joker).
+  const el = [t('mavi', 7), t('kirmizi', 5, 1), t('kirmizi', 5, 2), t('kirmizi', 9)];
   const dokum = elDokumu(el, OKEY_TASI);
   assert.equal(dokum.perSayisi, 0, 'bu el per kurmamalı (5-5-9 ne seri ne sayı peri)');
   assert.equal(dokum.ciftSayisi, 2, `2 çift bekleniyordu, bulunan: ${dokum.ciftSayisi}`);
   assert.equal(dokum.kalanSayisi, 0);
+});
+
+// ADR-027: sahte okey çiftte joker değildir — yalnız kendi değerindeki (mavi-7) taşla, yani öbür
+// sahte okeyle ya da gerçek okeyle eşleşir; kirmizi-9 ile eşleşmez ve kalanlara düşer.
+test('kabul-4b: sahte okey çiftte yalnız kendi değeriyle eşleşir', () => {
+  const el = [sOkey(1), t('kirmizi', 5, 1), t('kirmizi', 5, 2), t('kirmizi', 9)];
+  const dokum = elDokumu(el, OKEY_TASI);
+  assert.equal(dokum.ciftSayisi, 1, 'yalnız kirmizi-5 çifti kurulur');
+  assert.equal(dokum.kalanSayisi, 2, 'sahte okey ve kirmizi-9 kalanlara düşer');
+
+  const ikiSahte = elDokumu([sOkey(1), sOkey(2)], OKEY_TASI);
+  assert.equal(ikiSahte.ciftSayisi, 1, 'iki sahte okey aynı değerdedir (mavi-7): çift kurar');
+
+  const eski = elDokumu(el, OKEY_TASI, KURAL_ESKI_JOKER);
+  assert.equal(eski.ciftSayisi, 2, 'anahtar açıkken sahte okey yine joker: 5-5 ve 9+joker');
 });
 
 test('kabul-5: per dışı kalan taşlar ayrı sayılır (kısmi el)', () => {

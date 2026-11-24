@@ -246,15 +246,26 @@ test('zor: köşedeki taş eli bitiriyorsa alır — tamamlama kurmasa bile (ort
   assert.equal(cekimKaynaginiSec(durum, 0, KADEME.ORTA, ENIYI), KAYNAK.YER);
 });
 
-test('zor: üst taş joker olsa da çekme+atma motorun kabul ettiği hamleye dönüşür (atılan taş joker değil)', () => {
-  // Motor okey/sahte okey atmayı yasaklar (ADR-008/2). Zor kademenin çözücü sorgusu "hangi taşı
-  // atarsam biter" cevabını atılabilir havuzla kesiştirir; kesiştirmese çekme sonrası atma
-  // motorca reddedilebilirdi. Ölçülen: hamle kabul edildi ve atılan taş joker değil.
+test('zor: üst taş sahte okey olsa da çekme+atma motorun kabul ettiği hamleye dönüşür', () => {
+  // Zor kademenin çözücü sorgusu "hangi taşı atarsam biter" cevabını atılabilir havuzla
+  // kesiştirir; kesiştirmese çekme sonrası atma motorca reddedilebilirdi.
+  // ADR-027: sahte okey artık joker değil (bu elde mavi-7 değerinde) ve hiçbir pere girmiyor —
+  // varsayılan kural onu atmayı serbest bıraktığından (ADR-008 sürüm 2) bot onu atıp eli bitirir.
   const durum = durumKur([...BITIREN_EL.slice(0, 14)], sOkey(1));
   const sonuc = botTurOyna({ ...durum, cekildiMi: false }, 0, KADEME.ZOR, ENIYI);
   assert.equal(sonuc.basarili, true, `motor reddetti: ${sonuc.sebep}`);
+  assert.equal(sonuc.durum.sonuc, EL_SONUCU.BITTI, 'atış eli bitirmeliydi');
+});
+
+test('zor: atma yasağı açıkken bot sahte okeyi hiç önermez, hamle yine kabul edilir', () => {
+  // ADR-008 sürüm 2 + ADR-027: yasak "özel taş" sorusuyla sorulur — sahte okey joker olmasa da
+  // havuzdan düşer. Önceki testle aynı el: tek bitiren taş artık yasaklı, bot başka taş atar.
+  const kural = { ...KURAL_VARSAYILAN, okeyVeSahteOkeyAtmaYasak: true };
+  const durum = durumKur([...BITIREN_EL.slice(0, 14)], sOkey(1));
+  const sonuc = botTurOyna({ ...durum, cekildiMi: false }, 0, KADEME.ZOR, { ...ENIYI, kural });
+  assert.equal(sonuc.basarili, true, `motor reddetti: ${sonuc.sebep}`);
   const atilan = sonuc.durum.atilanYiginlar[0].at(-1);
-  assert.notEqual(atilan.id, sOkey(1).id, 'atılan taş sahte okey olmamalı');
+  assert.notEqual(atilan.id, sOkey(1).id, 'yasak açıkken atılan taş sahte okey olmamalı');
 });
 
 // --- botTurOyna: gerçek cekirdek/el.js ile entegrasyon, üç kademe ---
