@@ -28,6 +28,12 @@ export const OGE_TANIMLARI = Object.freeze([
   { anahtar: '#masa', secici: '#masa' },
   { anahtar: '#rafAlani', secici: '#rafAlani' },
   { anahtar: '#raf', secici: '#raf' },
+  // tasokey#85 (ADR-028): dizme düğmeleri ıstaka panelinin İÇİNE girdi. Kümeye alınmaları zorunlu
+  // (ata-torun çiftleri atıldığı için `#rafAlani`/`#raf` ile çift kurmazlar, ama alt köşelere ve
+  // yan kenarlara taşıp taşmadıkları ancak böyle ölçülür).
+  { anahtar: '#rafDugmeleri', secici: '#rafDugmeleri' },
+  { anahtar: '#perleriDizButonu', secici: '#perleriDizButonu' },
+  { anahtar: '#ciftleriDizButonu', secici: '#ciftleriDizButonu' },
   { anahtar: '#koseSolUst', secici: '#koseSolUst' },
   { anahtar: '#koseSagUst', secici: '#koseSagUst' },
   { anahtar: '#koseSolAlt', secici: '#koseSolAlt' },

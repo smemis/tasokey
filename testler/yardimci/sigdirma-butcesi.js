@@ -311,10 +311,16 @@ export function yatayButce({ masaIcGenislik, panelDolgu, koseKaydirma, masaBoslu
 }
 
 /**
- * Dikey eşitsizlik: alt satır ıstaka (2·h + raf-bosluk + başlık + 2·panel-dolgu), üst satır ≥ köşe
- * (h + 2·kose-kaydirma), orta satır ≥ deste sütunu (h + metin satırları), iki ızgara boşluğu.
+ * Dikey eşitsizlik: alt satır ıstaka (2·h + raf-bosluk + başlık + düğme satırı + 2·panel-dolgu),
+ * üst satır ≥ köşe (h + 2·kose-kaydirma), orta satır ≥ deste sütunu (h + metin satırları), iki
+ * ızgara boşluğu.
  * Istaka başlığı + deste başlığı/sayaç/ipucu + `.yigin` boşlukları `--sigdirma-metin-payi`
  * değişkeninde toplanır (rem tabanlı, CSS'te px'e çevrilemez → ÖLÇÜLÜR, ADR-022/5).
+ *
+ * `rafDugmePayi` (tasokey#85, ADR-028): ıstakanın dizme düğmelerinin başlık satırına EKLEDİĞİ
+ * yükseklik (`--sigdirma-raf-dugme-payi`). Metin payı gibi ölçülür; kısa yatay varyantta 0'dır
+ * (düğmeler orada başlığın altına, sütunun boş dikeyine iner). Varsayılanı 0: terimi vermeyen
+ * çağrı (saf formül tablosu) eski eşitsizliğin kendisini ölçmeyi sürdürür.
  *
  * `4·kose-kaydirma`: dikeyde köşe satırı BİR tanedir (alt satır ıstakanın kendisi), yani gerçek
  * yığın `2·kose-kaydirma` ister. Planın §4'ü yatayla aynı terimi yazar → bütçe 2·kk (en çok
@@ -322,10 +328,10 @@ export function yatayButce({ masaIcGenislik, panelDolgu, koseKaydirma, masaBoslu
  * yanlış tarafa düşmez, çünkü bütçe bir ÜST SINIRDIR.
  */
 export function dikeyButce({
-  masaIcYukseklik, rafBosluk, panelDolgu, koseKaydirma, masaBosluk, metinPayi,
+  masaIcYukseklik, rafBosluk, panelDolgu, koseKaydirma, masaBosluk, metinPayi, rafDugmePayi = 0,
 }) {
   const pay = masaIcYukseklik
-    - (rafBosluk + 2 * panelDolgu + 4 * koseKaydirma + 2 * masaBosluk + metinPayi);
+    - (rafBosluk + 2 * panelDolgu + 4 * koseKaydirma + 2 * masaBosluk + metinPayi + rafDugmePayi);
   return { pay, enCokTasYukseklik: pay / 4 };
 }
 
@@ -374,9 +380,11 @@ export function varyantYatayButce({
  */
 export function varyantDikeyButce({
   masaIcYukseklik, panelDolgu, koseKaydirma, masaBosluk, cubukKalinlik, yanMetinPayi,
+  rafDugmePayi = 0,
 }) {
   const pay = masaIcYukseklik
-    - (cubukKalinlik + yanMetinPayi + 2 * panelDolgu + 2 * koseKaydirma + 3 * masaBosluk);
+    - (cubukKalinlik + yanMetinPayi + 2 * panelDolgu + 2 * koseKaydirma + 3 * masaBosluk
+      + rafDugmePayi);
   return { pay, enCokTasYukseklik: pay / 3 };
 }
 

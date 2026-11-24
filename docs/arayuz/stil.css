@@ -121,14 +121,20 @@
   /* Istaka panelinin (#rafAlani) iç dikey boşluğu: başlık ile taş sıraları arası. TEK KAYNAK
      (tasokey#64 iş 2): sığdırma bütçesinin (plan §4 dikey eşitsizliği) "raf-bosluk" terimi bu
      değişkenden okunur, öz-teste sayı yazılmaz. Önceden kuralın içinde 8px/4px yazıyordu. */
-  --raf-bosluk: 8px;
+  /* tasokey#85 (ADR-028): 8px → 5px. Dizme düğmeleri başlık satırını ~4,4 px büyüttü ve ÖLÇÜM
+     (1920x1080, `is/tasokey-85/ekran/olcum-el-masaustu.png`) ıstakanın `#merkez` + `#gosterge`
+     ile 2 px çakıştığını gösterdi: ölçek 1,85'in dikey payı o kadar dardı. Ölçek düşürmek yasak
+     olduğu için satırın büyümesi panelin KENDİ iç boşluğundan geri alınır — panelin kutusu
+     (başlık bandı = satır + boşluk) büyümez, 25 px'ten 24,4 px'e iner. Terim bütçede ayrıca
+     `--sigdirma-raf-dugme-payi` olarak durur. */
+  --raf-bosluk: 5px;
   /* Istakanın DİZME DÜĞMELERİ (tasokey#85, ADR-028) — ölçüler tek kaynak; dolgu iki bileşene
      ayrıldı, çünkü dikey bileşen ıstaka panelinin YÜKSEKLİĞİNE girer (ölçek kademeleri o
      yükseklikle ölçülmüştür, ADR-022/5) ve kısa yatay varyantta ayrıca küçülmesi gerekebilir.
      Yazı ölçüsü üst çubuk düğmesinden KÜÇÜK seçildi: düğmeler başlığın şeridine girer, satırın
      yüksekliğini başlık metninden (0,8rem) kopmayacak kadar az büyütmesi gerekir. */
   --raf-dugme-font-boyutu: 0.8rem;
-  --raf-dugme-dolgu-dikey: 2px;
+  --raf-dugme-dolgu-dikey: 1px;
   --raf-dugme-dolgu-yatay: 8px;
   --raf-dugme-bosluk: 6px;
   /* Sığdırma bütçesinin DÜĞME SATIRI terimi (plan §4 dikey eşitsizliği) — ÖLÇÜLEN tek değişken
