@@ -9,7 +9,7 @@
 > Burada **tarihsel** gerekçe durur; tablo hücrelerinin **yürürlükteki** ayrıntısı
 > [MIMARI-AYRINTI.md](MIMARI-AYRINTI.md)'de, karar gövdeleri [adr/](adr/ADR-026-mimari-dizin-ayrinti-eki.md)'dedir (ADR-026).
 
-**Son sürüm: 26** (`tasokey#78`, 2026-11-22) → [Sürüm 26](#sürüm-26--tasokey78)
+**Son sürüm: 27** (`tasokey#81`, 2026-11-24) → [Sürüm 27](#sürüm-27--tasokey81)
 
 > *Birleştirme notu (Masa, 2026-11-22):* `tasokey#66` (main) ile `tasokey#64` zinciri aynı anda ilerlediği için ikisi de "sürüm 20" yazmıştı. Birleştirmede sıraya konuldu: **20** = `tasokey#66`, **21** = `tasokey#67` (ADR-023), **22** = `tasokey#69` (ADR-022 §0). Metinlerdeki "20 numarası ADR-023'e verilmişti, bu yüzden 21" ifadesi bu sıralamadan önce yazıldı.
 
@@ -290,6 +290,32 @@
 > 30.293 baytta kalıyordu (taşınabilir dört hücre grubu 14.237 B, gereken azalma 14.400 B); hedef ancak
 > kalan dokuz adımla sağlandı. İlk turda ölçülen seçenekler ve **alt sınır 22.234 bayt** `tasokey#78`
 > raporunda duruyor. `docs/`, `android/`, kayıt şeması ve `adr/`deki 25 eski gövde **değişmedi**.
+
+## Sürüm 27 — tasokey#81
+
+> **Sürüm 27** (`tasokey#81` — üst iş `tasokey#80`; Sahip kural kararı + Mimar planı + Geliştirici
+> uygulaması, 2026-11-24): **ADR-027** yazıldı — *sahte okey joker **değildir**; o elin okey taşının
+> renk+sayı **değerini** alır ve her yerde o değerdeki sıradan taş gibi davranır.* Belirti Sahip'in
+> ekran görüntüsündeydi (`is/tasokey-80/ekler/9703a20f-image.png`): gösterge kırmızı 10, ıstakada
+> yıldızlı sahte okey + kırmızı 11 varken üst çubuk "Elini bitirebilirsin" diyordu, oysa el bitmiyor.
+> Kök neden ölçüldü, tahmin edilmedi: `cekirdek/dagitim.js` → `tasOkeyMi` sahte okeye koşulsuz `true`
+> dönüyordu (K1, 2026-11-19 — GDD §1 kural 4'ün o günkü yazımı) ve `[siyah-10, siyah-11, ★]` üçlüsü
+> "siyah 12" okunuyordu. Önce **kırmızı** gerileme testi yazıldı (`el-bitiren-taslar.test.js` (f)):
+> bugünkü kodda `elBitirenTaslar` = `siyah-6-1, sari-5-1, mavi-4-1` — plandaki ölçümle birebir;
+> düzeltmeden sonra `[]` ve `elBitirilebilirMi` = `false`. Sahip'in ilk teşhisi ("gösterge taşı okey
+> gibi davranıyor") kodda **üretilemedi**: göstergenin eldeki kopyası zaten sıradan taştı.
+> Çekirdekte üç ayrı kapı açıldı ve kural başka hiçbir dosyada yeniden yazılmadı: `tasOkeyMi`
+> ("joker mi"), `tasDegeri` ("renk+sayı değeri ne"), `tasOzelMi` ("okey ya da sahte okey mi").
+> `okeyVeSahteOkeyAtmaYasak` **anlamını korudu** (açıkken ikisi de atılamaz) çünkü atma kısıtı ve
+> arayüzün bilgilendirme penceresi artık `tasOzelMi`'ye soruluyor — iki ayar bağımsız.
+> Kapatma anahtarı: `kural.js` → `sahteOkeyJokerGibiDavranir` (varsayılan `false`); etkilenen testler
+> iki yönlü yazıldı (ADR-008 sürüm 2/3 deseni). Ölçülen sonuç (`is/tasokey-81/olcum-sikligi.mjs`):
+> dağıtılan 15 taşlık elin kendiliğinden bitirilebilir çıkması 5000 tohumda **7 → 1**, aynı taramanın
+> süresi **11,3 s → 5,0 s** (arama uzayı küçüldü). Ölçüm sahnesinin sabit tohumu bu yüzden yenilendi
+> (`BITIRME_TOHUMU` 537 → **2447**; `HEDEF_TOHUMU` 1 değişmedi, yeni kuralda da bitirici taşsız).
+> `GDD.md` **v7** (kural 4 yeniden yazıldı, kural 6-7 ve bitiş paragrafı düzeltildi).
+> Arayüzün sahte okeyi kendi kimliğiyle çizmesi ve metinlerin ayrışması (`tasokey#80` planı İş 2) ile
+> bot kademelerinin yeniden ölçümü (İş 3) bu işe **konmadı**; kayıt şeması ve `android/` değişmedi.
 
 ## Ek — özet tablodan taşınan sürüm zinciri
 

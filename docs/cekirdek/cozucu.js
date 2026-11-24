@@ -15,7 +15,7 @@
 // vardır, aranan uzayı küçültür.
 
 import { EN_DUSUK_SAYI, EN_YUKSEK_SAYI, RENKLER } from './tas.js';
-import { tasOkeyMi } from './dagitim.js';
+import { tasOkeyMi, tasOzelMi, tasDegeri } from './dagitim.js';
 import { perGecerliMi, ciftGecerliMi, ardisikPencereUret, EN_KISA_PER } from './dizilim.js';
 import { KURAL_VARSAYILAN } from './kural.js';
 
@@ -40,14 +40,14 @@ function tamamenPerMi(taslar, okeyTasi, kural) {
 function perAra(kalan, okeyTasi, kural, onbellek) {
   if (kalan.length === 0) return true;
   if (kalan.length < EN_KISA_PER) return false;
-  if (kalan.every((tas) => tasOkeyMi(tas, okeyTasi))) {
+  if (kalan.every((tas) => tasOkeyMi(tas, okeyTasi, kural))) {
     return kalan.length <= MAKSIMUM_PER_UZUNLUGU;
   }
 
   const imza = tasImzasi(kalan);
   if (onbellek.has(imza)) return onbellek.get(imza);
 
-  const ankor = kalan.find((tas) => !tasOkeyMi(tas, okeyTasi));
+  const ankor = kalan.find((tas) => !tasOkeyMi(tas, okeyTasi, kural));
   const adaylar = perAdaylariUret(kalan, ankor, okeyTasi, kural);
 
   let sonuc = false;
@@ -79,7 +79,7 @@ function ciftAra(kalan, okeyTasi, kural, gosterge, onbellek) {
   const gorulenSinif = new Set();
   for (const tas of kalan) {
     if (tas.id === ankor.id) continue;
-    const sinif = ciftSinifi(tas, okeyTasi);
+    const sinif = ciftSinifi(tas, okeyTasi, kural);
     if (gorulenSinif.has(sinif)) continue;
     if (!ciftGecerliMi(ankor, tas, okeyTasi, kural, gosterge)) continue;
     gorulenSinif.add(sinif);
@@ -105,41 +105,46 @@ function perAdaylariUret(kalan, ankor, okeyTasi, kural) {
     adaylar.push(grup);
   };
 
-  const jokerHavuzu = kalan.filter((tas) => tas.id !== ankor.id && tasOkeyMi(tas, okeyTasi));
+  const jokerHavuzu = kalan.filter((tas) => tas.id !== ankor.id && tasOkeyMi(tas, okeyTasi, kural));
+  // ADR-027: ankorun renk/sayısı doğrudan okunmaz, `tasDegeri` kapısından sorulur — ankor bir
+  // sahte okeyse o elin okey değerinde bir taştır.
+  const ankorDeger = tasDegeri(ankor, okeyTasi);
 
   // Seri adayları: ankorun sayısını içeren her ardışık pencere.
   const maksimumUzunluk = Math.min(MAKSIMUM_PER_UZUNLUGU, kalan.length);
   for (let uzunluk = EN_KISA_PER; uzunluk <= maksimumUzunluk; uzunluk++) {
     for (const pencere of ardisikPencereUret(uzunluk, kural.onUcBirGecisiPerSayilir)) {
-      if (!pencere.includes(ankor.sayi)) continue;
-      ekle(seriAdayiOlustur(kalan, ankor, pencere, jokerHavuzu, okeyTasi));
+      if (!pencere.includes(ankorDeger.sayi)) continue;
+      ekle(seriAdayiOlustur(kalan, ankor, ankorDeger, pencere, jokerHavuzu, okeyTasi, kural));
     }
   }
 
   // Sayı peri adayları: ankorun rengini içeren, 3 ya da 4 renklik her renk kümesi.
-  for (const renkKumesi of renkKumeleriUret(ankor.renk)) {
-    ekle(sayiPeriAdayiOlustur(kalan, ankor, renkKumesi, jokerHavuzu, okeyTasi));
+  for (const renkKumesi of renkKumeleriUret(ankorDeger.renk)) {
+    ekle(sayiPeriAdayiOlustur(kalan, ankor, ankorDeger, renkKumesi, jokerHavuzu, okeyTasi, kural));
   }
 
   return adaylar;
 }
 
 // Pencerenin her sayı boşluğunu, varsa ankorla aynı renkte gerçek taşla, yoksa bir jokerle doldurur.
-function seriAdayiOlustur(kalan, ankor, pencere, jokerHavuzu, okeyTasi) {
-  const bosluklar = pencere.filter((sayi) => sayi !== ankor.sayi);
-  return grupKur(bosluklar, ankor, jokerHavuzu, (sayi, kullanilanIdler) => kalan.find((tas) => (
-    !tasOkeyMi(tas, okeyTasi) && tas.renk === ankor.renk && tas.sayi === sayi
-      && !kullanilanIdler.has(tas.id)
-  )));
+function seriAdayiOlustur(kalan, ankor, ankorDeger, pencere, jokerHavuzu, okeyTasi, kural) {
+  const bosluklar = pencere.filter((sayi) => sayi !== ankorDeger.sayi);
+  return grupKur(bosluklar, ankor, jokerHavuzu, (sayi, kullanilanIdler) => kalan.find((tas) => {
+    if (tasOkeyMi(tas, okeyTasi, kural) || kullanilanIdler.has(tas.id)) return false;
+    const deger = tasDegeri(tas, okeyTasi);
+    return deger.renk === ankorDeger.renk && deger.sayi === sayi;
+  }));
 }
 
 // Renk kümesinin her rengini, varsa ankorla aynı sayıda gerçek taşla, yoksa bir jokerle doldurur.
-function sayiPeriAdayiOlustur(kalan, ankor, renkKumesi, jokerHavuzu, okeyTasi) {
-  const bosluklar = renkKumesi.filter((renk) => renk !== ankor.renk);
-  return grupKur(bosluklar, ankor, jokerHavuzu, (renk, kullanilanIdler) => kalan.find((tas) => (
-    !tasOkeyMi(tas, okeyTasi) && tas.sayi === ankor.sayi && tas.renk === renk
-      && !kullanilanIdler.has(tas.id)
-  )));
+function sayiPeriAdayiOlustur(kalan, ankor, ankorDeger, renkKumesi, jokerHavuzu, okeyTasi, kural) {
+  const bosluklar = renkKumesi.filter((renk) => renk !== ankorDeger.renk);
+  return grupKur(bosluklar, ankor, jokerHavuzu, (renk, kullanilanIdler) => kalan.find((tas) => {
+    if (tasOkeyMi(tas, okeyTasi, kural) || kullanilanIdler.has(tas.id)) return false;
+    const deger = tasDegeri(tas, okeyTasi);
+    return deger.sayi === ankorDeger.sayi && deger.renk === renk;
+  }));
 }
 
 // Ortak grup kurucu: her boşluk için önce gerçek taş (grupta kullanılmamış olanı), yoksa joker.
@@ -170,8 +175,10 @@ function renkKumeleriUret(ankorRengi) {
   return kumeler;
 }
 
-function ciftSinifi(tas, okeyTasi) {
-  return tasOkeyMi(tas, okeyTasi) ? 'joker' : `${tas.renk}-${tas.sayi}`;
+function ciftSinifi(tas, okeyTasi, kural) {
+  if (tasOkeyMi(tas, okeyTasi, kural)) return 'joker';
+  const deger = tasDegeri(tas, okeyTasi);
+  return `${deger.renk}-${deger.sayi}`;
 }
 
 // "Hangi taşı atarsa el biter?" sorgusu (tasokey#26; GDD.md §1 "Kazanma/bitiş koşulu", R-013).
@@ -209,7 +216,8 @@ export function elDokumu(taslar, okeyTasi, kural = KURAL_VARSAYILAN, gosterge = 
     // dört sayı bu yüzden toplamda eli iki kez saymaz: perTasSayisi + perDisiSayisi = el boyu.
     perDisiSayisi: perDisi.length,
     kalanSayisi: siraliKalanlar.length,
-    okeySayisi: el.filter((tas) => tasOkeyMi(tas, okeyTasi)).length,
+    // ADR-027: yalnız GERÇEK okeyler sayılır; sahte okey joker değildir (anahtar açıksa sayılır).
+    okeySayisi: el.filter((tas) => tasOkeyMi(tas, okeyTasi, kural)).length,
   };
 }
 
@@ -224,7 +232,7 @@ export function dokumSirasi(dokum) {
 function enIyiPerBolumu(kalan, okeyTasi, kural, onbellek) {
   if (kalan.length < EN_KISA_PER) return { perler: [], kapsanan: 0 };
 
-  if (kalan.every((tas) => tasOkeyMi(tas, okeyTasi))) {
+  if (kalan.every((tas) => tasOkeyMi(tas, okeyTasi, kural))) {
     // Yalnız jokerden kurulu grup: geçerlilik yine tek kapıdan sorulur (perGecerliMi, en çok 13).
     if (perGecerliMi(kalan, okeyTasi, kural)) return { perler: [kalan], kapsanan: kalan.length };
     return { perler: [], kapsanan: 0 };
@@ -233,7 +241,7 @@ function enIyiPerBolumu(kalan, okeyTasi, kural, onbellek) {
   const imza = tasImzasi(kalan);
   if (onbellek.has(imza)) return onbellek.get(imza);
 
-  const ankor = kalan.find((tas) => !tasOkeyMi(tas, okeyTasi));
+  const ankor = kalan.find((tas) => !tasOkeyMi(tas, okeyTasi, kural));
   // Uzun adaylar önce denenir: tam kapsama bulunursa arama hemen durur (budama).
   const adaylar = perAdaylariUret(kalan, ankor, okeyTasi, kural).sort((a, b) => b.length - a.length);
 
@@ -261,11 +269,11 @@ function enIyiPerBolumu(kalan, okeyTasi, kural, onbellek) {
 // (1) gerçek taşlar kendi sınıfı içinde eşleşir, (2) artan tek taşlar jokerlerle, sonra jokerler
 // birbiriyle. Geçerlilik her eşleşmede `ciftGecerliMi`ye sorulur (gösterge taşı çift kurmaz).
 function ciftleriAyir(taslar, okeyTasi, kural, gosterge) {
-  const jokerler = taslar.filter((tas) => tasOkeyMi(tas, okeyTasi));
+  const jokerler = taslar.filter((tas) => tasOkeyMi(tas, okeyTasi, kural));
   const siniflar = new Map();
   for (const tas of taslar) {
-    if (tasOkeyMi(tas, okeyTasi)) continue;
-    const sinif = ciftSinifi(tas, okeyTasi);
+    if (tasOkeyMi(tas, okeyTasi, kural)) continue;
+    const sinif = ciftSinifi(tas, okeyTasi, kural);
     if (!siniflar.has(sinif)) siniflar.set(sinif, []);
     siniflar.get(sinif).push(tas);
   }
@@ -325,8 +333,10 @@ function grupKarsilastir(a, b) {
 export function elBitirenTaslar(taslar, okeyTasi, kural = KURAL_VARSAYILAN, gosterge = null) {
   if (!Array.isArray(taslar) || taslar.length === 0) return [];
 
+  // ADR-008 sürüm 2 + ADR-027: yasak "joker mi" değil "özel taş mı" sorusudur — açıkken okey VE
+  // sahte okey aday havuzundan düşer (sahte okey joker olmasa da).
   const adaylar = kural.okeyVeSahteOkeyAtmaYasak
-    ? taslar.filter((tas) => !tasOkeyMi(tas, okeyTasi))
+    ? taslar.filter((tas) => !tasOzelMi(tas, okeyTasi))
     : taslar;
 
   const sonuc = [];

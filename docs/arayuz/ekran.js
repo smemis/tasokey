@@ -3,7 +3,7 @@
 // sonucu DOM'a yansıtır (R-003, R-005, R-006, R-009; tasokey#10).
 
 import { elBaslat, cek, at, KAYNAK, EL_SONUCU, sonrakiOyuncu, oncekiOyuncu } from '../cekirdek/el.js';
-import { tasOkeyMi } from '../cekirdek/dagitim.js';
+import { tasOkeyMi, tasOzelMi, tasDegeri } from '../cekirdek/dagitim.js';
 import { elBitirenTaslar, elDokumu, dokumSirasi } from '../cekirdek/cozucu.js';
 import { KURAL_VARSAYILAN } from '../cekirdek/kural.js';
 import { elSonucunuHesapla } from '../cekirdek/puan.js';
@@ -116,8 +116,13 @@ function tiklanabilirYap(eleman_, islev) {
 }
 
 // Taşın ekran okuyucu etiketi; renk adı da dil anahtarından gelir (R-008).
+// ADR-027 (tasokey#82): sahte okeyin etiketi o elin okey DEĞERİNİ de söyler — değer çekirdekten
+// (`tasDegeri`) sorulur, burada gösterge+1 hesabı yapılmaz.
 function tasAriaEtiketi(tas, okeyTasi) {
-  if (tas.tur !== 'sayi') return metinAl('tas.etiketSahteOkey');
+  if (tas.tur !== 'sayi') {
+    const deger = tasDegeri(tas, okeyTasi);
+    return metinAl('tas.etiketSahteOkey', [metinAl(`renk.${deger.renk}`), deger.sayi]);
+  }
   const renkMetni = metinAl(`renk.${tas.renk}`);
   const anahtar = tasOkeyMi(tas, okeyTasi) ? 'tas.etiketOkey' : 'tas.etiket';
   return metinAl(anahtar, [renkMetni, tas.sayi]);
@@ -155,12 +160,26 @@ function tasRakamElemaniOlustur(tas) {
   return span;
 }
 
+// ADR-027 (tasokey#82): sahte okey artık joker değil, o elin okeyinin DEĞERİNDE bir taştır — bu
+// yüzden yıldız gövdesinin üstünde o değer küçük yazıyla okunur. Değerin rengi taşın gövde rengini
+// (yıldız) değiştirmez: renk yalnız bu yazıdadır, gövde olduğu gibi kalır (STIL.md "yıldız/rozet").
+function tasDegerEtiketiOlustur(deger) {
+  const span = document.createElement('span');
+  span.className = `tas-deger ${deger.renk}`;
+  span.textContent = String(deger.sayi);
+  return span;
+}
+
 function tasElemaniOlustur(tas, okeyTasi) {
   const div = document.createElement('div');
   div.className = 'tas';
-  if (tas.tur !== 'sahteOkey') div.classList.add(tas.renk);
+  const sahteOkey = tas.tur === 'sahteOkey';
+  if (!sahteOkey) div.classList.add(tas.renk);
   div.appendChild(gorselOlustur(tasGovdeDosyasi(tas), 'tas-yuz'));
-  if (tas.tur !== 'sahteOkey') div.appendChild(tasRakamElemaniOlustur(tas));
+  if (sahteOkey) div.appendChild(tasDegerEtiketiOlustur(tasDegeri(tas, okeyTasi)));
+  else div.appendChild(tasRakamElemaniOlustur(tas));
+  // Sarı joker çerçevesi YALNIZ gerçek okeye konur (ADR-027). "Joker mi" sorusunun tek kaynağı
+  // `cekirdek/dagitim.js` tasOkeyMi'dir; arayüz gösterge/renk/sayı karşılaştırması yapmaz.
   if (tasOkeyMi(tas, okeyTasi)) div.appendChild(gorselOlustur('tas-okey-cerceve.svg', 'tas-cerceve'));
   div.dataset.tasId = tas.id;
   return div;
@@ -533,10 +552,18 @@ function cekSonucunuIsle(sonuc, yeniTasYuvasi) {
 // kural tekrarı yok (ADR-002).
 function atVeyaBitirUygula(tasId) {
   // Atılan taşın okey/sahte okey olup olmadığı hamleden ÖNCE okunur (taş sonra elde değil);
-  // "okey mi" sorusunun tek kaynağı `cekirdek/dagitim.js` tasOkeyMi'dir, burada renk/sayı
-  // karşılaştırılmaz. Kural artık bu hamleyi engellemiyor (ADR-008 sürüm 2, tasokey#50).
+  // sorunun tek kaynağı `cekirdek/dagitim.js` tasOzelMi'dir, burada renk/sayı karşılaştırılmaz.
+  // ADR-027: soru "joker mi" değil "özel taş mı" — sahte okey joker olmasa da bilgilendirme
+  // penceresini açar (ADR-008 sürüm 2, tasokey#50; kural artık bu hamleyi engellemiyor).
+  // Hangi metnin çıkacağı da çekirdeğe sorulur: `tasOkeyMi` true ise gerçek joker metni, değilse
+  // (ama özelse) sahte okey metni. Kapatma anahtarı açıldığında sahte okey yine joker sayılacağı
+  // için pencere de kendiliğinden joker metnine döner — arayüzde ikinci bir kural yok.
   const atilanTas = durumKutu.durum.eller[INSAN_OYUNCUSU].find((tas) => tas.id === tasId);
-  const jokerAtiliyor = atilanTas !== undefined && tasOkeyMi(atilanTas, durumKutu.durum.okeyTasi);
+  const okeyTasi = durumKutu.durum.okeyTasi;
+  const jokerAtiliyor = atilanTas !== undefined && tasOzelMi(atilanTas, okeyTasi);
+  const bilgiTuru = jokerAtiliyor && tasOkeyMi(atilanTas, okeyTasi)
+    ? BILGI.OKEY_ATILDI
+    : BILGI.SAHTE_OKEY_ATILDI;
   const sonuc = at(durumKutu.durum, INSAN_OYUNCUSU, tasId);
   if (!sonuc.basarili) {
     mesajGoster(sonuc.sebep);
@@ -548,7 +575,7 @@ function atVeyaBitirUygula(tasId) {
   // hamleyi geri almaz. Hamle eli bitirdiyse ekran `sonuc`a geçmiş olur; o durumda tek kapı
   // (`gecis`) bilgiyi zaten yok sayar — sonuç penceresiyle üst üste binmez.
   if (jokerAtiliyor) {
-    durumKutu.kabuk = gecis(durumKutu.kabuk, OLAY.BILGI_GOSTER, { bilgi: BILGI.OKEY_ATILDI });
+    durumKutu.kabuk = gecis(durumKutu.kabuk, OLAY.BILGI_GOSTER, { bilgi: bilgiTuru });
   }
   durumKutu.secilenTasId = null;
   rafYerlesiminiTazele(sonuc.durum.eller[INSAN_OYUNCUSU]);

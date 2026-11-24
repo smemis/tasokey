@@ -50,8 +50,11 @@ export const ONAY = Object.freeze({
 // anlatır ve tek düğmeyle kapanır. Onay gibi kabuğun bir ALANIDIR (`bilgi`), ayrı ekran değildir:
 // masa arkada durmayı sürdürür, pencere kapanınca el aynı yerden devam eder. Hamleyi engellemez —
 // pencere açıldığında hamle motora çoktan işlenmiştir (ceza/geri alma yok).
+// ADR-027 (tasokey#82): metin ikiye ayrıldı — gerçek okey (joker) atmakla sahte okey atmak artık
+// aynı şey değil, pencere de aynı cümleyi kurmaz. Hangisinin açılacağına `dagitim.js` karar verir.
 export const BILGI = Object.freeze({
   OKEY_ATILDI: 'okeyAtildi',
+  SAHTE_OKEY_ATILDI: 'sahteOkeyAtildi',
 });
 
 // Oyuncuya sunulan zorluklar = botun kademeleri (tek kaynak); sıra arayüzdeki düğme sırasıdır.

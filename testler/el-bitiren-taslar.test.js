@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { elBitirenTaslar } from '../docs/cekirdek/cozucu.js';
+import { elBitirenTaslar, elBitirilebilirMi } from '../docs/cekirdek/cozucu.js';
 import { tasOlustur, sahteOkeyOlustur } from '../docs/cekirdek/tas.js';
 import { KURAL_VARSAYILAN } from '../docs/cekirdek/kural.js';
 
@@ -47,6 +47,8 @@ test('(b) bitirilemez elde boş liste döner', () => {
 // açıldığında eski davranış (joker hiç aday olmaz) olduğu gibi geri gelir. Aşağıdaki ellerde joker
 // atılırsa seri(3) + sayı peri(3) kalır, yani joker gerçekten "bitiren taş"tır.
 const KURAL_YASAK = { ...KURAL_VARSAYILAN, okeyVeSahteOkeyAtmaYasak: true };
+// ADR-027 kapatma anahtarı: açıkken sahte okey yine evrensel joker (K1, 2026-11-19 davranışı).
+const KURAL_ESKI_JOKER = { ...KURAL_VARSAYILAN, sahteOkeyJokerGibiDavranir: true };
 
 test('(c) sahte okey: varsayılanda aday listesine girer, yasak ayarı açıkken girmez', () => {
   const joker = sOkey(1);
@@ -106,12 +108,64 @@ test('(e) ASIL KABUL: ekran görüntüsündeki 15 taşlık el hiçbir atışla b
   assert.deepEqual(elBitirenTaslar(el, okeyTasi, KURAL_VARSAYILAN, gosterge), []);
 });
 
+// (f) ASIL KABUL (regresyon, tasokey#81 — ADR-027): Sahip'in ekran görüntüsündeki
+// (`is/tasokey-80/ekler/9703a20f-image.png`) 15 taşlık el — gösterge 10-kirmizi, okey 11-kirmizi.
+// Sahte okey EVRENSEL JOKER sayıldığı sürece motor bu elde "elini bitirebilirsin" diyordu:
+// [siyah-10, siyah-11, ★] üçlüsü ★ "siyah 12" yerine geçtiği için seri okunuyordu.
+// Yeni kuralda (ADR-027) ★ bir jokerin değil, o elin okeyinin DEĞERİNİ taşıyan sıradan taştır
+// (kirmizi-11) — o seri dağılır ve el hiçbir atışla bitmez.
+test('(f) ASIL KABUL: sahte okey joker değilken ekran görüntüsündeki el hiçbir atışla bitmez', () => {
+  const gosterge = t('kirmizi', 10, 1);
+  const okeyTasi = { renk: 'kirmizi', sayi: 11 }; // gösterge 10-kirmizi → okey 11-kirmizi
+  const el = [
+    t('siyah', 6), t('kirmizi', 5),
+    t('kirmizi', 1), t('kirmizi', 2), t('kirmizi', 3),
+    t('sari', 4), t('sari', 5), t('sari', 6),
+    t('siyah', 4), t('mavi', 4), t('kirmizi', 4),
+    t('siyah', 10), t('siyah', 11), t('kirmizi', 11),
+    sOkey(1),
+  ];
+
+  assert.equal(el.length, 15, 'ekran görüntüsündeki el 15 taştır');
+  assert.deepEqual(elBitirenTaslar(el, okeyTasi, KURAL_VARSAYILAN, gosterge), []);
+  assert.equal(
+    elBitirilebilirMi(el.filter((tas) => tas.id !== 'siyah-6-1'), okeyTasi, KURAL_VARSAYILAN, gosterge),
+    false,
+    'siyah-6 atıldığında kalan 14 taş bitmiş el değildir',
+  );
+});
+
+// (f) Kapatma anahtarı açıkken (ADR-027 `sahteOkeyJokerGibiDavranir: true`) eski davranış döner:
+// aynı el yine "bitiyor" ve eski üç aday (siyah-6, sari-5, mavi-4) listelenir.
+test('(f) kapatma anahtarı açıkken aynı el eski (K1) davranışıyla biter', () => {
+  const gosterge = t('kirmizi', 10, 1);
+  const okeyTasi = { renk: 'kirmizi', sayi: 11 };
+  const el = [
+    t('siyah', 6), t('kirmizi', 5),
+    t('kirmizi', 1), t('kirmizi', 2), t('kirmizi', 3),
+    t('sari', 4), t('sari', 5), t('sari', 6),
+    t('siyah', 4), t('mavi', 4), t('kirmizi', 4),
+    t('siyah', 10), t('siyah', 11), t('kirmizi', 11),
+    sOkey(1),
+  ];
+
+  const sonuc = elBitirenTaslar(el, okeyTasi, KURAL_ESKI_JOKER, gosterge);
+  assert.deepEqual(new Set(sonuc), new Set(['siyah-6-1', 'sari-5-1', 'mavi-4-1']));
+});
+
 // Kapatma anahtarının motor tarafındaki etkisi: aynı elde yalnız jokerin aday olup olmadığı
 // değişir, jokersiz adaylar (burada serinin uçları) iki yönde de aynı kalır.
-test('yasak ayarı yalnız jokeri havuzdan düşürür, öbür adayları değiştirmez', () => {
+// ADR-027: sahte okey (burada mavi-7 değerinde) ya kendisi atılır — kalan seri(4) + seri(3) +
+// sayı peri(3) olur — ya da elde kalıp mavi 4-5-6-★ serisini kurar; iki yönde de el biter.
+// Yasak ayarı yalnız sahte okeyi havuzdan düşürür, gerçek adayları (serinin uçları) bırakır.
+test('yasak ayarı yalnız özel taşı havuzdan düşürür, öbür adayları değiştirmez', () => {
   const joker = sOkey(1);
   const kirmizi1 = t('kirmizi', 1);
-  const el = [kirmizi1, t('kirmizi', 2), t('kirmizi', 3), joker];
+  const el = [
+    kirmizi1, t('kirmizi', 2), t('kirmizi', 3), t('kirmizi', 4),
+    t('mavi', 4), t('mavi', 5), t('mavi', 6), joker,
+    t('siyah', 8), t('mavi', 8), t('sari', 8),
+  ];
 
   const varsayilan = elBitirenTaslar(el, OKEY_TASI, KURAL_VARSAYILAN);
   const yasakli = elBitirenTaslar(el, OKEY_TASI, KURAL_YASAK);

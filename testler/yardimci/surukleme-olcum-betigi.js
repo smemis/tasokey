@@ -47,9 +47,14 @@ export const BOYUTLAR = Object.freeze([
  * `is/tasokey-74/tohum-tara.mjs`). Sabit `surukleme-hedefi.test.js`te oyunun kendi saf
  * modülleriyle yeniden ölçülür — dağıtım değişirse test kırmızı yanar ve tohum yenilenir.
  * `HEDEF_TOHUMU`: sıradan bir el (bitirici taşı YOK) — hedef sahnesi olağan durumu ölçmeli.
+ *
+ * tasokey#81 (ADR-027): sahte okey joker olmaktan çıkınca eski tohum (537) artık bitirilebilir el
+ * vermiyor ve test kırmızı yandı — tasarlandığı gibi. Yeniden tarandı (`is/tasokey-81/
+ * tohum-tara.mjs`, aynı ölçüm): bitirilebilir el 5000 tohumda 1 kez çıkıyor (eski kuralda 7),
+ * ilk bulunan 2447. `HEDEF_TOHUMU` (1) yeni kuralda da bitirici taşsız kaldı, değişmedi.
  */
 export const HEDEF_TOHUMU = 1;
-export const BITIRME_TOHUMU = 537;
+export const BITIRME_TOHUMU = 2447;
 export const SAHNE_TOHUMLARI = Object.freeze({ hedef: HEDEF_TOHUMU, bitirme: BITIRME_TOHUMU });
 
 /** Saf çekirdeğin sayfa katmanına verilen adları (tek liste; öz-test modülle karşılaştırır). */

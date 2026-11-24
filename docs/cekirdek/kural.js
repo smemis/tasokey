@@ -20,4 +20,13 @@ export const KURAL_VARSAYILAN = Object.freeze({
   gostergeSahteOkeyIseYenidenAcilir: true,
   // 4) Yerdeki taşlar kimse bitirmeden tükenirse el berabere sayılır ve yeni el başlar.
   desteTukenirseElBerabereSayilir: true,
+  // 5) **ADR-027 (2026-11-24, tasokey#81, Sahip kararı):** sahte okey JOKER DEĞİLDİR; o elin okey
+  // taşının renk+sayı DEĞERİNİ alır ve perde, çiftte, bot değerlendirmesinde o değerdeki sıradan
+  // taş gibi davranır. Joker yalnız gösterge+1 aynı renk taşlardır (13 → 1). Ayar **kapatma
+  // anahtarı** olarak duruyor: `true` yapılırsa K1'in (2026-11-19) eski davranışı — sahte okey
+  // evrensel joker — tek kapıdan (`dagitim.js` → `tasOkeyMi`) geri gelir; dizilim, çözücü, bot ve
+  // arayüz kendiliğinden hizalanır. `okeyVeSahteOkeyAtmaYasak` bundan BAĞIMSIZDIR: atma kısıtı
+  // "joker mi" değil "özel taş mı" sorusudur (`tasOzelMi`), yani açıkken okey VE sahte okey
+  // iki ayarın da değerinden bağımsız olarak atılamaz.
+  sahteOkeyJokerGibiDavranir: false,
 });

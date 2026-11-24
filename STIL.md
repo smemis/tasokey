@@ -47,6 +47,12 @@ Uygulanmaz (proje 2B web arayüzü; 3B varlık planı yok).
   gövdenin yuvarlak köşesini izler ve taşın görünen ölçüsünü büyütmez; kalınlık/renk/opaklık değerinin **tek kaynağı**
   `arayuz/stil.css` `:root` (`--tas-kenar-kalinlik` / `--tas-kenar-renk` / `--tas-kenar-opaklik`) — üç gövde varyantı
   (taş yüzü, sahte okey, kapalı taş) aynı değeri okur, SVG dosyalarına sayı yazılmaz.
+- **Sahte okeyin değer yazısı (Sahip isteği, 2026-11-24 — `tasokey#82`, ADR-027):** sahte okey artık
+  joker değil, o elin okey taşının renk+sayı **değerinde** bir taştır — yıldız gövdesi ve rakamsızlığı
+  **korunur**, değer yıldızın üstündeki boş banda **küçük yazıyla** basılır ve yalnız o yazı değerin
+  rengini alır (gövde rengi değişmez). Sarı okey çerçevesi (`tas-okey-cerceve.svg`) yalnız **gerçek**
+  okeye konur. Ölçünün tek kaynağı `arayuz/stil.css` `:root` (`--tas-deger-ust` / `--tas-deger-yukseklik`
+  / `--tas-deger-oran`); boyut ve yer **görsel beğenidir**, K4'te Sahip'in onayına sunulur.
 - **Atılan taş alanı (Sahip isteği, 2026-11-21 — `tasokey#47`):** her köşedeki atılan taş yığınının alanı, o oyuncunun
   ıstaka satırı ile komşu kenarın ıstaka sütununun kesiştiği **boş alanı doldurur** (iki ıstaka arasında boşta kalan keçe
   yoktur); atılan taş bu alanın **ortasında** durur, adet sayacı taşın hemen altında kalır. Kural dört köşe için aynıdır
