@@ -143,8 +143,12 @@
      CSS içinde px'e çevrilemez → tarayıcıda ölçülür ve buraya YAZILIR. Hiçbir CSS kuralı bu
      değişkeni kullanmaz: bütçenin tek kaynağıdır, öz-test (sigdirma-butcesi.test.js) buradan okur
      ki eşitsizliğe çıplak sayı girmesin. Kısa yatay varyantta 0'dır (düğmeler orada başlığın
-     ALTINA, sütunun zaten boş olan dikeyine iner — satır açmazlar). */
-  --sigdirma-raf-dugme-payi: 9px;
+     ALTINA, sütunun zaten boş olan dikeyine iner — satır açmazlar).
+     ÖLÇÜLDÜ (tasokey#85, `is/tasokey-85/ekran/dugmeler-*.png` "PANEL-FARK" satırı): panelin
+     düğmeli ve düğmesiz yüksekliği 1920x1080'de 359,7 ↔ 357,4 · 1280x800'de 250,7 ↔ 248,4 →
+     iki boyutta da **2,34**; genişlik farkı iki boyutta da 0,00. Varyantta (844x390, 800x360)
+     fark 0,00/0,00 ölçüldü — 0 varsayılmadı. */
+  --sigdirma-raf-dugme-payi: 2.34px;
   /* Rakip ıstakası artık yalnız ince ahşap sırt (taş çizilmez — Sahip ek bilgisi, 2026-11-20):
      --rakip-raf-kalinlik çubuğun gerçek inceliğidir (sol/sağda genişlik, üstte yükseklik).
      --rakip-raf-uzunluk sol/sağ çubuğun taban (min-height) uzunluğu; gerçek uzunluk artık ızgaranın
@@ -1471,6 +1475,15 @@ html, body {
        **1,25'te kaldı** — kazanç masanın bantlarına girdi (109,75 → 115,5) ama tavanı tutan sınır
        dikey değil YATAY olduğu için ölçek yükselmedi. Değer bu yüzden DEĞİŞMEZ. */
     --istaka-olcek: 1.25;
+    /* tasokey#85 (ADR-028): `:root`taki `--raf-bosluk` 8 → 5 indi, çünkü TABAN düzende düğme
+       satırının dikey payı oradan geri alınır. Bu dilim (900x600) ise VARYANTTIR ve varyantta
+       `--raf-bosluk` panelin YATAY terimidir (panel satır akar) — üstelik düğmeler burada dikeyde
+       hiç yer almaz, yani geri alınacak bir pay yok. Telefon dilimleri kendi 4px'ini
+       `max-height: 500px` bloğundan alır; 600 px yüksek olan bu dilimin tek kaynağı `:root`tu.
+       Ölçüm bunu yakaladı: 5px'e inince 900x600'de üst köşe hücresi 65 → 66,7 px oldu ve iz modeli
+       `tasokey#73`'te ÇİVİLENEN tarayıcı tablosundan ayrıştı (kose-atma-alani kabul-a3).
+       Değer bu yüzden burada tabandaki hâline sabitlenir: varyantın geometrisi birebir korunur. */
+    --raf-bosluk: 8px;
     /* ADR-022 madde 8 — muaf açık el yığınının KENDİ ölçeği bu kademede küçülür. Ölçülen merdiven
        ("MUAF" satırları, her basamakta ölçek araması yeniden koşuldu):
          · 4. çekim turu (madde 10'dan ÖNCE): 0,60 → 1,10 · 0,55 → 1,15 · 0,50 → 1,20 · 0,45 → 1,20
