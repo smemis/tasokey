@@ -145,3 +145,53 @@ export function rafYerlesimiGuncelle(yerlesim, yeniEl, secenekler = {}) {
 export function yerlesimKur(el) {
   return rafYerlesimiGuncelle(bosYerlesim(), el);
 }
+
+/**
+ * Gruplanmış dizme (tasokey#85): grup listesini — her grup bir per, bir çift ya da per dışı
+ * kalanların bloğu — ıstaka yerleşimine çevirir. Kurallar YALNIZ burada durur:
+ *   · gruplar soldan sağa, iki grup arasında TAM BİR boş yuva,
+ *   · bir grup satır içinde bölünmez (kalan satır yetmezse sonraki satırın başından başlar),
+ *   · hepsi aralıklı sığmazsa yerleşim boşluksuz paketlenir (taş düşürmek yerine).
+ * Grupların İÇERİĞİNE ve SIRASINA karar vermez: onun tek kaynağı `cekirdek/cozucu.js`
+ * (`dokumGruplari`) — bu dosya sıralama kuralı yazmaz (ADR-002/ADR-017).
+ * Girdiyi değiştirmez; yerleşim her zaman YENİ bir dizi olarak döner.
+ * @param {Array<Array<string>>} gruplar taş kimliği dizilerinden oluşan grup listesi
+ * @returns {Array<string|null>} `RAF_SLOT_SAYISI` uzunluğunda yeni yerleşim
+ */
+export function yerlesimDiz(gruplar) {
+  const temiz = (Array.isArray(gruplar) ? gruplar : [])
+    .map((grup) => (Array.isArray(grup) ? grup.filter((id) => id !== null && id !== undefined) : []))
+    .filter((grup) => grup.length > 0);
+  // Yerleşim boş yerleşimden kurulur: önceki dizilimde duran ama artık grupta olmayan (elden
+  // çıkmış) taş kendiliğinden düşer, ikinci bir "elde mi" denetimi yazılmaz.
+  return aralikliDizim(temiz) ?? bosluksuzDizim(temiz);
+}
+
+// Gruplar arası bir boş yuvalı dizim; 24 yuvaya sığmazsa null (çağıran boşluksuza düşer).
+function aralikliDizim(gruplar) {
+  const yerlesim = bosYerlesim();
+  let imlec = 0;
+  for (const grup of gruplar) {
+    if (imlec > 0) imlec += 1;
+    // Grup satır içinde bölünmez: kalan satır yetmiyorsa sonraki satırın başına geçilir.
+    if ((imlec % RAF_SUTUN_SAYISI) + grup.length > RAF_SUTUN_SAYISI) {
+      imlec = satirBasi(satirIndeksi(imlec) + 1);
+    }
+    if (imlec + grup.length > yerlesim.length) return null;
+    for (const id of grup) {
+      yerlesim[imlec] = id;
+      imlec += 1;
+    }
+  }
+  return yerlesim;
+}
+
+// Son çare: bütün taşlar sırayla, boşluk ve satır koruması olmadan ilk yuvalardan dizilir.
+function bosluksuzDizim(gruplar) {
+  const yerlesim = bosYerlesim();
+  const idler = gruplar.flat();
+  for (let index = 0; index < idler.length && index < yerlesim.length; index++) {
+    yerlesim[index] = idler[index];
+  }
+  return yerlesim;
+}
