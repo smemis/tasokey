@@ -342,9 +342,15 @@ test('kaynak kontrolü: bot kural sorularını cekirdek\'e sorar, kendi geçerli
 
     // (c) Kuralı kopyalamaz: renk/sayı karşılaştırmasıyla kendi per/çift tanımını kurmaz, sayı
     // aralığı/renk listesiyle kendi pencere hesabını yapmaz (ADR-017 hizasızlığının kök sebebi).
+    // tasokey#83 (ADR-027): kuralı kopyalamanın YENİ yolu da kapandı — "bu taş sahte okey mi",
+    // "değeri ne" soruları taşın `tur`/`id` alanından okunamaz; cevabı `dagitim.js` verir
+    // (`tasOkeyMi` / `tasDegeri` / `tasOzelMi`). Sahte okey artık joker olmadığı için bu ayrım
+    // bota sızarsa iki kural kaynağı doğar.
     const kuralKopyasiKaliplari = [
       /\.renk\s*[!=]==/, /\.sayi\s*[!=]==/, /\.sayi\s*[<>]/,
       /Math\.abs/, /ardisikPencereUret/, /EN_DUSUK_SAYI|EN_YUKSEK_SAYI|\bRENKLER\b/,
+      /\.tur\s*[!=]==/, /SAHTE_OKEY|'sahteOkey'|"sahteOkey"/, /sahteOkeyOlustur/,
+      /sahteOkeyJokerGibiDavranir/,
     ];
     for (const kalip of kuralKopyasiKaliplari) {
       assert.ok(!kalip.test(kaynak), `${dosya} kural hesaplamasını kopyalamamalı: ${kalip}`);
@@ -367,4 +373,43 @@ test('kaynak kontrolü: bot kural sorularını cekirdek\'e sorar, kendi geçerli
   assert.match(giris, /\bat\(/);
   // (e) Tohumlu rastgelelik tek kaynaktan: `karma.js` (ADR-003).
   assert.match(giris, /from '\.\.\/cekirdek\/karma\.js'/);
+  // (f) tasokey#83 / ADR-027: "joker mi", "değeri ne", "özel taş mı" ve kural sorusu taşı —
+  // dördü de `dagitim.js`'in kapılarından gelir, bot kendi karşılaştırmasını yazmaz.
+  assert.match(giris, /from '\.\.\/cekirdek\/dagitim\.js'/, 'bot joker sorusunu dagitim.js\'e sormalı');
+  assert.match(giris, /\btasOkeyMi\(/, 'bot "joker mi" sorusunu çekirdeğe sormuyor');
+  assert.match(giris, /\btasOzelMi\(/, 'bot atma yasağını "özel taş mı" kapısından sormuyor');
+  assert.match(
+    giris, /sorguJokeriOlustur\(okeyTasi\)/,
+    'botun kural sorusu taşı o elin okeyinden türetilmiyor (ADR-027: sahte okey joker değil)',
+  );
+  // `tasOkeyMi` çağrılarının HEPSİ kuralı taşımalı: kural verilmezse kapatma anahtarı yok sayılır
+  // ve bot, motorun oynadığı kuraldan sapar (ADR-018/1).
+  for (const cagri of giris.match(/tasOkeyMi\([^)]*\)/g) ?? []) {
+    assert.match(cagri, /,\s*kural\s*\)/, `bot "joker mi" sorusunu kuralsız soruyor: ${cagri}`);
+  }
+});
+
+// tasokey#83 — ADR-027'nin bot tarafındaki karşılığı: bot kademeleri sahte okeyi joker gibi
+// KULLANMAZ. Sezgisel düzeyde ölçülür (ölçüm koşusu ayrı: `testler/bot-zorluk.olcum.js`):
+// sahte okey, bağlantı puanında ancak kendi DEĞERİYLE (o elin okeyi) bağ kurar.
+test('ADR-027: bot sahte okeyi joker gibi değil, okey değerindeki taş gibi değerlendirir', () => {
+  // OKEY_TASI = mavi-7 → sahte okey "mavi 7" değerinde.
+  // Jokersiz elde sahte okey yalnız mavi 5-6 ile per kurar; kirmizi 2-3 ile kurmaz.
+  const sahte = sOkey(1);
+  const elYakin = [t('mavi', 5), t('mavi', 6), sahte, t('kirmizi', 12)];
+  const elUzak = [t('kirmizi', 2), t('kirmizi', 3), sahte, t('sari', 12)];
+
+  // Bot "bu iki taş aynı perde buluşabilir mi?" sorusunu çekirdeğe sorar; cevabın kademeye göre
+  // değişmediğini, yalnız kurala bağlı olduğunu ölçüyoruz: yakın elde sahte okey atılmaz
+  // (bağlantılı), uzak elde en izole taş olarak atılır.
+  const atilanYakin = atilacakTasiSec(elYakin, OKEY_TASI, KADEME.ORTA, secenekler());
+  const atilanUzak = atilacakTasiSec(elUzak, OKEY_TASI, KADEME.ORTA, secenekler());
+  assert.notEqual(atilanYakin.id, sahte.id, 'mavi 5-6 yanındaki sahte okey (mavi-7) atılmamalı');
+  assert.equal(atilanUzak.id, sahte.id, 'hiçbir şeye bağlanmayan sahte okey atılmalı');
+
+  // Kapatma anahtarı açıldığında sahte okey yine evrensel joker olur: uzak elde de bağlıdır,
+  // bot onu artık en izole taş saymaz — bot kuralı kendi yazmadığı için tek satırla hizalanıyor.
+  const eskiKural = { ...KURAL_VARSAYILAN, sahteOkeyJokerGibiDavranir: true };
+  const atilanUzakEski = atilacakTasiSec(elUzak, OKEY_TASI, KADEME.ORTA, secenekler({ kural: eskiKural }));
+  assert.notEqual(atilanUzakEski.id, sahte.id, 'anahtar açıkken joker her taşla bağ kurar, atılmamalı');
 });
