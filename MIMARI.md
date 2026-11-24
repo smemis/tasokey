@@ -4,14 +4,14 @@
 > **K1 onayı alındı** (Sahip, 2026-11-19, toplu onay — bütün sorular önerilen seçenekle): kural seti, yığın,
 > barındırma, 4 kural ayrıntısı ve görsel ton onaylı; ADR durumları ve karar verenler [ayrıntı](MIMARI-AYRINTI.md#başlıktaki-k1-onayı-bloğu--tam-metin).
 
-> **Son sürüm: 26** (`tasokey#78`, 2026-11-22) — **ADR-026**: `MIMARI.md` **dizindir**; tablo
-> hücrelerinin ve bölüm gövdelerinin yürürlükteki ayrıntısı [MIMARI-AYRINTI.md](MIMARI-AYRINTI.md)'de,
-> karar gövdeleri `adr/`de, tarihsel gerekçe [DEGISIKLIK.md](DEGISIKLIK.md#sürüm-26--tasokey78)'de.
+> **Son sürüm: 27** (`tasokey#81`, 2026-11-24) — **ADR-027**: sahte okey joker değildir, o elin okey
+> taşının değerini alır. Belge düzeni ADR-026'dır: ayrıntı [MIMARI-AYRINTI.md](MIMARI-AYRINTI.md)'de,
+> karar gövdeleri `adr/`de, tarihsel gerekçe [DEGISIKLIK.md](DEGISIKLIK.md#sürüm-27--tasokey81)'de.
 
 | Alan | Değer |
 |---|---|
 | Proje | `tasokey` |
-| Mimari karar sürümü | `26` (**ADR-026** `MIMARI.md` dizindir; ayrıntı [MIMARI-AYRINTI.md](MIMARI-AYRINTI.md), 2026-11-22, tasokey#78 — eski zincir: [DEGISIKLIK.md](DEGISIKLIK.md#sürüm-26--tasokey78)) |
+| Mimari karar sürümü | `27` (**ADR-027** sahte okey joker değil, okeyin değerini alır; 2026-11-24, tasokey#81 — eski zincir: [DEGISIKLIK.md](DEGISIKLIK.md#sürüm-27--tasokey81)) |
 | Bağlı PRD sürümü | `3` (`tasokey#36`, R-004/R-005 kural düzeltmesi) |
 | Profil | `kit\profiller\` içinde yok → `profil-oyun-web-taslak.md` (bu klasör; kit'e girmesi Sahip onayı ister, D-26) |
 | Hazırlayan | Mimar, 2026-11-19 |
@@ -117,6 +117,7 @@ Yeni karar = yeni dosya + bir satır.
 | 024 | Kısa yatay ekranlarda masa, ayrı bir düzen varyantı kullanır: dikey zincir en çok üç taş boyu taşır | **kabul** (Mimar-K2) | [dosya](adr/ADR-024-kisa-yatay-duzen-varyanti.md) |
 | 025 | Her mimari karar kendi dosyasında; MIMARI.md dizindir | **kabul** (Mimar-K2) | [dosya](adr/ADR-025-adr-dosya-basina.md) |
 | 026 | MIMARI.md dizindir; hücre ayrıntısı MIMARI-AYRINTI.md'de | **kabul** (Mimar-K2) | [dosya](adr/ADR-026-mimari-dizin-ayrinti-eki.md) |
+| 027 | Sahte okey joker değil; o elin okey değerini alır | **kabul** (Sahip) | [dosya](adr/ADR-027-sahte-okey-okey-degeri.md) |
 
 `*` Bu kararların dosyasında ayrı bir **Durum** satırı yok; yürürlükteki kararlar arasında duruyorlar.
 

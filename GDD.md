@@ -25,11 +25,18 @@
 > `cekirdek/kural.js`'teki aynı ayarda (`onUcBirGecisiPerSayilir`) duruyor ve kapatma anahtarı
 > olarak çalışmayı sürdürüyor. §7 Soru 1'in cevabı bu yüzden **A → B** oldu. Başka kural (7-13),
 > bitiş koşulu ve gereksinim metinleri değişmedi; yeni gereksinim yok.
+> **v7** (`tasokey#80`/`tasokey#81`, Sahip kararı 2026-11-24): §1 **kural 4 yeniden yazıldı** — sahte
+> okey **joker değildir**, o elin okey taşının **renk+sayı değerini** alır ve her yerde o değerdeki
+> sıradan taş gibi davranır; joker yalnız gösterge+1 aynı renk taşlardır. Kural 6 ve 7'deki "okey ve
+> sahte okey eksik taşın yerine geçer" cümleleri buna göre düzeltildi. Karar `adr/ADR-027`'dir; kural
+> `cekirdek/kural.js`'te yeni bir ayarda (`sahteOkeyJokerGibiDavranir`, varsayılan `false`) kapatma
+> anahtarı olarak duruyor. Kural 10 ve `okeyVeSahteOkeyAtmaYasak` **anlamını korur** (açıkken okey ve
+> sahte okey atılamaz); başka kural (5, 8, 9, 11-13), bitiş koşulu ve gereksinim metinleri değişmedi.
 
 | Alan | Değer |
 |---|---|
 | Proje | `tasokey` |
-| GDD sürümü | `6` (v6: seri 13'ten 1'e döner, `12-13-1` geçerli per — §1 kural 6a, `tasokey#66`; önceki v5: okey/sahte okey atmak serbest — §1 kural 10, `tasokey#50`; v4: bot zorluk kademeleri, `tasokey#41`) |
+| GDD sürümü | `7` (v7: sahte okey joker değil, okeyin değerini alır — §1 kural 4/6/7, `tasokey#81`, ADR-027; önceki v6: seri 13'ten 1'e döner, `12-13-1` geçerli per — §1 kural 6a, `tasokey#66`; v5: okey/sahte okey atmak serbest — §1 kural 10, `tasokey#50`; v4: bot zorluk kademeleri, `tasokey#41`) |
 | Bağlı PRD sürümü | `3` (`tasokey#36` ile birlikte) |
 | Son onay | Sahip onayı 2026-11-20, tasokey#35 |
 
@@ -45,10 +52,10 @@
 | 1 | Set: 1-13 arası sayı, 4 renk (kırmızı/siyah/mavi/sarı), her sayı-renk 2 adet (104 taş) + 2 sahte okey = 106 taş | R-001 | `ARASTIRMA.md` §2.1 | doğrulandı |
 | 2 | Dağıtım: başlayan oyuncu 15, diğer 3 oyuncu 14 taş alır | R-001 | `ARASTIRMA.md` §2.2 | doğrulandı |
 | 3 | Gösterge: karma sonrası açılan bir taş; okey taşı göstergeyle aynı renkte bir üst sayıdır (13 → 1 döner) | R-002 | `ARASTIRMA.md` §2.3 | doğrulandı |
-| 4 | Sahte okey, o elin okey taşının yerine geçer; her yerde (per, çift) okey gibi kullanılır | R-002 | `ARASTIRMA.md` §2.4 | doğrulandı |
+| 4 | **Joker yalnız gösterge+1 aynı renk taşlardır** (kural 3; 13 → 1 döner). **Sahte okey joker değildir:** o elin okey taşının **renk+sayı değerini** alır ve her yerde (seri, sayı peri, çift, bot değerlendirmesi, döküm) o değerdeki sıradan taş gibi davranır — ör. gösterge kırmızı 10 iken sahte okey "kırmızı 11"dir, iki sahte okey aynı değerde olduğu için çift kurar ama bir seride yan yana gelemez. Göstergenin eldeki kopyası da sıradan taştır. Ayar `cekirdek/kural.js`'te **kapatma anahtarı** olarak duruyor (`sahteOkeyJokerGibiDavranir`): açılırsa sahte okey yine evrensel joker olur. *(v6'ya kadar evrensel jokerdi — K1, 2026-11-19.)* | R-002 | `adr/ADR-027` (Sahip kararı 2026-11-24, `tasokey#80`); önceki metin `ARASTIRMA.md` §2.4 | doğrulandı (Sahip, 2026-11-24; önceki K1, 2026-11-19) |
 | 5 | Tur: oyuncu yerden ya da son atılan taştan 1 taş çeker, elinden 1 taş atar; sıradaki oyuncuya geçer | R-003 | `ARASTIRMA.md` §2.5 | doğrulandı |
-| 6 | Per iki biçimde olur: **(a) seri** — aynı renkte ardışık en az 3 sayı; sıra **13'ten 1'e döner**, yani **`12-13-1` geçerli perdir** (v6, `tasokey#66`). Bir seride aynı sayı iki kez bulunamaz; bu yüzden en uzun seri 13 taştır. **(b) sayı peri** — aynı sayının 3 ya da 4 farklı renkteki taşı; aynı renk bir perde iki kez bulunamaz. Okey ve sahte okey her iki per türünde de eksik taşın yerine geçer | R-004 | (a) `MIMARI.md` ADR-008/1 (K1 kararı; **sürüm 3** Sahip kararı 2026-11-22, `tasokey#66`) · (b) Sahip kararı 2026-11-20 (`tasokey#35`) | doğrulandı (seri: K1, 2026-11-19 · dönüşlü sıra: Sahip, 2026-11-22 · sayı peri: Sahip, 2026-11-20) |
-| 7 | Çift: iki **birebir aynı** taş (aynı sayı **ve** aynı renk). Okey/sahte okey bir çiftin yerini tutabilir. Eski "aynı sayı, 2 farklı renk" tanımı yanlıştı; o dizilim artık sayı perinin parçasıdır (kural 6b) | R-004 | Sahip kararı 2026-11-20 (`tasokey#35`); `ARASTIRMA.md` §2 satır 6 düzeltildi | doğrulandı (Sahip, 2026-11-20) |
+| 6 | Per iki biçimde olur: **(a) seri** — aynı renkte ardışık en az 3 sayı; sıra **13'ten 1'e döner**, yani **`12-13-1` geçerli perdir** (v6, `tasokey#66`). Bir seride aynı sayı iki kez bulunamaz; bu yüzden en uzun seri 13 taştır. **(b) sayı peri** — aynı sayının 3 ya da 4 farklı renkteki taşı; aynı renk bir perde iki kez bulunamaz. **Okey (joker)** her iki per türünde de eksik taşın yerine geçer; **sahte okey geçmez** — o, kendi değerindeki (kural 4) sıradan taş olarak perde yer alır (v7, `tasokey#81`) | R-004 | (a) `MIMARI.md` ADR-008/1 (K1 kararı; **sürüm 3** Sahip kararı 2026-11-22, `tasokey#66`) · (b) Sahip kararı 2026-11-20 (`tasokey#35`) | doğrulandı (seri: K1, 2026-11-19 · dönüşlü sıra: Sahip, 2026-11-22 · sayı peri: Sahip, 2026-11-20) |
+| 7 | Çift: iki **birebir aynı** taş (aynı sayı **ve** aynı renk). **Okey (joker)** bir çiftin yerini tutabilir; **sahte okey tutmaz** — yalnız kendi değerindeki (kural 4) taşla, yani öbür sahte okeyle ya da gerçek okeyle çift kurar (v7, `tasokey#81`). Eski "aynı sayı, 2 farklı renk" tanımı yanlıştı; o dizilim artık sayı perinin parçasıdır (kural 6b) | R-004 | Sahip kararı 2026-11-20 (`tasokey#35`) + `adr/ADR-027` (Sahip kararı 2026-11-24); `ARASTIRMA.md` §2 satır 6 düzeltildi | doğrulandı (Sahip, 2026-11-20 · sahte okey: Sahip, 2026-11-24) |
 | 8 | Klasik Okey'de per/çift masaya yalnız el biterken (son taşı atarken) açılır; ara aşamada masaya taş konmaz | R-005 | `ARASTIRMA.md` §2.7 | doğrulandı |
 | 9 | Gösterge taşı kendisi çift sayılamaz | R-004 | `ARASTIRMA.md` §2, satır 9 | doğrulandı |
 | 10 | Okey (joker) ve sahte okey taşı **atılabilir**: hamle engellenmez, ceza puanı da yoktur (tek elde ceza tablosunun yeri yok). İnsan oyuncu joker attığında arayüz bir bilgilendirme penceresi gösterir (ADR-016/8) — pencere yalnız anlatır, hamleyi geri almaz. Yasak, `cekirdek/kural.js`'teki ayarda **kapatma anahtarı** olarak duruyor: açılırsa motor hamleyi yine baştan engeller. *(v4'e kadar yasaktı — K1, 2026-11-19.)* | R-003, R-007 | `MIMARI.md` ADR-008/2 **sürüm 2** (Sahip kararı, `tasokey#50`) | doğrulandı (Sahip, 2026-11-21; önceki varsayılan K1, 2026-11-19) |
@@ -69,8 +76,9 @@ Oyuncu elindeki 14 taşı (okey ve sahte okey dahil) geçerli bir dizilime dizip
 1. **Tamamen per:** 14 taşın tamamı per gruplarına bölünür; her grup ya seri ya sayı peridir ve en az 3 taş içerir (kural 6).
 2. **Tam 7 çift:** 14 taşın tamamı çifttir; her çift iki birebir aynı taştır (kural 7).
 
-Per ile çift **aynı elde karışık kullanılamaz**; karışık bir dizilim (ör. 6 çift + 1 per) bitiş sayılmaz. Okey ve sahte okey her
-iki yolda da eksik taşın yerine geçer. Elin tamamı bu iki biçimden birine bölünmüyorsa bitiş kabul edilmez (R-005).
+Per ile çift **aynı elde karışık kullanılamaz**; karışık bir dizilim (ör. 6 çift + 1 per) bitiş sayılmaz. **Okey (joker)** her
+iki yolda da eksik taşın yerine geçer; **sahte okey geçmez** — kendi değerindeki sıradan taş olarak dizilime girer (kural 4,
+v7). Elin tamamı bu iki biçimden birine bölünmüyorsa bitiş kabul edilmez (R-005).
 
 ## 2. Mekanikler
 | Mekanik | Oyuncu ne yapar | Sistem ne yapar | Gereksinim |

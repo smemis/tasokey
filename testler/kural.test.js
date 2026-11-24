@@ -31,3 +31,20 @@ test('gösterge sahte okey çıkarsa yeniden açılır', () => {
 test('deste tükenirse el berabere sayılır', () => {
   assert.equal(KURAL_VARSAYILAN.desteTukenirseElBerabereSayilir, true);
 });
+
+// tasokey#81 (ADR-027): sahte okey joker DEĞİLDİR, o elin okey değerini alır. Ayar kapatma
+// anahtarıdır (iki yönlü ölçümü `dagitim/dizilim/cozucu/el-dokumu/el-bitiren-taslar` testlerinde).
+test('sahte okey joker değildir (varsayılan), ayar kapatma anahtarı olarak duruyor', () => {
+  assert.equal(KURAL_VARSAYILAN.sahteOkeyJokerGibiDavranir, false);
+  assert.ok(
+    'sahteOkeyJokerGibiDavranir' in KURAL_VARSAYILAN,
+    'kapatma anahtarı silinmiş: K1 davranışına dönmenin tek satırlık yolu kalmadı',
+  );
+});
+
+// ADR-027 ile ADR-008 sürüm 2 BAĞIMSIZDIR: atma yasağı "özel taş" sorusudur, joker tanımı değil.
+test('okeyVeSahteOkeyAtmaYasak, sahte okey joker olmasa da anlamını korur', () => {
+  const kural = { ...KURAL_VARSAYILAN, okeyVeSahteOkeyAtmaYasak: true };
+  assert.equal(kural.sahteOkeyJokerGibiDavranir, false, 'iki ayar birbirine bağlanmamalı');
+  assert.equal(kural.okeyVeSahteOkeyAtmaYasak, true);
+});

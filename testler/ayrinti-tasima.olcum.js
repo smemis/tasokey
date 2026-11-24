@@ -22,7 +22,8 @@ import { join } from 'node:path';
 const KOK = join(import.meta.dirname, '..');
 const HEDEF_BAYT = 25600;
 const ACIK = [8, 10, 15, 16, 18, 21, 22, 23, 29, 30];
-const BEKLENEN_SATIR = { adr: 26, modul: 18, kanit: 14, risk: 30 };
+// tasokey#81: ADR dizini 26 → 27 (ADR-027 eklendi).
+const BEKLENEN_SATIR = { adr: 27, modul: 18, kanit: 14, risk: 30 };
 
 const git = (...a) => execFileSync('git', a, { cwd: KOK, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
 const normalize = (m) => m.replace(/\r\n/g, '\n');
@@ -116,7 +117,22 @@ function kimlikKaldi(etiket, simdiHucre, grup) {
 }
 
 /** Taban hücresinin eke BİREBİR girdiğini ölçer. */
+// tasokey#81 (ADR-027): eke taşınan bu iki metnin KURALI değişti (sahte okey artık joker değil),
+// bu yüzden taban commit'le birebir olamazlar — içerikleri bilerek güncellendi. Taşımanın birebirliği
+// kalan 90 hücre için ölçülmeyi sürdürür; bu liste yalnız bilinçli güncellemeleri taşır, büyürse
+// ölçümün değeri azalır (yeni satır eklerken işin numarasını ve gerekçesini yaz).
+const SONRADAN_GUNCELLENEN = new Map([
+  ['cekirdek/dizilim.js (ADR-017) — sorumluluk', 'tasokey#81 / ADR-027'],
+  ['Risk 1 — konu', 'tasokey#81 / ADR-027'],
+]);
+
 function birebir(etiket, baslik, tabanHucre) {
+  if (SONRADAN_GUNCELLENEN.has(baslik)) {
+    tasinan += 1;
+    dogrulandi.add(baslik);
+    console.log(`  (birebirlik ölçülmedi: "${baslik}" ${SONRADAN_GUNCELLENEN.get(baslik)} ile güncellendi)`);
+    return;
+  }
   const govde = ek.get(baslik);
   if (govde === undefined) {
     sorunlar.push(`${etiket}: ekte "### ${baslik}" bölümü yok`);
