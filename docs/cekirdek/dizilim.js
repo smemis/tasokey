@@ -8,7 +8,7 @@
 // sayı perinin parçasıdır.
 
 import { EN_DUSUK_SAYI, EN_YUKSEK_SAYI, RENKLER } from './tas.js';
-import { tasOkeyMi } from './dagitim.js';
+import { tasOkeyMi, tasDegeri } from './dagitim.js';
 import { KURAL_VARSAYILAN } from './kural.js';
 
 const SAYI_ARALIGI = EN_YUKSEK_SAYI - EN_DUSUK_SAYI + 1;
@@ -61,21 +61,24 @@ function pencereleriUret(n, onUcBirGecisiPerSayilir) {
 export function perGecerliMi(taslar, okeyTasi, kural = KURAL_VARSAYILAN) {
   if (!Array.isArray(taslar) || taslar.length < EN_KISA_PER) return false;
 
-  const normaller = taslar.filter((tas) => !tasOkeyMi(tas, okeyTasi));
+  const normaller = taslar.filter((tas) => !tasOkeyMi(tas, okeyTasi, kural));
 
   // Yalnız jokerden kurulu grup: seri olarak okunur (en çok 13 taş).
   if (normaller.length === 0) return taslar.length <= SAYI_ARALIGI;
 
-  return seriGecerliMi(taslar, normaller, kural) || sayiPeriGecerliMi(taslar, normaller);
+  return seriGecerliMi(taslar, normaller, kural, okeyTasi)
+    || sayiPeriGecerliMi(taslar, normaller, okeyTasi);
 }
 
 // GDD.md §1 kural 6a: aynı renkte ardışık en az 3 sayı; `12-13-1` geçişi kural ayarına bağlı
 // (ADR-008 sürüm 3'ten beri varsayılan: dönüşlü seri geçerli).
-function seriGecerliMi(taslar, normaller, kural) {
-  const renkler = new Set(normaller.map((tas) => tas.renk));
+// Joker olmayan taşın renk/sayısı `tasDegeri`den sorulur (ADR-027): sahte okey burada o elin okey
+// değerindeki sıradan taştır, iki sahte okey aynı değerde olduğundan bir seride yan yana gelemez.
+function seriGecerliMi(taslar, normaller, kural, okeyTasi) {
+  const renkler = new Set(normaller.map((tas) => tasDegeri(tas, okeyTasi).renk));
   if (renkler.size > 1) return false;
 
-  const sayilar = normaller.map((tas) => tas.sayi);
+  const sayilar = normaller.map((tas) => tasDegeri(tas, okeyTasi).sayi);
   if (new Set(sayilar).size !== sayilar.length) return false;
 
   const pencereler = ardisikPencereUret(taslar.length, kural.onUcBirGecisiPerSayilir);
@@ -86,24 +89,29 @@ function seriGecerliMi(taslar, normaller, kural) {
 }
 
 // GDD.md §1 kural 6b: aynı sayının 3 ya da 4 farklı renkteki taşı; aynı renk iki kez giremez.
-function sayiPeriGecerliMi(taslar, normaller) {
+function sayiPeriGecerliMi(taslar, normaller, okeyTasi) {
   if (taslar.length > RENKLER.length) return false;
 
-  const sayilar = new Set(normaller.map((tas) => tas.sayi));
+  const sayilar = new Set(normaller.map((tas) => tasDegeri(tas, okeyTasi).sayi));
   if (sayilar.size > 1) return false;
 
-  const renkler = new Set(normaller.map((tas) => tas.renk));
+  const renkler = new Set(normaller.map((tas) => tasDegeri(tas, okeyTasi).renk));
   return renkler.size === normaller.length;
 }
 
-// GDD.md §1 kural 7, 9: çift = iki birebir aynı taş (aynı sayı VE aynı renk); okey/sahte okey
-// çiftte de eksik taşın yerine geçer. Gösterge taşının kendisi çift sayılmaz.
+// GDD.md §1 kural 7, 9: çift = iki birebir aynı taş (aynı sayı VE aynı renk); joker çiftte de eksik
+// taşın yerine geçer. Gösterge taşının KENDİSİ (aynı id) çift sayılmaz; göstergenin eldeki kopyası
+// (başka nüsha, başka id) sıradan taştır ve çift kurabilir.
+// ADR-027: sahte okey joker değildir, o elin okey DEĞERİNDE bir taştır — bu yüzden
+// [sahte okey, siyah-11] çift DEĞİLDİR (renkleri tutmaz), [sahte okey, sahte okey] çifttir.
 export function ciftGecerliMi(tasA, tasB, okeyTasi, kural = KURAL_VARSAYILAN, gosterge = null) {
   if (gosterge && (tasA.id === gosterge.id || tasB.id === gosterge.id)) return false;
 
-  const aJoker = tasOkeyMi(tasA, okeyTasi);
-  const bJoker = tasOkeyMi(tasB, okeyTasi);
+  const aJoker = tasOkeyMi(tasA, okeyTasi, kural);
+  const bJoker = tasOkeyMi(tasB, okeyTasi, kural);
   if (aJoker || bJoker) return true;
 
-  return tasA.sayi === tasB.sayi && tasA.renk === tasB.renk;
+  const degerA = tasDegeri(tasA, okeyTasi);
+  const degerB = tasDegeri(tasB, okeyTasi);
+  return degerA.sayi === degerB.sayi && degerA.renk === degerB.renk;
 }

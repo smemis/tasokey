@@ -3,7 +3,7 @@
 // tasokey#8: sıra denetimi, çek-at akışı, okey/sahte okey atma yasağı (ADR-008/2), deste tükenmesi
 // (ADR-008/4) ve sonsuz döngüye karşı tanımlı tur sınırı.
 
-import { dagit, OYUNCU_SAYISI, tasOkeyMi } from './dagitim.js';
+import { dagit, OYUNCU_SAYISI, tasOzelMi } from './dagitim.js';
 import { elBitirilebilirMi } from './cozucu.js';
 import { KURAL_VARSAYILAN } from './kural.js';
 
@@ -110,7 +110,9 @@ export function at(durum, oyuncu, tasId, kural = KURAL_VARSAYILAN, maksimumTur =
   const el = durum.eller[oyuncu];
   const tas = el.find((t) => t.id === tasId);
   if (!tas) return reddet(durum, REDDEDILME_SEBEBI.TAS_ELDE_YOK);
-  if (kural.okeyVeSahteOkeyAtmaYasak && tasOkeyMi(tas, durum.okeyTasi)) {
+  // ADR-008 sürüm 2 + ADR-027: yasak "joker mi" değil "özel taş mı" sorusudur — sahte okey artık
+  // joker olmasa da yasağın kapsamındadır (ayarın adı ve anlamı korunur).
+  if (kural.okeyVeSahteOkeyAtmaYasak && tasOzelMi(tas, durum.okeyTasi)) {
     return reddet(durum, REDDEDILME_SEBEBI.OKEY_ATILAMAZ);
   }
 

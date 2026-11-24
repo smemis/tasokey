@@ -13,7 +13,7 @@
 
 ### cekirdek/dizilim.js (ADR-017) — sorumluluk
 
-Per (seri + sayı peri) ve çift (birebir aynı taş) geçerliliği; okey/sahte okey yerine geçme. Ardışık sayı pencerelerinin tek kapısı (`ardisikPencereUret`): dönüşlü seri ayarını (ADR-008/1) yalnız burası okur, çözücü ve bot buradan sorar
+Per (seri + sayı peri) ve çift (birebir aynı taş) geçerliliği; **okey (joker)** eksik taşın yerine geçer, **sahte okey geçmez** — o, `dagitim.js` → `tasDegeri`den sorulan kendi değerindeki (o elin okeyi) sıradan taştır (ADR-027, `tasokey#81`). Ardışık sayı pencerelerinin tek kapısı (`ardisikPencereUret`): dönüşlü seri ayarını (ADR-008/1) yalnız burası okur, çözücü ve bot buradan sorar
 
 ### cekirdek/cozucu.js (ADR-017) — sorumluluk
 
@@ -291,7 +291,7 @@ Aynı `docs/` çıktısı cihazda **değişmeden** oynanır: oyunu Android için
 
 ### Risk 1 — konu
 
-**Bitirilebilirlik çözücüsü** (eli per/çift gruplarına tam bölme, 2 okey + 2 sahte okey joker olarak) işin en zor parçası; geri izlemeli arama yanlış ya da yavaş olabilir. Bot her turda çağırdığı için maliyet çarpılır
+**Bitirilebilirlik çözücüsü** (eli per/çift gruplarına tam bölme; ADR-027'den beri joker yalnız **2 okey** — sahte okey kendi değerinde sıradan taştır) işin en zor parçası; geri izlemeli arama yanlış ya da yavaş olabilir. Bot her turda çağırdığı için maliyet çarpılır
 
 ### Risk 11 — konu
 
