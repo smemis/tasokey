@@ -264,3 +264,59 @@ test('sıra başka oyuncudaysa siraDegil döner', () => {
   assert.equal(karar.eylem, EYLEM.GECERSIZ);
   assert.equal(karar.sebep, ETKILESIM_RET_SEBEBI.SIRA_DEGIL);
 });
+
+// --- (e) tasokey#87: o turda köşeden çekilen taşı aynı köşeye geri bırakma ---
+// Kural motorda (`el.js` `geriBirakilabilirTasId`); burada ölçülen, etkileşimin o kapıyı
+// kullanıp kullanmadığı ve ATMA yolunun (kendi köşesi) hiç değişmediği.
+
+/** Köşeden çekilmiş, henüz atmamış oyuncu 0 durumu: `sonCekilen` çekilen taşı gösterir. */
+function koseyiCekmisElDurumu(cekilenTas, ekler = {}) {
+  return temelElDurumu({
+    cekildiMi: true,
+    eller: [[cekilenTas, t('siyah', 4)], [], [], []],
+    sonCekilen: { tasId: cekilenTas.id, kaynak: 'atilan' },
+    ...ekler,
+  });
+}
+
+test('(e) kabul: o turda köşeden çekilen taşı ÇEKİLEN köşeye bırakmak "geriBirak" eylemi verir', () => {
+  const cekilen = t('kirmizi', 1);
+  const durum = koseyiCekmisElDurumu(cekilen);
+  const karar = eylemKararVer(cekilen.id, HEDEF_TURU.KOSE, durum, OYUNCU, { kose: CEKILEBILIR_KOSE });
+  assert.deepEqual(karar, { eylem: EYLEM.GERI_BIRAK, tasId: cekilen.id });
+});
+
+test('(e) ret: BAŞKA bir taşı çekilen köşeye bırakmak geri bırakma sayılmaz (yanlisKose)', () => {
+  const cekilen = t('kirmizi', 1);
+  const baskaTas = t('siyah', 4);
+  const durum = koseyiCekmisElDurumu(cekilen);
+  const karar = eylemKararVer(baskaTas.id, HEDEF_TURU.KOSE, durum, OYUNCU, { kose: CEKILEBILIR_KOSE });
+  assert.deepEqual(karar, { eylem: EYLEM.GECERSIZ, sebep: ETKILESIM_RET_SEBEBI.YANLIS_KOSE });
+});
+
+test('(e) GERİLEME: kendi atılan köşesine bırakmak, çekilen taş bile olsa hâlâ ATMADIR', () => {
+  const cekilen = t('kirmizi', 1);
+  const durum = koseyiCekmisElDurumu(cekilen);
+  const karar = eylemKararVer(cekilen.id, HEDEF_TURU.KOSE, durum, OYUNCU, { kose: KENDI_ATILAN_KOSESI });
+  assert.deepEqual(karar, { eylem: EYLEM.AT, tasId: cekilen.id });
+});
+
+test('(e) ret: taş DESTEDEN çekildiyse çekilen köşeye bırakmak geri bırakma sayılmaz', () => {
+  const cekilen = t('kirmizi', 1);
+  const durum = koseyiCekmisElDurumu(cekilen, { sonCekilen: { tasId: cekilen.id, kaynak: 'yer' } });
+  const karar = eylemKararVer(cekilen.id, HEDEF_TURU.KOSE, durum, OYUNCU, { kose: CEKILEBILIR_KOSE });
+  assert.deepEqual(karar, { eylem: EYLEM.GECERSIZ, sebep: ETKILESIM_RET_SEBEBI.YANLIS_KOSE });
+});
+
+test('(e) ret: sıra bende değilken geri bırakma yoktur (siraDegil — motor kapısına hiç varılmaz)', () => {
+  const cekilen = t('kirmizi', 1);
+  const durum = koseyiCekmisElDurumu(cekilen, { sira: 1 });
+  const karar = eylemKararVer(cekilen.id, HEDEF_TURU.KOSE, durum, OYUNCU, { kose: CEKILEBILIR_KOSE });
+  assert.deepEqual(karar, { eylem: EYLEM.GECERSIZ, sebep: ETKILESIM_RET_SEBEBI.SIRA_DEGIL });
+});
+
+test('(e) geri bıraktıktan sonra (cekildiMi false) çekilen köşe yine ÇEKME kaynağıdır', () => {
+  const durum = temelElDurumu({ cekildiMi: false, sonCekilen: null });
+  const karar = eylemKararVer(null, HEDEF_TURU.KOSE, durum, OYUNCU, { kose: CEKILEBILIR_KOSE });
+  assert.deepEqual(karar, { eylem: EYLEM.CEK_KOSE });
+});

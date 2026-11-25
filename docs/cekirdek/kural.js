@@ -29,4 +29,13 @@ export const KURAL_VARSAYILAN = Object.freeze({
   // "joker mi" değil "özel taş mı" sorusudur (`tasOzelMi`), yani açıkken okey VE sahte okey
   // iki ayarın da değerinden bağımsız olarak atılamaz.
   sahteOkeyJokerGibiDavranir: false,
+  // 6) **tasokey#87 (2026-11-24, Sahip kararı, GDD §1 kural 14):** önceki oyuncunun köşesinden
+  // çekilen taş, oyuncu HENÜZ atmadan aynı köşeye GERİ BIRAKILABİLİR; tur yeniden "çekilmedi"
+  // olur ve oyuncu bu kez desteden çekebilir. Geri bırakma bir hamle değildir: `turSayaci` ve
+  // `sira` değişmez. Yalnız KÖŞEDEN çekilen taş için geçerlidir (desteden çekileni geri koymak
+  // yer destesinin sırasını bozardı). Ayar **kapatma anahtarı**: `false` yapılırsa motorun tek
+  // kapısı (`el.js` → `cekmeyiGeriAl` / `geriBirakilabilirTasId`) her denemeyi
+  // `geriBirakilamaz` ile reddeder; arayüzün vurgusu ve etkileşim kararı aynı kapıdan geldiği
+  // için kendiliğinden kaybolur — tek satır yeter.
+  cekilenTasGeriBirakilabilir: true,
 });

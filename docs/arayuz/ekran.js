@@ -2,9 +2,14 @@
 // Kural bilgisi burada yok: her çek/at çağrısı `cekirdek/el.js`'e gider; bu dosya yalnız
 // sonucu DOM'a yansıtır (R-003, R-005, R-006, R-009; tasokey#10).
 
-import { elBaslat, cek, at, KAYNAK, EL_SONUCU, sonrakiOyuncu, oncekiOyuncu } from '../cekirdek/el.js';
+import {
+  elBaslat, cek, at, cekmeyiGeriAl, geriBirakilabilirTasId,
+  KAYNAK, EL_SONUCU, sonrakiOyuncu, oncekiOyuncu,
+} from '../cekirdek/el.js';
 import { tasOkeyMi, tasOzelMi, tasDegeri } from '../cekirdek/dagitim.js';
-import { elBitirenTaslar, elDokumu, dokumSirasi } from '../cekirdek/cozucu.js';
+import {
+  elBitirenTaslar, elDokumu, dokumGruplari, DOKUM_ONCELIGI,
+} from '../cekirdek/cozucu.js';
 import { KURAL_VARSAYILAN } from '../cekirdek/kural.js';
 import { elSonucunuHesapla } from '../cekirdek/puan.js';
 import { cevir } from '../dil/cevir.js';
@@ -18,7 +23,9 @@ import {
 import { kayitOku, kayitYaz } from '../kayit/depo.js';
 import { gorselOlustur, gorselleriOnYukle } from './gorseller.js';
 import { oyuncuKenarHaritasi, oyuncununAtilanKosesi } from './yerlesim.js';
-import { RAF_SUTUN_SAYISI, rafYerlesimiGuncelle, tasiYuvayaTasi, yerlesimKur } from './raf.js';
+import {
+  RAF_SUTUN_SAYISI, rafYerlesimiGuncelle, tasiYuvayaTasi, yerlesimDiz, yerlesimKur,
+} from './raf.js';
 
 // masa-zemin.svg ve istaka.svg CSS arka planı olarak kullanılır (arayuz/stil.css #masa / #rafAlani
 // — burada önceden yüklenmesi gerekmez). Sayı yüzü artık tek paylaşılan gövde (tas-govde.svg) +
@@ -26,6 +33,15 @@ import { RAF_SUTUN_SAYISI, rafYerlesimiGuncelle, tasiYuvayaTasi, yerlesimKur } f
 const GORSEL_DOSYALARI = ['tas-govde.svg', 'tas-sahte-okey.svg', 'tas-okey-cerceve.svg', 'tas-arka.svg', 'yuva-bos.svg'];
 
 const INSAN_OYUNCUSU = 0;
+
+// El bitince açılan rakip ıstakasında grupların ARASINA konan ayraç hücresinin sınıfı
+// (tasokey#86): ıstakadaki "gruplar arası tam bir boş yuva" kuralının (ADR-028/3) kenar
+// ızgarasındaki karşılığı. Ölçüsü stil.css'te (`--rakip-acik-ayrac-genislik`).
+const GRUP_AYRACI_SINIFI = 'kenar-ayrac';
+
+// tasokey#87: o turda köşeden çekilen taşın ve geri bırakılabilecek köşenin ortak vurgu sınıfı.
+// Tek sabit: ıstakadaki taş da, köşe kutusu da aynı adı kullanır (stil.css iki yerde biçimlendirir).
+const GERI_BIRAKILABILIR_SINIFI = 'geri-birakilabilir';
 
 // Her bırakmadan (atmadan) sonra sıra 1 saniye sonra geçer (Sahip isteği, tasokey#49): oyuncu
 // hamlesinin masaya yansımasını görsün, botlar da birbirinin hamlesini anlaşılır bir ritimle
@@ -73,6 +89,15 @@ const DESTE_GORUNEN_MAKSIMUM = 4;
 const ZORLUK_DUGME_ADLARI = Object.fromEntries(
   ZORLUKLAR.map((zorluk) => [zorluk, `zorluk${zorluk[0].toUpperCase()}${zorluk.slice(1)}`]),
 );
+
+// Istakanın dizme düğmeleri (tasokey#85, ADR-028): eleman kimliği → dil anahtarı → döküm önceliği.
+// TEK LİSTE: metin, açıklama (`<anahtar>.tarif`), olay bağlama ve eleman toplama hepsi buradan
+// türetilir; yeni bir dizme kipi eklenirse yalnız bu satır eklenir.
+const RAF_DUGMELERI = Object.freeze([
+  Object.freeze({ ad: 'perleriDizButonu', anahtar: 'raf.perleriDiz', oncelik: DOKUM_ONCELIGI.PER }),
+  Object.freeze({ ad: 'ciftleriDizButonu', anahtar: 'raf.ciftleriDiz', oncelik: DOKUM_ONCELIGI.CIFT }),
+]);
+const RAF_DUGME_ANAHTARLARI = RAF_DUGMELERI.map(({ ad, anahtar }) => [ad, anahtar]);
 
 const durumKutu = {
   durum: null,
@@ -141,6 +166,26 @@ function rafYuvasinaBirak(tasId, hedefIndex) {
   const yeniYerlesim = tasiYuvayaTasi(durumKutu.rafYerlesimi, tasId, hedefIndex);
   if (yeniYerlesim === durumKutu.rafYerlesimi) return;
   durumKutu.rafYerlesimi = yeniYerlesim;
+  rafCiz();
+}
+
+// "Perleri diz" / "Çiftleri diz" (tasokey#85, ADR-028). Dizmek HAMLE DEĞİLDİR: motor durumuna
+// (`durumKutu.durum`) hiç dokunulmaz, kayıt yazılmaz — bu yüzden sıra rakipteyken de çalışır.
+// Hiçbir kural burada yazılmaz: blokların İÇERİĞİNE ve SIRASINA çekirdek (`dokumGruplari`),
+// blokların yuvalara yerleşimine (aralar, satır bölünmezliği, taşma) `raf.js` (`yerlesimDiz`)
+// karar verir; bu işlev yalnız ikisini bağlar ve ıstakayı yeniden çizer.
+// Yerleşimi hesaplayıp yazan kapı; ÇİZİMİ çağırana bırakır. El sonu yolunda (`durumuIlerlet`)
+// ardından zaten `ciz()` geliyor — ıstaka iki kez çizilmesin diye ayrıldı (tasokey#86).
+function istakaYerlesiminiDiz(oncelik) {
+  const { durum } = durumKutu;
+  const dokum = elDokumu(
+    durum.eller[INSAN_OYUNCUSU], durum.okeyTasi, KURAL_VARSAYILAN, durum.gosterge, { oncelik },
+  );
+  durumKutu.rafYerlesimi = yerlesimDiz(dokumGruplari(dokum).map((grup) => grup.map((tas) => tas.id)));
+}
+
+function istakayiDiz(oncelik) {
+  istakaYerlesiminiDiz(oncelik);
   rafCiz();
 }
 
@@ -291,19 +336,42 @@ function yerDestesiYiginiCiz(alan, adet) {
 // çizim var. El sürerken kutu boşaltılır — rakip taşı bir an bile görünmez.
 // Taşlar DİZİLİ serilir (Sahip ek bilgisi, 2026-11-20): sıra `cekirdek/cozucu.js` dökümünden gelir
 // (perler → çiftler → per dışı kalanlar); arayüz kendi sıralama kuralı yazmaz.
+// tasokey#86: aynı sıra artık GRUPLU serilir — grup listesi yine çekirdeğin tek kapısından
+// (`dokumGruplari`) gelir, arayüz yalnız grupların ARASINA bir ayraç hücresi koyar. Ayraç sayısı
+// bu yüzden her zaman "grup sayısı - 1"dir (ilk grup hariç her grubun önüne bir tane). Ayraç
+// ızgaranın bir hücresi olduğundan satır düzenini kendiliğinden izler; ölçüsü stil.css'te.
 function rakipTaslariCiz(kutu, el, okeyTasi, acikMi, oyuncu, gosterge) {
   kutu.innerHTML = '';
   if (!acikMi) {
     kutu.removeAttribute('aria-label');
     return;
   }
-  const sirali = dokumSirasi(elDokumu(el, okeyTasi, KURAL_VARSAYILAN, gosterge));
-  for (const tas of sirali) {
-    const tasElemani = tasElemaniOlustur(tas, okeyTasi);
-    tasElemani.setAttribute('aria-label', tasAriaEtiketi(tas, okeyTasi));
-    kutu.appendChild(tasElemani);
+  const gruplar = dokumGruplari(elDokumu(el, okeyTasi, KURAL_VARSAYILAN, gosterge));
+  for (const [grupSirasi, grup] of gruplar.entries()) {
+    if (grupSirasi > 0) kutu.appendChild(grupAyraciOlustur());
+    for (const tas of grup) {
+      const tasElemani = tasElemaniOlustur(tas, okeyTasi);
+      tasElemani.setAttribute('aria-label', tasAriaEtiketi(tas, okeyTasi));
+      kutu.appendChild(tasElemani);
+    }
   }
   kutu.setAttribute('aria-label', metinAl('rakipAcikEl', [oyuncuAdi(oyuncu), el.length]));
+}
+
+// Ayraç yalnız görseldir: ekran okuyucuya hiçbir şey söylemez (kutunun kendi `aria-label`'ı
+// taş sayısını zaten veriyor) ve tıklama hedefi değildir (`.kenar-taslar` pointer-events: none).
+function grupAyraciOlustur() {
+  const ayrac = document.createElement('div');
+  ayrac.className = GRUP_AYRACI_SINIFI;
+  ayrac.setAttribute('aria-hidden', 'true');
+  return ayrac;
+}
+
+// tasokey#87: "bu turda çekilen taşı geri bırakabilir miyim?" sorusunun arayüzdeki tek çağrı yeri.
+// Cevabı motor verir (`el.js` `geriBirakilabilirTasId`): sıra, çekme kaynağı, atılmış olup olmama
+// ve kapatma anahtarı orada denetlenir — burada hiçbir koşul tekrar edilmez.
+function insanGeriBirakilabilirTasId(durum) {
+  return geriBirakilabilirTasId(durum, INSAN_OYUNCUSU);
 }
 
 // R-013: elin bitirilebilir olup olmadığı yalnız iş 3'ün sorgusuyla (`elBitirenTaslar`) anlaşılır;
@@ -345,11 +413,19 @@ function masaCiz() {
   // R-012: yalnız önceki oyuncunun köşesi geçerli çekme kaynağıdır; o köşe `cekilebilir` sınıfıyla
   // işaretlenir (tıklama da yalnız o köşeye bağlıdır, bkz. olaylariBagla).
   const cekilebilirKoseAdi = KOSE_HARITASI[oncekiOyuncu(durum.sira)];
+  // tasokey#87: o turda köşeden çekilen taş geri bırakılabiliyorsa AYNI köşe ayrıca
+  // `geri-birakilabilir` ile işaretlenir. Kararı motor verir (`geriBirakilabilirTasId`); burada
+  // kural yok — anahtar kapanınca ya da taş desteden çekilmişse vurgu kendiliğinden kaybolur.
+  const geriBirakilacakTasId = insanGeriBirakilabilirTasId(durum);
   for (const oyuncu of [0, 1, 2, 3]) {
     const koseAdi = KOSE_HARITASI[oyuncu];
     const { kutu, yigin, sayac } = KOSE_ELEMAN_ADLARI[koseAdi];
     koseYiginiCiz(eleman[kutu], eleman[yigin], eleman[sayac], durum.atilanYiginlar[oyuncu], oyuncu, durum.okeyTasi);
     eleman[kutu].classList.toggle('cekilebilir', koseAdi === cekilebilirKoseAdi);
+    eleman[kutu].classList.toggle(
+      GERI_BIRAKILABILIR_SINIFI,
+      geriBirakilacakTasId !== null && koseAdi === cekilebilirKoseAdi,
+    );
   }
 }
 
@@ -377,7 +453,15 @@ function suruklemeDurumunuYaz(tasId) {
 function rafCiz() {
   const { durum, rafYerlesimi, secilenTasId, suruklenenTasId } = durumKutu;
   eleman.rafBaslik.textContent = metinAl('rafim');
+  // Dizme düğmelerinin metni ve açıklaması da her çizimde dil anahtarından tazelenir (dil
+  // değişince düğmeler de çevrilsin; ikinci bir "dili uygula" kapısı yazılmaz).
+  for (const [ad, anahtar] of RAF_DUGME_ANAHTARLARI) {
+    eleman[ad].textContent = metinAl(anahtar);
+    eleman[ad].title = metinAl(`${anahtar}.tarif`);
+  }
   const elMap = new Map(durum.eller[INSAN_OYUNCUSU].map((tas) => [tas.id, tas]));
+  // tasokey#87: o turda köşeden çekilen taş, geri bırakılabildiği sürece ıstakada işaretli durur.
+  const geriBirakilacakTasId = insanGeriBirakilabilirTasId(durum);
   eleman.raf.innerHTML = '';
   for (let index = 0; index < rafYerlesimi.length; index++) {
     const yuva = document.createElement('div');
@@ -394,6 +478,7 @@ function rafCiz() {
       const tasElemani = tasElemaniOlustur(tas, durum.okeyTasi);
       const seciliMi = id === secilenTasId;
       if (seciliMi) tasElemani.classList.add('secili');
+      if (id === geriBirakilacakTasId) tasElemani.classList.add(GERI_BIRAKILABILIR_SINIFI);
       // Sürüklemesi süren taş yeniden çizildikten sonra da görünmez kalır (ADR-021/5).
       if (id === suruklenenTasId) tasElemani.classList.add(SURUKLENIYOR_SINIFI);
       tasElemani.setAttribute('tabindex', '0');
@@ -529,6 +614,11 @@ function durumuIlerlet(yeniDurum) {
   durumKutu.durum = yeniDurum;
   if (yeniDurum.sonuc !== EL_SONUCU.SUREN) {
     durumKutu.kabuk = gecis(durumKutu.kabuk, OLAY.EL_BITTI);
+    // tasokey#86: el bitince oyuncunun kendi ıstakası da gruplu dizilir — yerleşim BİR KEZ,
+    // burada kurulur. Çizim işlevleri (`rafCiz`) dizilim kurmaz, bu yüzden sonuç penceresi
+    // küçültülüp masa yeniden çizildiğinde dizilim olduğu gibi kalır; el SÜRERKEN de bu kapıya
+    // hiç uğranmaz, oyuncunun kendi dizilimine dokunulmaz (`rafYerlesiminiTazele` yolu).
+    istakaYerlesiminiDiz(DOKUM_ONCELIGI.PER);
   }
 }
 
@@ -586,6 +676,24 @@ function atVeyaBitirUygula(tasId) {
   botSirasiniBaslat();
 }
 
+// tasokey#87: çekmeyi geri alır (taş yığının üstüne döner, tur yeniden "çekilmedi" olur).
+// Hamle DEĞİLDİR: bot sırası başlatılmaz, bilgilendirme penceresi açılmaz, `turSayaci` değişmez —
+// bunların hepsine motor karar verir (`cekmeyiGeriAl`), burada yalnız sonucu ekrana yansıtılır.
+// El küçüldüğü için ıstaka yerleşimi tazelenir: taşın yuvası boşalır, kalanlar yerinde kalır (ADR-019).
+function geriBirakUygula() {
+  const sonuc = cekmeyiGeriAl(durumKutu.durum, INSAN_OYUNCUSU);
+  if (!sonuc.basarili) {
+    mesajGoster(sonuc.sebep);
+    ciz();
+    return;
+  }
+  durumuIlerlet(sonuc.durum);
+  durumKutu.secilenTasId = null;
+  rafYerlesiminiTazele(sonuc.durum.eller[INSAN_OYUNCUSU]);
+  mesajGoster(null);
+  ciz();
+}
+
 // `etkilesim.js`in döndürdüğü eylem kararını uygular: sürükleme, dokunma (tıklama) ve klavye
 // yolu hepsi buraya varır (tasokey#30). Doğrulama burada yok — yalnız hangi motor çağrısının
 // (`cek`/`at`) yapılacağına ya da rafta taşıma olduğuna göre dağıtır.
@@ -606,6 +714,10 @@ function eylemiUygula(karar, yeniTasYuvasi) {
   }
   if (karar.eylem === EYLEM.CEK_KOSE) {
     cekSonucunuIsle(cek(durumKutu.durum, INSAN_OYUNCUSU, KAYNAK.ATILAN), yeniTasYuvasi);
+    return;
+  }
+  if (karar.eylem === EYLEM.GERI_BIRAK) {
+    geriBirakUygula();
     return;
   }
   atVeyaBitirUygula(karar.tasId);
@@ -803,6 +915,7 @@ function elemanlariTopla() {
     'koseSolAlt', 'koseSolAltYigin', 'koseSolAltSayac',
     'koseSagAlt', 'koseSagAltYigin', 'koseSagAltSayac',
     'rafBaslik', 'raf',
+    ...RAF_DUGMELERI.map(({ ad }) => ad),
     'sonucPaneli', 'sonucMetni', 'kucultAcKapaButonu', 'dokumAcKapaButonu', 'sonucKalanTaslar',
     'yeniElButonu', 'baslangicaDonButonu',
     'baslangicPaneli', 'baslangicBaslik', 'zorlukBaslik', 'yeniOyunButonu',
@@ -833,6 +946,11 @@ function olaylariBagla() {
   eleman.yeniOyunButonu.addEventListener('click', yeniOyunBaslat);
   for (const zorluk of ZORLUKLAR) {
     eleman[ZORLUK_DUGME_ADLARI[zorluk]].addEventListener('click', () => zorlukSec(zorluk));
+  }
+  // Dizme düğmeleri. Gerçek `<button>` oldukları için klavye (Enter/Space) zaten `click` üretir —
+  // `tiklanabilirYap` burada kullanılmaz, yoksa aynı tıklama iki kez işlenirdi.
+  for (const { ad, oncelik } of RAF_DUGMELERI) {
+    eleman[ad].addEventListener('click', () => istakayiDiz(oncelik));
   }
   surukleBagla(eleman.raf, hedefeBirakUygula, suruklemeDurumunuYaz);
   cekmeSurukleBagla(eleman.masa, eleman.raf, kaynaktanCekUygula);

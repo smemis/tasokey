@@ -51,6 +51,9 @@ function butceGirdisi(olculen) {
     masaBosluk: px('--masa-bosluk'),
     rafBosluk: px('--raf-bosluk'),
     metinPayi: px('--sigdirma-metin-payi'),
+    // tasokey#85 (ADR-028): dizme düğmelerinin ıstaka başlığı satırına eklediği ÖLÇÜLEN yükseklik.
+    // Varyantta da okunur (orada 0'dır) — terim her kademede bütçenin içindedir.
+    rafDugmePayi: px('--sigdirma-raf-dugme-payi'),
     cubukKalinlik: px('--rakip-raf-kalinlik'),
     ustCubukGenislik: px('--rakip-ust-genislik'),
     yanMetinPayi: varyant ? px('--sigdirma-yan-metin-payi') : null,
@@ -91,6 +94,16 @@ test('bütçe formülü: plan §4\'ün iki eşitsizliği (tablo)', () => {
   const baslik = 10;
   const yigin = (2 * h + 8 + baslik + 2 * 10) + (h + 2 * 5) + (h + (92 - baslik)) + 2 * 20;
   assert.equal(yigin, 500 - 2 * 5);
+
+  // tasokey#85 (ADR-028): DÜĞME SATIRI terimi dikey eşitsizliğe girer — payı birebir o kadar
+  // küçültür ve taş boyundan payın dörtte biri kadar düşer. Terim verilmeyen çağrı (yukarıdaki)
+  // eski eşitsizliğin kendisidir (varsayılan 0): iki hâl birlikte ölçülür.
+  const dugmeli = dikeyButce({
+    masaIcYukseklik: 500, rafBosluk: 8, panelDolgu: 10, koseKaydirma: 5, masaBosluk: 20,
+    metinPayi: 92, rafDugmePayi: 12,
+  });
+  assert.equal(dugmeli.pay, dikey.pay - 12);
+  assert.equal(dugmeli.enCokTasYukseklik, dikey.enCokTasYukseklik - 12 / 4);
 });
 
 test('bütçe denetimi: sığan / taşan durum ve kalan boşluk ayrı okunur', () => {

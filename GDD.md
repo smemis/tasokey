@@ -62,6 +62,7 @@
 | 11 | Gösterge taşı sahte okey çıkarsa taş desteye karışır ve gösterge yeniden açılır (yeni gösterge, yeni okey taşı belirler) | R-002 | `MIMARI.md` ADR-008/3 (K1 kararı) | doğrulandı (K1, 2026-11-19) |
 | 12 | Yerdeki (desteki) taşlar kimse elini bitirmeden tükenirse el **berabere** sayılır ve yeni el başlar | R-006, R-007 | `MIMARI.md` ADR-008/4 (K1 kararı) | doğrulandı (K1, 2026-11-19) |
 | 13 | Bitiş: el ya **tamamen per** gruplarına bölünür (her grup seri ya da sayı peri, her biri en az 3 taş), ya da **tam 7 çift**tir; per ile çift **karışık kullanılamaz** | R-004, R-005 | Sahip kararı 2026-11-20 (`tasokey#35`); motor karşılığı ADR-017, `MIMARI.md`'ye motor işinde yazılır | doğrulandı (Sahip, 2026-11-20) |
+| 14 | Önceki oyuncunun köşe yığınından çekilen taş, oyuncu **henüz atmadan** aynı köşeye **geri bırakılabilir**: taş yığının üstüne döner, el 15 → 14 olur, sayaç n-1 → n'e geri gelir ve tur yeniden "çekilmedi" sayılır — oyuncu bu kez desteden çekebilir. Geri bırakma bir **hamle değildir**: sıra geçmez, tur sayacı artmaz. Yalnız **köşeden** çekilen taş için geçerlidir (desteden çekileni geri koymak yer destesinin sırasını bozardı) ve yalnız **atmadan önce**. Ayar `cekirdek/kural.js`'te **kapatma anahtarı** olarak durur (`cekilenTasGeriBirakilabilir`): kapatılırsa motorun tek kapısı her denemeyi reddeder, arayüzün vurgusu da kendiliğinden kaybolur | R-003 | Sahip kararı 2026-11-24 (`tasokey#84` planı, iş `tasokey#87`) | doğrulandı (Sahip, 2026-11-24) |
 
 ### Kural farkları tablosu (varsa)
 | Konu | Seçenek A (Klasik) | Seçenek B (101 Okey) | Öneri |
@@ -84,6 +85,7 @@ v7). Elin tamamı bu iki biçimden birine bölünmüyorsa bitiş kabul edilmez (
 | Mekanik | Oyuncu ne yapar | Sistem ne yapar | Gereksinim |
 |---|---|---|---|
 | Taş çekme | Yerden ya da atılan taştan birini seçer | Elindeki taş sayısını günceller, geçersiz çekimi engeller | R-003 |
+| Çekmeyi geri alma | Köşeden çektiği taşı, **atmadan önce** aynı köşeye geri bırakır (kural 14) | Taşı yığının üstüne koyar, turu yeniden "çekilmedi" yapar; sıra ve tur sayacı değişmez | R-003 |
 | Taş atma | Elinden bir taş seçip atar | Atılan taşı masaya koyar, sırayı ilerletir | R-003 |
 | Dizme/deneme | Elindeki taşları sürükleyip per/çift grupları oluşturmayı dener (yalnız görsel düzenleme, masaya açma değil) | Geçerliliği anlık doğrulamaz zorunlu değildir; bitişte tam kontrol yapar | R-004, R-005 |
 | Bitirme | Son taşını atarak "bitti" bildirir | Elin tamamının geçerli per/çift olduğunu doğrular, kazananı ilan eder | R-005, R-006 |

@@ -340,6 +340,54 @@ async function kosedenCekmeyiOlc(kose) {
   return gozlem;
 }
 
+/**
+ * tasokey#87 — çekilen taşı geri bırakma (GDD §1 kural 14). Ön koşul: `kosedenCekmeyiOlc` az önce
+ * geçerli köşeden çekmiş olmalı. Hangi taşın çekildiğini ölçüm KENDİ defterinden değil,
+ * uygulamanın ekrana koyduğu işaretten okur (`#raf .tas.geri-birakilabilir`) — yani ölçüm
+ * Sahip'in gördüğü şeyi ölçer, iç durumu değil. Sonra o taş aynı köşeye sürüklenir ve zincirin
+ * tamamı (el, sayaç, vurgu, durum satırı, desteden çekebilme) okunur.
+ */
+async function geriBirakmayiOlc(kose) {
+  const koseDugum = el(koseId(kose));
+  const sayacAdi = `${koseId(kose)}Sayac`;
+  const isaretliTas = document.querySelector('#raf .tas.geri-birakilabilir');
+  const gozlem = {
+    kose,
+    isaretliTasVar: Boolean(isaretliTas),
+    tasId: isaretliTas?.dataset?.tasId ?? null,
+    koseVurgusu: koseDugum.classList.contains('geri-birakilabilir'),
+    elOnce: elSayisi(),
+    yiginOnce: yiginAdedi(sayacAdi),
+    durumOnce: el('durumSatiri').textContent,
+  };
+  if (!isaretliTas) {
+    return { ...gozlem, hata: 'ıstakada "geri bırakılabilir" işaretli taş yok (köşeden çekilmemiş olabilir)' };
+  }
+
+  await surukleBirak({
+    kaynakDugum: isaretliTas,
+    baslangic: merkez(kutu(isaretliTas)),
+    bitis: merkez(kutu(koseDugum)),
+  });
+
+  gozlem.elSonra = elSayisi();
+  gozlem.yiginSonra = yiginAdedi(sayacAdi);
+  gozlem.durumSonra = el('durumSatiri').textContent;
+  gozlem.isaretKalkti = document.querySelector('#raf .tas.geri-birakilabilir') === null;
+  gozlem.koseVurgusuSonra = koseDugum.classList.contains('geri-birakilabilir');
+
+  // Sahip'in cümlesinin son halkası: geri bıraktıktan sonra DESTEDEN çekebilmeli.
+  try {
+    const deste = await destedenCekmeyiOlc();
+    gozlem.elDestedenSonra = deste.elSonra;
+    gozlem.destedenCekildi = deste.elSonra === gozlem.elSonra + 1;
+  } catch (hata) {
+    gozlem.destedenCekildi = false;
+    gozlem.destedenHata = hata.message;
+  }
+  return gozlem;
+}
+
 // ——— yol 2: geçersiz bırakma ———————————————————————————————————————————————————————————————
 
 const kopyaSayisi = () => document.querySelectorAll('.surukleme-kopyasi').length;
@@ -798,6 +846,15 @@ async function hedefSahnesi(moduller) {
     await sirayiBekleZorunlu(cekilebilirKose);
     return { komsuKose: await kosedenCekmeyiOlc(cekilebilirKose) };
   });
+
+  // 5. tasokey#87: az önce köşeden çekilen taşı AYNI köşeye geri bırakma. Bu adım 4'ün
+  // `komsuKose` çekmesinin üstüne biner — ayrı bir çekme yapılmaz, çünkü ölçülen tam olarak
+  // "çektikten sonra vazgeçmek"tir.
+  await sar('geriBirak', async () => geriBirakmayiOlc(cekilebilirKose));
+  if (gozlemler.geriBirak && !gozlemler.geriBirak.hata) {
+    const nokta = merkez(kutu(el(koseId(cekilebilirKose))));
+    isaretler.push({ x: nokta.x, y: nokta.y, cap: 13, renk: ISARET_RENKLERI.birakma });
+  }
 
   return { gozlemler, isaretler };
 }

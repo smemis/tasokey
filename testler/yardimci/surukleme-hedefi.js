@@ -42,7 +42,7 @@ export const SAHNELER = Object.freeze(['hedef', 'bitirme']);
 
 /** Hangi sahne hangi yolları ölçer (plan §7 iş 3'ün beş yolu ikiye bölünür). */
 export const SAHNE_YOLLARI = Object.freeze({
-  hedef: Object.freeze(['istakayaBirak', 'gecersizBirak', 'koseAtmaAlani', 'cekme']),
+  hedef: Object.freeze(['istakayaBirak', 'gecersizBirak', 'koseAtmaAlani', 'cekme', 'geriBirak']),
   bitirme: Object.freeze(['bitirmeHedefi']),
 });
 
@@ -299,6 +299,48 @@ export const YOLLAR = Object.freeze([
         gecti: (g) => g.birakma.sonucGorunur === true && g.birakma.elSonra === g.birakma.elOnce - 1,
         olcu: (g) => `el=${g.birakma.elOnce}->${g.birakma.elSonra}`
           + ` sonucPaneli=${evet(g.birakma.sonucGorunur)} sonuc="${g.birakma.sonucMetni ?? ''}"`,
+      },
+    ]),
+  },
+  {
+    // tasokey#87 (Sahip kararı, GDD §1 kural 14): önceki oyuncunun köşesinden çekilen taş, henüz
+    // atmadan aynı köşeye geri bırakılabilir. Ölçülen, Sahip'in göreceği zincirin tamamıdır:
+    // vurgu → geri bırakma → el 15→14 ve sayaç n-1→n → vurgunun kalkması → desteden çekebilme.
+    anahtar: 'geriBirak',
+    baslik: 'Çekilen taşı geri bırakma: taş çekildiği köşeye döner, oyuncu bu kez desteden çeker',
+    kaynak: 'tasokey#87 + GDD §1 kural 14',
+    denetimler: Object.freeze([
+      {
+        ad: 'cekilenTasIsaretli',
+        gecti: (g) => g.isaretliTasVar === true,
+        olcu: (g) => `istakada isaretli tas=${evet(g.isaretliTasVar)} id=${g.tasId ?? '—'}`,
+      },
+      {
+        ad: 'koseVurgulu',
+        gecti: (g) => g.koseVurgusu === true,
+        olcu: (g) => `${g.kose} .geri-birakilabilir=${evet(g.koseVurgusu)}`,
+      },
+      {
+        ad: 'elBirAzaldi',
+        gecti: (g) => g.elSonra === g.elOnce - 1,
+        olcu: (g) => `el ${g.elOnce}->${g.elSonra}`,
+      },
+      {
+        ad: 'yiginBirArtti',
+        gecti: (g) => g.yiginSonra === g.yiginOnce + 1,
+        olcu: (g) => `yigin ${g.yiginOnce}->${g.yiginSonra}`,
+      },
+      {
+        // Vurgu kalkmalı: geri bırakıldıktan sonra geri bırakılacak taş kalmadı.
+        ad: 'vurguKalkti',
+        gecti: (g) => g.isaretKalkti === true && g.koseVurgusuSonra === false,
+        olcu: (g) => `istakaIsareti=${evet(!g.isaretKalkti)} koseVurgusu=${evet(g.koseVurgusuSonra)}`,
+      },
+      {
+        // Sahip'in cümlesinin son halkası: "oyuncu bu kez desteden çekebilir".
+        ad: 'destedenCekilebildi',
+        gecti: (g) => g.destedenCekildi === true,
+        olcu: (g) => `el ${g.elSonra}->${g.elDestedenSonra ?? '—'} durum="${g.durumSonra ?? ''}"`,
       },
     ]),
   },

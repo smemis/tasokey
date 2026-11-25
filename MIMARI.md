@@ -4,9 +4,9 @@
 > **K1 onayı alındı** (Sahip, 2026-11-19, toplu onay — bütün sorular önerilen seçenekle): kural seti, yığın,
 > barındırma, 4 kural ayrıntısı ve görsel ton onaylı; ADR durumları ve karar verenler [ayrıntı](MIMARI-AYRINTI.md#başlıktaki-k1-onayı-bloğu--tam-metin).
 
-> **Son sürüm: 27** (`tasokey#81`, 2026-11-24) — **ADR-027**: sahte okey joker değildir, o elin okey
-> taşının değerini alır. Belge düzeni ADR-026'dır: ayrıntı [MIMARI-AYRINTI.md](MIMARI-AYRINTI.md)'de,
-> karar gövdeleri `adr/`de, tarihsel gerekçe [DEGISIKLIK.md](DEGISIKLIK.md#sürüm-27--tasokey81)'de.
+> **Son sürüm: 28** (`tasokey#87`, 2026-11-24) — **GDD §1 kural 14**: önceki oyuncudan çekilen taş,
+> atmadan önce aynı köşeye geri bırakılabilir (`cekirdek/el.js` `cekmeyiGeriAl`; yeni ADR açılmadı). Belge düzeni ADR-026'dır: ayrıntı [MIMARI-AYRINTI.md](MIMARI-AYRINTI.md)'de,
+> karar gövdeleri `adr/`de, tarihsel gerekçe [DEGISIKLIK.md](DEGISIKLIK.md#sürüm-28--tasokey87)'de.
 
 | Alan | Değer |
 |---|---|
@@ -57,14 +57,14 @@ reddedilenler (`file://`, `androidx.webkit`, yeniden yazmak, Gradle) ADR-020'nin
 | `cekirdek/kural.js` | K1 kural varsayılanları (ADR-008) tek nesnede; motorun okuduğu tek kural kaynağı | — | evet |
 | `cekirdek/dagitim.js` | 15/14/14/14 dağıtım, gösterge açma, o elin okey taşını belirleme | tas, karma, kural | evet |
 | `cekirdek/dizilim.js` (ADR-017) | Per (seri + sayı peri) ve çift geçerliliği; ardışık sayı pencerelerinin tek kapısı (`ardisikPencereUret`) | tas, kural | evet |
-| `cekirdek/cozucu.js` (ADR-017) | "Bu el bitirilebilir mi?" kararı ve **el dökümü**nün (`elDokumu`) tek kaynağı — ikisi ayrıdır | dizilim | evet |
+| `cekirdek/cozucu.js` (ADR-017) | Bitirilebilirlik kararı ve **el dökümü**nün tek kaynağı — ikisi ayrıdır | dizilim | evet |
 | `cekirdek/el.js` | El durumu, sıra, hamle doğrulama (çek/at), el sonu koşulları | dagitim, cozucu, kural | evet |
 | `cekirdek/puan.js` | El sonucu ve puan: kalan taş sayıları + oyuncu başına döküm (`dokumler`) | el, cozucu, kural | evet |
 | `bot/bot.js` (ADR-018 + ADR-013) | `bot/` katmanının **tek girişi** (`botTurOyna`): çekme/atma sezgiseli ve üç zorluk kademesi | cekirdek (dizilim, cozucu, el, kural, tas, dagitim, karma) | evet |
-| `arayuz/ekran.js` | Masa, raf ve atılan taş yığınının çizimi + olay bağlama (kararı kendisi vermez) | cekirdek, dil, yerlesim, kabuk, raf | hayır (DOM) |
+| `arayuz/ekran.js` | Masa, raf ve atılan yığının çizimi + olayları bağlaması | cekirdek, dil, yerlesim, kabuk, raf | hayır (DOM) |
 | `arayuz/kabuk.js` (ADR-016) | Arayüz kabuğunun **tek durum makinesi**: hangi ekran açık, hangi zorluk, bekleyen pencere | bot (kademe adları), cekirdek (`EL_SONUCU`) | evet |
 | `arayuz/surukle.js` | Sürükleme hareketi (Pointer Events) ve **sürüklemenin görsel dilinin tek kapısı** (ADR-021) | ekran, etkilesim | hayır (DOM) |
-| `arayuz/raf.js` (ADR-019) | Istakanın yuva sayıları ve **bütün yerleşim kuralları** (tazeleme, bırakma, yeni el kurma) | — | evet |
+| `arayuz/raf.js` (ADR-019) | Istakanın yuva sayıları ve **bütün yerleşim kuralları** | — | evet |
 | `arayuz/yerlesim.js` (ADR-012) | Dört kenar/köşe ızgarasının eşlemesi; iz ölçüleri `stil.css`tedir ve kuralın parçasıdır | cekirdek (kural — sıra yönü) | evet |
 | `arayuz/etkilesim.js` (ADR-010/012) | Sürükleme/dokunmanın **hedefinin** ve **kaynağının** hangi oyun eylemine karşılık geldiği | cekirdek, yerlesim | evet |
 | `dil/cevir.js` | Anahtar → metin; eksik anahtarda görünür hata | — | evet |
@@ -118,6 +118,7 @@ Yeni karar = yeni dosya + bir satır.
 | 025 | Her mimari karar kendi dosyasında; MIMARI.md dizindir | **kabul** (Mimar-K2) | [dosya](adr/ADR-025-adr-dosya-basina.md) |
 | 026 | MIMARI.md dizindir; hücre ayrıntısı MIMARI-AYRINTI.md'de | **kabul** (Mimar-K2) | [dosya](adr/ADR-026-mimari-dizin-ayrinti-eki.md) |
 | 027 | Sahte okey joker değil; o elin okey değerini alır | **kabul** (Sahip) | [dosya](adr/ADR-027-sahte-okey-okey-degeri.md) |
+| 028 | Istakayı gruplu dizme ve dizme düğmeleri | **kabul** (Mimar-K2) | [dosya](adr/ADR-028-istaka-dizme-dugmeleri.md) |
 
 `*` Bu kararların dosyasında ayrı bir **Durum** satırı yok; yürürlükteki kararlar arasında duruyorlar.
 

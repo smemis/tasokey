@@ -17,7 +17,7 @@ Per (seri + sayı peri) ve çift (birebir aynı taş) geçerliliği; **okey (jok
 
 ### cekirdek/cozucu.js (ADR-017) — sorumluluk
 
-"Bu el bitirilebilir mi?" — iki ayrı arama: elin tamamen per gruplarına bölünmesi **ya da** tam 7 birebir çift olması. Ayrıca **el dökümü** (`elDokumu` + `dokumSirasi`, `tasokey#39`): elin en çok taşı kapsayan per bölümü + kalanın birebir çiftleri + per dışı taşlar; el sonu gösteriminin (dizilim ve sayılar) tek kaynağı. Bitiş kararından ayrıdır — döküm bitmemiş eli de böler
+"Bu el bitirilebilir mi?" — iki ayrı arama: elin tamamen per gruplarına bölünmesi **ya da** tam 7 birebir çift olması. Ayrıca **el dökümü** (`elDokumu` + `dokumSirasi` + `dokumGruplari`, `tasokey#39` / `tasokey#85`): elin en çok taşı kapsayan per bölümü + kalanın birebir çiftleri + per dışı taşlar; el sonu gösteriminin (dizilim ve sayılar) ve ıstakayı gruplu dizmenin tek kaynağı. Dökümün **önceliği** seçenektir (ADR-028 `DOKUM_ONCELIGI`: `per` varsayılan, `cift` çiftleri elin tamamından ayırır). Bitiş kararından ayrıdır — döküm bitmemiş eli de böler
 
 ### cekirdek/puan.js — sorumluluk
 
@@ -41,7 +41,7 @@ Sürükleme hareketi (Pointer Events): raftan sürükleyip rafa dizme ya da raf 
 
 ### arayuz/raf.js (ADR-019) — sorumluluk
 
-Istakanın (rafın) yuva sayıları (`RAF_SATIR_SAYISI`/`RAF_SUTUN_SAYISI`/`RAF_SLOT_SAYISI` — CSS `--raf-sutun-sayisi` de buradan okunur) ve **bütün yerleşim kuralları**: yeni ele göre tazeleme (`rafYerlesimiGuncelle`; çekilen taş bırakıldığı yuvaya ya da yuva verilmezse ilk boş yuvaya), bırakma (`tasiYuvayaTasi`: yer değiştirme yok, taş kendine yer açar — hedef doluysa sıra içinde en yakın boşluğa doğru itme, eşitlikte sağa, sıra doluysa taşan taş diğer sıranın ilk boş yuvasına, iki sıra doluysa değişiklik yok) ve yeni el kurma (`yerlesimKur`). Oyun kuralı değildir (GDD §2: dizme motora hiç gitmez); girdisini değiştirmez, hep yeni yerleşim döner
+Istakanın (rafın) yuva sayıları (`RAF_SATIR_SAYISI`/`RAF_SUTUN_SAYISI`/`RAF_SLOT_SAYISI` — CSS `--raf-sutun-sayisi` de buradan okunur) ve **bütün yerleşim kuralları**: yeni ele göre tazeleme (`rafYerlesimiGuncelle`; çekilen taş bırakıldığı yuvaya ya da yuva verilmezse ilk boş yuvaya), bırakma (`tasiYuvayaTasi`: yer değiştirme yok, taş kendine yer açar — hedef doluysa sıra içinde en yakın boşluğa doğru itme, eşitlikte sağa, sıra doluysa taşan taş diğer sıranın ilk boş yuvasına, iki sıra doluysa değişiklik yok) yeni el kurma (`yerlesimKur`) ve **gruplu dizme** (`yerlesimDiz`, ADR-028: bloklar soldan sağa, aralarında tam bir boş yuva, blok satır içinde bölünmez, aralıklı dizim 24 yuvaya sığmazsa boşluksuz paketlenir). Blokların içeriğine ve sırasına karar vermez — onun kaynağı `cozucu.js` `dokumGruplari`dır. Oyun kuralı değildir (GDD §2: dizme motora hiç gitmez); girdisini değiştirmez, hep yeni yerleşim döner
 
 ### arayuz/yerlesim.js (ADR-012) — sorumluluk
 
@@ -268,6 +268,10 @@ Her karar kendi `adr/` dosyasında; §5 yalnız dizin, gövde tekrarlanmaz.
 ### ADR-026 — tek satır karar
 
 Tablo hücresi tek cümle + bağlantı; ayrıntı ekte, karar gövdesi `adr/`de.
+
+### ADR-028 — tek satır karar
+
+Gruplu dizmenin kapısı dökümün önceliğidir; dizme düğmesi ıstaka panelinin ölçülen boş payına girer, panelin kutusu büyümez.
 
 ## Ek 5 — §2 yığın tablosunun "Gerekçe" sütunu
 

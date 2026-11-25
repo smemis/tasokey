@@ -18,6 +18,11 @@ export const REDDEDILME_SEBEBI = Object.freeze({
   TAS_ELDE_YOK: 'tasEldeYok',
   OKEY_ATILAMAZ: 'okeyAtilamaz',
   EL_BITTI: 'elBitti',
+  // tasokey#87 (Sahip kararı, GDD §1 kural 14): önceki oyuncunun köşesinden çekilen taş, HENÜZ
+  // atmadan aynı köşeye geri bırakılabilir. Bu sebep o geri bırakmanın mümkün OLMADIĞI her
+  // durumu anlatır: bu turda hiç çekilmedi, taş desteden çekildi, oyuncu zaten attı ya da kural
+  // kapatma anahtarı kapalı. (Sıra ve el sonu kısıtları kendi sebeplerini korur.)
+  GERI_BIRAKILAMAZ: 'geriBirakilamaz',
 });
 
 export const EL_SONUCU = Object.freeze({
@@ -55,6 +60,10 @@ export function elBaslat(tohum, kural = KURAL_VARSAYILAN) {
     okeyTasi,
     sira: 0,
     cekildiMi: true,
+    // Bu turda çekilen taş: `{ tasId, kaynak }` ya da null (tasokey#87). Geri bırakmanın TEK
+    // dayanağıdır — "hangi taş, nereden" sorusunu arayüz kendi defterinde tutmaz. Başlayan
+    // oyuncunun 15 taşı gerçek bir çekme DEĞİLDİR, bu yüzden null: o el geri bırakılamaz.
+    sonCekilen: null,
     turSayaci: 0,
     sonuc: EL_SONUCU.SUREN,
     kazanan: null,
@@ -81,7 +90,8 @@ export function cek(durum, oyuncu, kaynak) {
     const yerDestesi = durum.yerDestesi.slice();
     const tas = yerDestesi.shift();
     const eller = elleriGuncelle(durum.eller, oyuncu, (el) => [...el, tas]);
-    return { basarili: true, durum: { ...durum, eller, yerDestesi, cekildiMi: true } };
+    const sonCekilen = { tasId: tas.id, kaynak: KAYNAK.YER };
+    return { basarili: true, durum: { ...durum, eller, yerDestesi, cekildiMi: true, sonCekilen } };
   }
 
   if (kaynak === KAYNAK.ATILAN) {
@@ -93,10 +103,55 @@ export function cek(durum, oyuncu, kaynak) {
     const tas = yeniYigin.pop();
     const atilanYiginlar = durum.atilanYiginlar.map((yigin, i) => (i === oncekiOyuncu(oyuncu) ? yeniYigin : yigin));
     const eller = elleriGuncelle(durum.eller, oyuncu, (el) => [...el, tas]);
-    return { basarili: true, durum: { ...durum, eller, atilanYiginlar, cekildiMi: true } };
+    const sonCekilen = { tasId: tas.id, kaynak: KAYNAK.ATILAN };
+    return { basarili: true, durum: { ...durum, eller, atilanYiginlar, cekildiMi: true, sonCekilen } };
   }
 
   throw new Error(`bilinmeyen çekme kaynağı: ${kaynak}`);
+}
+
+// --- Çekmeyi geri alma (tasokey#87, GDD §1 kural 14 — Sahip kararı) --------------------------
+
+// "Bu taşı geri bırakabilir miyim?" sorusunun TEK kaynağı. Hem motor kapısı (`cekmeyiGeriAl`) hem
+// arayüz (vurgu + etkileşim kararı) buradan geçer, kural ikinci bir yerde yazılmaz (ADR-002).
+// Döndürdüğü nesne ya `{ tasId }` ya `{ sebep }`dir.
+function geriBirakmaDurumu(durum, oyuncu, kural) {
+  if (durum.sonuc !== EL_SONUCU.SUREN) return { sebep: REDDEDILME_SEBEBI.EL_BITTI };
+  if (oyuncu !== durum.sira) return { sebep: REDDEDILME_SEBEBI.SIRA_DEGIL };
+  if (!kural.cekilenTasGeriBirakilabilir) return { sebep: REDDEDILME_SEBEBI.GERI_BIRAKILAMAZ };
+  const son = durum.sonCekilen;
+  // Hiç çekilmedi / zaten atıldı (atma `sonCekilen`i siler) ya da taş DESTEDEN çekildi: geri
+  // bırakılacak bir köşe hamlesi yok. Desteden çekileni geri koymak yer destesinin sırasını
+  // değiştirirdi — Sahip'in isteği yalnız köşeden çekilen taş içindi.
+  if (!son || son.kaynak !== KAYNAK.ATILAN) return { sebep: REDDEDILME_SEBEBI.GERI_BIRAKILAMAZ };
+  if (!durum.eller[oyuncu].some((tas) => tas.id === son.tasId)) {
+    return { sebep: REDDEDILME_SEBEBI.TAS_ELDE_YOK };
+  }
+  return { tasId: son.tasId };
+}
+
+// Arayüzün sorduğu saf soru: bu durumda geri bırakılabilen taşın kimliği (yoksa null).
+export function geriBirakilabilirTasId(durum, oyuncu, kural = KURAL_VARSAYILAN) {
+  return geriBirakmaDurumu(durum, oyuncu, kural).tasId ?? null;
+}
+
+// Çekmeyi geri alır: taş elden çıkar, çekildiği yığının ÜSTÜNE geri döner ve tur yeniden
+// "çekilmedi" olur — yani dönen durum, çekme ÖNCESİ durumun birebir aynısıdır (öz-test derin
+// karşılaştırmayla ölçer). Bu bir hamle değil, hamlenin geri alınmasıdır: `turSayaci` ve `sira`
+// değişmez, el sonu koşullarına bakılmaz.
+export function cekmeyiGeriAl(durum, oyuncu, kural = KURAL_VARSAYILAN) {
+  const { tasId, sebep } = geriBirakmaDurumu(durum, oyuncu, kural);
+  if (sebep) return reddet(durum, sebep);
+
+  const el = durum.eller[oyuncu];
+  const tas = el.find((t) => t.id === tasId);
+  const eller = elleriGuncelle(durum.eller, oyuncu, (eldekiler) => eldekiler.filter((t) => t.id !== tasId));
+  // Taş yine önceki oyuncunun yığınının üstüne konur — `cek`in aldığı yerin aynısı (ADR-010).
+  const kaynakYigin = oncekiOyuncu(oyuncu);
+  const atilanYiginlar = durum.atilanYiginlar.map(
+    (yigin, i) => (i === kaynakYigin ? [...yigin, tas] : yigin),
+  );
+  return { basarili: true, durum: { ...durum, eller, atilanYiginlar, cekildiMi: false, sonCekilen: null } };
 }
 
 // GDD.md §2 "Taş atma": elinden bir taş seçip atar; çekmeden atılamaz (R-003 kabul b), okey ve
@@ -121,7 +176,8 @@ export function at(durum, oyuncu, tasId, kural = KURAL_VARSAYILAN, maksimumTur =
   // ADR-010: atılan taş atan oyuncunun kendi yığınına konur (kabul a).
   const atilanYiginlar = durum.atilanYiginlar.map((yigin, i) => (i === oyuncu ? [...yigin, tas] : yigin));
   const turSayaci = durum.turSayaci + 1;
-  const ortakAlanlar = { eller, atilanYiginlar, turSayaci, cekildiMi: false };
+  // tasokey#87: atmak turu kapatır — artık geri bırakılacak bir çekme yoktur.
+  const ortakAlanlar = { eller, atilanYiginlar, turSayaci, cekildiMi: false, sonCekilen: null };
 
   if (elBitirilebilirMi(kalanEl, durum.okeyTasi, kural, durum.gosterge)) {
     return { basarili: true, durum: { ...durum, ...ortakAlanlar, sonuc: EL_SONUCU.BITTI, kazanan: oyuncu } };

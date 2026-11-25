@@ -5,7 +5,7 @@
 // hangi motor çağrısının denenmesi gerektiğine ve ondan önceki (motora varmadan anlaşılan) açık
 // uyuşmazlıklara karar verir.
 
-import { EL_SONUCU, sonrakiOyuncu, oncekiOyuncu } from '../cekirdek/el.js';
+import { EL_SONUCU, sonrakiOyuncu, oncekiOyuncu, geriBirakilabilirTasId } from '../cekirdek/el.js';
 import { elBitirenTaslar } from '../cekirdek/cozucu.js';
 import { oyuncununAtilanKosesi } from './yerlesim.js';
 
@@ -28,6 +28,9 @@ export const EYLEM = Object.freeze({
   CEK_DESTE: 'cekDeste',
   CEK_KOSE: 'cekKose',
   AT: 'at',
+  // tasokey#87: o turda köşeden çekilen taşı aynı köşeye geri bırakmak. Atma DEĞİLDİR —
+  // motor karşılığı `el.js` `cekmeyiGeriAl`, hedef köşe de ÇEKİLEN köşedir (kendi köşen değil).
+  GERI_BIRAK: 'geriBirak',
   BITIR: 'bitir',
   RAFTA_TASI: 'raftaTasi',
   GECERSIZ: 'gecersiz',
@@ -111,6 +114,15 @@ export function eylemKararVer(secilenTasId, hedefTuru, elDurumu, oyuncu, hedef =
     if (secilenTasId) {
       const kendiAtilanKosesi = oyuncununAtilanKosesi(oyuncu, sonrakiOyuncu);
       if (!elDurumu.cekildiMi) return gecersiz(ETKILESIM_RET_SEBEBI.HENUZ_CEKILMEDI);
+      // tasokey#87: o turda ÇEKİLEN köşeye, ÇEKİLEN taşı bırakmak geri bırakmadır. "Hangi taş
+      // geri bırakılabilir" sorusunu motor yanıtlar (`geriBirakilabilirTasId`); burada yalnız
+      // hedefin o köşe olup olmadığına bakılır. Başka taş ya da başka köşe bu yola girmez,
+      // dolayısıyla kendi köşesine bırakmak hâlâ ATMADIR (gerileme savı).
+      const geriBirakilabilir = geriBirakilabilirTasId(elDurumu, oyuncu);
+      if (geriBirakilabilir === secilenTasId) {
+        const cekilenKose = oyuncununAtilanKosesi(oncekiOyuncu(oyuncu), sonrakiOyuncu);
+        if (hedef.kose === cekilenKose) return { eylem: EYLEM.GERI_BIRAK, tasId: secilenTasId };
+      }
       if (hedef.kose !== kendiAtilanKosesi) return gecersiz(ETKILESIM_RET_SEBEBI.YANLIS_KOSE);
       return { eylem: EYLEM.AT, tasId: secilenTasId };
     }

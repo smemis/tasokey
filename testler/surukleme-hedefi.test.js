@@ -100,14 +100,33 @@ const GECEN = {
     vurguFarki: [{ ozellik: 'outlineStyle', vurgulu: 'solid', sade: 'none' }],
     birakma: { elOnce: 15, elSonra: 14, sonucGorunur: true, sonucMetni: 'Sen kazandın' },
   },
+  // tasokey#87: köşeden çekilen taş geri bırakıldı — el 15→14, yığın 0→1, vurgular kalktı ve
+  // oyuncu bu kez desteden çekebildi (14→15).
+  geriBirak: {
+    kose: 'solAlt',
+    isaretliTasVar: true,
+    tasId: 'mavi-5-1',
+    koseVurgusu: true,
+    elOnce: 15,
+    yiginOnce: 0,
+    durumOnce: 'Sıra sende — çek ya da at.',
+    elSonra: 14,
+    yiginSonra: 1,
+    durumSonra: 'Sıra sende — çek ya da at.',
+    isaretKalkti: true,
+    koseVurgusuSonra: false,
+    elDestedenSonra: 15,
+    destedenCekildi: true,
+  },
 };
 
 /** Gözlemin derin kopyası (bozma testleri birbirini etkilemesin). */
 const kopya = (nesne) => JSON.parse(JSON.stringify(nesne));
 
-test('beş yol işin metnindeki beş yoldur ve sahneler onları tam böler', () => {
+test('altı yol işin metnindeki yollardır ve sahneler onları tam böler', () => {
+  // tasokey#87'de altıncı yol eklendi: çekilen taşı geri bırakma (GDD §1 kural 14).
   assert.deepEqual([...YOL_ANAHTARLARI], [
-    'istakayaBirak', 'gecersizBirak', 'koseAtmaAlani', 'cekme', 'bitirmeHedefi',
+    'istakayaBirak', 'gecersizBirak', 'koseAtmaAlani', 'cekme', 'bitirmeHedefi', 'geriBirak',
   ]);
   assert.deepEqual([...SAHNELER], ['hedef', 'bitirme']);
   const sahnedekiler = SAHNELER.flatMap((sahne) => [...SAHNE_YOLLARI[sahne]]);
@@ -120,7 +139,7 @@ test('beş yol işin metnindeki beş yoldur ve sahneler onları tam böler', () 
   assert.throws(() => yolTanimi('yokBoyleYol'), /bilinmeyen yol/);
 });
 
-test('ASIL KABUL: beş yolun geçen gözlemi "gecti" verir, her denetim tek tek ölçülür', () => {
+test('ASIL KABUL: altı yolun geçen gözlemi "gecti" verir, her denetim tek tek ölçülür', () => {
   for (const anahtar of YOL_ANAHTARLARI) {
     const karar = yolKarari(anahtar, GECEN[anahtar]);
     assert.equal(karar.durum, 'gecti', `${anahtar}: ${JSON.stringify(karar.denetimler)}`);
@@ -200,7 +219,7 @@ test('ölçülmeyen yol "geçti" yazılmaz: gözlem yoksa ya da hata varsa karar
 test('sahne kararları ve karar özeti', () => {
   const kararlar = sahneKararlari('hedef', GECEN);
   assert.deepEqual(kararlar.map((k) => k.anahtar), [...SAHNE_YOLLARI.hedef]);
-  assert.deepEqual(kararOzeti(kararlar), { toplam: 4, gecti: 4, kaldi: 0, olculmedi: 0 });
+  assert.deepEqual(kararOzeti(kararlar), { toplam: 5, gecti: 5, kaldi: 0, olculmedi: 0 });
   const eksikli = sahneKararlari('bitirme', {});
   assert.deepEqual(kararOzeti(eksikli), { toplam: 1, gecti: 0, kaldi: 0, olculmedi: 1 });
   assert.throws(() => sahneKararlari('yokBoyleSahne', {}), /bilinmeyen sahne/);
@@ -254,7 +273,7 @@ test('özet satırları ekran görüntüsünden okunabilir biçimde yazılır', 
     kararlar: sahneKararlari('hedef', GECEN),
   };
   const satirlar = ozetSatirlari(olcum);
-  assert.match(satirlar[0], /^SURUKLE 800x360 sahne=hedef yol=4 gecti=4 kaldi=0 olculmedi=0$/);
+  assert.match(satirlar[0], /^SURUKLE 800x360 sahne=hedef yol=5 gecti=5 kaldi=0 olculmedi=0$/);
   assert.match(satirlar[1], /^OLCU istaka 308x101 tas — olcek 1 hedefPay 3px$/);
   for (const anahtar of SAHNE_YOLLARI.hedef) {
     assert.ok(satirlar.some((satir) => satir.startsWith(`+ ${anahtar} [gecti]`)), anahtar);

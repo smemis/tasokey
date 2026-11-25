@@ -23,6 +23,9 @@
   --tas-kenar-kalinlik: 1.6;
   --tas-kenar-renk: #3a3226;
   --tas-kenar-opaklik: 0.2;
+  /* tasokey#87: "geri bırakılabilir" vurgusunun rengi (çekilen taş + çekildiği köşe). Çekme
+     vurgusunun sarısından (#e8c547) ayrı bir renk: iki vurgu aynı anda görünebiliyor. */
+  --geri-birak-vurgu: #6fd08c;
 
   /* Taş ölçüsü İKİ KATMANLIDIR (ADR-022, tasokey#64 iş 2): kademe merdiveni artık TABAN'dır,
      görünen ölçü tabanın --istaka-olcek katıdır. Taban değerleri tasokey#13'ten beri aynıdır
@@ -109,8 +112,24 @@
   --rakip-acik-tas-genislik: calc(var(--tas-taban-genislik) * var(--rakip-acik-olcek));
   --rakip-acik-tas-yukseklik: calc(var(--tas-taban-yukseklik) * var(--rakip-acik-olcek));
   --rakip-acik-bosluk: 2px;
-  --rakip-acik-sutun-yatay: 8;
-  --rakip-acik-sutun-dikey: 2;
+  /* Sütun sayıları ayraç hücrelerini de TAŞIR (tasokey#86): açılan el artık "taş + ayraç" kadar
+     hücredir (en çok 15 taş + 5 ayraç = 20 hücre; grup sayısının ölçülen tavanı 6, günlük
+     is/tasokey-86). Satır sayısı ayraçlar yüzünden ARTMAMALIDIR — arttığında yan yığın bandı
+     aşıp köşe hücrelerine, ADR-014'ün hedef halkasına girer (ölçüldü: 2 sütunla 1180x820'de
+     +8 çakışma, is/tasokey-86/ekran-once ↔ ekran). Bu yüzden sütunlar hücre sayısına göre
+     açıldı: yatay 8 → 10 (20 hücre / 10 = 2 satır, eskisiyle aynı), dikey 2 → 3 (20/3 = 7 satır,
+     14 taşın 2 sütundaki satır sayısıyla aynı). Aynı kural varyantta da uygulanır (aşağıda). */
+  --rakip-acik-sutun-yatay: 10;
+  --rakip-acik-sutun-dikey: 3;
+  /* Gruplar arası ayracın genişliği (tasokey#86): açılan rakip ıstakasında perler/çiftler/kalanlar
+     görünür bir boşlukla ayrılır. Istakadaki kural "TAM BİR boş yuva"dır (ADR-028/3); burada aynı
+     oran TAŞ GENİŞLİĞİNİN bir çarpanı olarak yazılır, çünkü ayraç ızgaranın bir hücresini tutar ve
+     hücre sayısı artınca satır sayısı da artar — yani ayracın genişliği ADR-022 madde 10 bandına
+     (taşma/çakışma) doğrudan girer ve ÖLÇÜLEREK seçilir. Tek değişken: daraltmak ya da kapatmak
+     (0) için tek yer. Taşın kendi ölçüsünden türediği için her duyarlı kademede kendiliğinden
+     küçülür, ölçeğe bağlanmaz (madde 6 muafiyeti yukarıda). */
+  --rakip-acik-ayrac-orani: 0.5;
+  --rakip-acik-ayrac-genislik: calc(var(--rakip-acik-tas-genislik) * var(--rakip-acik-ayrac-orani));
   /* Taşlar ıstakada bitişik durur (Sahip ek bilgisi, 2026-11-20): yuva arası boşluk her kademede
      sıfır, sütun sayısı 12 (ekran.js RAF_SUTUN_SAYISI). Kademe geçişlerinde yalnız --tas-genislik
      küçülür; boşluk değişkeni tek yerde kalır ki "bitişik" kuralı bir kademede kaçmasın.
@@ -121,7 +140,34 @@
   /* Istaka panelinin (#rafAlani) iç dikey boşluğu: başlık ile taş sıraları arası. TEK KAYNAK
      (tasokey#64 iş 2): sığdırma bütçesinin (plan §4 dikey eşitsizliği) "raf-bosluk" terimi bu
      değişkenden okunur, öz-teste sayı yazılmaz. Önceden kuralın içinde 8px/4px yazıyordu. */
-  --raf-bosluk: 8px;
+  /* tasokey#85 (ADR-028): 8px → 5px. Dizme düğmeleri başlık satırını ~4,4 px büyüttü ve ÖLÇÜM
+     (1920x1080, `is/tasokey-85/ekran/olcum-el-masaustu.png`) ıstakanın `#merkez` + `#gosterge`
+     ile 2 px çakıştığını gösterdi: ölçek 1,85'in dikey payı o kadar dardı. Ölçek düşürmek yasak
+     olduğu için satırın büyümesi panelin KENDİ iç boşluğundan geri alınır — panelin kutusu
+     (başlık bandı = satır + boşluk) büyümez, 25 px'ten 24,4 px'e iner. Terim bütçede ayrıca
+     `--sigdirma-raf-dugme-payi` olarak durur. */
+  --raf-bosluk: 5px;
+  /* Istakanın DİZME DÜĞMELERİ (tasokey#85, ADR-028) — ölçüler tek kaynak; dolgu iki bileşene
+     ayrıldı, çünkü dikey bileşen ıstaka panelinin YÜKSEKLİĞİNE girer (ölçek kademeleri o
+     yükseklikle ölçülmüştür, ADR-022/5) ve kısa yatay varyantta ayrıca küçülmesi gerekebilir.
+     Yazı ölçüsü üst çubuk düğmesinden KÜÇÜK seçildi: düğmeler başlığın şeridine girer, satırın
+     yüksekliğini başlık metninden (0,8rem) kopmayacak kadar az büyütmesi gerekir. */
+  --raf-dugme-font-boyutu: 0.8rem;
+  --raf-dugme-dolgu-dikey: 1px;
+  --raf-dugme-dolgu-yatay: 8px;
+  --raf-dugme-bosluk: 6px;
+  /* Sığdırma bütçesinin DÜĞME SATIRI terimi (plan §4 dikey eşitsizliği) — ÖLÇÜLEN tek değişken
+     (ADR-022/5): düğmelerin ıstaka başlığı satırına EKLEDİĞİ yükseklik, yani satırın düğmelerle
+     ve düğmelersiz yüksekliğinin farkı. Başlık payı (`--sigdirma-metin-payi`) gibi rem tabanlıdır,
+     CSS içinde px'e çevrilemez → tarayıcıda ölçülür ve buraya YAZILIR. Hiçbir CSS kuralı bu
+     değişkeni kullanmaz: bütçenin tek kaynağıdır, öz-test (sigdirma-butcesi.test.js) buradan okur
+     ki eşitsizliğe çıplak sayı girmesin. Kısa yatay varyantta 0'dır (düğmeler orada başlığın
+     ALTINA, sütunun zaten boş olan dikeyine iner — satır açmazlar).
+     ÖLÇÜLDÜ (tasokey#85, `is/tasokey-85/ekran/dugmeler-*.png` "PANEL-FARK" satırı): panelin
+     düğmeli ve düğmesiz yüksekliği 1920x1080'de 359,7 ↔ 357,4 · 1280x800'de 250,7 ↔ 248,4 →
+     iki boyutta da **2,34**; genişlik farkı iki boyutta da 0,00. Varyantta (844x390, 800x360)
+     fark 0,00/0,00 ölçüldü — 0 varsayılmadı. */
+  --sigdirma-raf-dugme-payi: 2.34px;
   /* Rakip ıstakası artık yalnız ince ahşap sırt (taş çizilmez — Sahip ek bilgisi, 2026-11-20):
      --rakip-raf-kalinlik çubuğun gerçek inceliğidir (sol/sağda genişlik, üstte yükseklik).
      --rakip-raf-uzunluk sol/sağ çubuğun taban (min-height) uzunluğu; gerçek uzunluk artık ızgaranın
@@ -506,6 +552,15 @@ html, body {
   cursor: default;
 }
 
+/* Grup ayracı (tasokey#86, ekran.js grupAyraciOlustur): ızgaranın BİR hücresini boş tutar —
+   ıstakadaki boş yuvanın kenar ızgarasındaki karşılığı. Yüksekliği taşla aynı ki tek başına
+   kaldığı satırda satır yüksekliği çökmesin; genişliği tek değişkenden gelir. Görünmez ama yer
+   tutar: arka planı yok, kenarlığı yok. */
+.kenar-taslar .kenar-ayrac {
+  width: var(--rakip-acik-ayrac-genislik);
+  height: var(--rakip-acik-tas-yukseklik);
+}
+
 /* Rakam oranı --tas-rakam-font-boyutu'yla aynı kaynaktan (--tas-rakam-oran), yalnız taban ölçü
    küçültülmüş taşınki. */
 .kenar-taslar .tas-rakam { font-size: calc(var(--rakip-acik-tas-yukseklik) * var(--tas-rakam-oran)); }
@@ -561,6 +616,24 @@ html, body {
 .kose.cekilebilir .kose-yigin .tas:last-child {
   cursor: pointer;
   outline: 2px solid #e8c547;
+}
+
+/* tasokey#87 (GDD §1 kural 14): o turda bu köşeden çekilen taş geri bırakılabildiği sürece köşe
+   "geri bırakılabilir" vurgusunu taşır (ekran.js masaCiz, kararı `el.js` verir). Çekme vurgusundan
+   AYRI bir dil: çekme sarı dış çizgi (yığının üst taşında), geri bırakma kesikli yeşil çerçeve
+   (köşe KUTUSUNUN kendisinde) — ikisi aynı anda görünebilir, karışmasınlar diye farklı öğede ve
+   farklı biçimde. Boş köşede de görünür, çünkü çekilen taş yığından kalkmış olabilir. */
+.kose.geri-birakilabilir {
+  outline: 2px dashed var(--geri-birak-vurgu);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Istakadaki karşılığı: "bu, bu turda çektiğin taş" (ekran.js rafCiz). Seçim vurgusunun
+   (`.tas.secili`) üstüne BİNMEZ — o kalkık duruş + gölge, bu kesikli çerçevedir. */
+.raf-yuva .tas.geri-birakilabilir {
+  outline: 2px dashed var(--geri-birak-vurgu);
+  outline-offset: -3px;
 }
 
 /* Sayaç yığının altındaki satırda, satırın BAŞINDA (yığına yakın): yığının ortalanmasına katılmaz. */
@@ -716,6 +789,40 @@ html, body {
   min-height: max-content;
   background-image: url('../gorsel/istaka.svg');
   background-size: 100% 100%;
+}
+
+/* Istaka başlığının ŞERİDİ (tasokey#85, ADR-028): başlık solda, dizme düğmeleri sağda. Şerit
+   panelin içerik genişliğine YAYILIR (`align-self: stretch`) ama panelin genişliğini BELİRLEMEZ —
+   en geniş çocuk `#raf`tır (12 yuva), başlık + iki düğme her kademede ondan dardır. Panelin
+   genişlemesi yasaktır: orta `auto` sütun büyüyünce yan `1fr` köşe sütunları daralır ve köşe atma
+   alanı oranı düşer (kose-atma-alani.test.js, ADR-014). Satırın tek maliyeti DİKEYdir ve
+   `--sigdirma-raf-dugme-payi` ile ölçülüp bütçeye girer. */
+#rafUstSatir {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--raf-dugme-bosluk);
+}
+
+#rafDugmeleri {
+  display: flex;
+  gap: var(--raf-dugme-bosluk);
+}
+
+/* Dizme düğmeleri üst çubuk düğmesiyle AYNI görsel dili kullanır (STIL.md: kumar çağrışımı yok,
+   ahşabın üstünde ince çerçeveli düz düğme); yalnız ölçü değişkenleri kendisine aittir. */
+.raf-dugmesi {
+  background: transparent;
+  color: var(--metin);
+  border: 1px solid var(--metin);
+  border-radius: 4px;
+  padding: var(--raf-dugme-dolgu-dikey) var(--raf-dugme-dolgu-yatay);
+  font-size: var(--raf-dugme-font-boyutu);
+  font-family: inherit;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
 /* Oyuncunun ıstakası: sabit sayıda yuva, 2 sıra (RAF_SATIR_SAYISI/RAF_SUTUN_SAYISI — arayuz/ekran.js).
@@ -1206,6 +1313,13 @@ html, body {
        1,30'da 13 px yatay taşma gördü. Dikey payı ise ÖLÇÜLDÜ ve 0'dır (başlık iki sıra taştan
        kısa) → dikey eşitsizlikte terim yoktur; 0 varsayılmadı, ölçüldü. */
     --sigdirma-raf-baslik-payi: 43.6px;
+    /* DÜĞME SATIRI (tasokey#85, ADR-028) varyantta dikey bütçeye terim EKLEMEZ: düğmeler başlığın
+       ALTINA, başlık sütununun zaten boş olan dikeyine iner (sütun iki sıra taş kadar uzun) ve
+       sütunun genişliği yukarıdaki ÖLÇÜLEN başlık payına sabitlenir → panelin kutusu birebir aynı
+       kalır. 0 varsayılmadı, ölçüldü (`#rafAlani` yüksekliği düğmelerle ve düğmelersiz AYNI).
+       Düğme yazısı o dar sütunda satıra sardığı için yatay dolgu da küçülür. */
+    --sigdirma-raf-dugme-payi: 0px;
+    --raf-dugme-dolgu-yatay: 2px;
     /* Yan çubuk bandı varyantta kısalır (uzunluk ızgara bandından gelir, tasokey#63) ve üst çubuk
        bandı artık `auto`dur — bandın BÜTÜN yüksekliği bu kalınlıktır, yani buradan alınan her px
        öbür üç banttan düşer. İnce sırt kuralı (uzunluk/kalınlık >= 6) ölçülen BANT uzunluğuyla
@@ -1217,8 +1331,11 @@ html, body {
        Üst kenar: taşlar `top: 100%` ile çubuğun ALTINA, yani varyantta üst içerik bandına
        (#merkez'in bandına) sarkar; iki satırlık yığın #merkez'e çarpıyordu → en yüksek el
        (15 taş, dagitim.js) TEK SIRA serilir, sıra Sahip'in ıstaka genişliğini aşmaz. */
-    --rakip-acik-sutun-yatay: 15;
-    --rakip-acik-sutun-dikey: 4;
+       tasokey#86: aynı iki gerekçe ayraç hücreleri eklenince de korunsun diye sütunlar hücre
+       sayısına göre yeniden açıldı — üst kenar 15 → 20 (20 hücre tek sırada kalır), yan kenar
+       4 → 5 (20/5 = 4 satır, 15 taşın 4 sütundaki satır sayısıyla aynı). */
+    --rakip-acik-sutun-yatay: 20;
+    --rakip-acik-sutun-dikey: 5;
     /* Rakip ADININ kutu kalınlığı (dikey yazıda genişlik, üstte yükseklik). Ad çubuğun ORTASINA
        bindirilir (tasokey#33 madde 1), yani çubuktan kalınsa iki yana (ad − çubuk)/2 kadar taşar.
        Taban kademelerde çubuk 26..14px, yani addan kalın → taşma yok; varyantta çubuk 8px olduğu
@@ -1336,6 +1453,30 @@ html, body {
     flex-direction: row;
     align-items: center;
   }
+
+  /* tasokey#85 (ADR-028) — düğmeler varyantta başlığın ALTINA iner. Gerekçe ölçümdür: varyantta
+     başlık sütunu iki sıra taş kadar UZUNDUR (tek satırlık başlığın altında onlarca px boş dikey
+     kalır), ama panelin GENİŞLİĞİ dokunulamaz (orta `auto` sütun büyüyünce köşe atma alanı oranı
+     düşer — kose-atma-alani.test.js). Bu yüzden şerit sütuna döner ve genişliği başlığın
+     ÖLÇÜLEN payına (`--sigdirma-raf-baslik-payi`, varyantın yatay bütçe terimi) sabitlenir:
+     panelin kutusu birebir aynı kalır, düğme yazısı o genişlikte satıra sarar. Düğme satırının
+     DİKEY payı bu yüzden 0'dır (aşağıda) — dikey bütçeye terim eklemez. */
+  #rafUstSatir {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    align-self: center;
+    width: var(--sigdirma-raf-baslik-payi);
+  }
+
+  #rafDugmeleri { flex-direction: column; }
+
+  /* Dar sütunda yazı satıra sarar (kesilmek yasak): düğme yatayda başlığın payı kadar, dikeyde
+     sarılan satır kadar büyür — parmak hedefi iki satırlık yükseklikten gelir. */
+  .raf-dugmesi {
+    white-space: normal;
+    text-align: center;
+  }
 }
 
 /* Varyantın İKİNCİ bloğu (tasokey#72) — yalnız ÖLÇEK, kabul boyutu 844x390. Varyant üç kabul
@@ -1383,6 +1524,15 @@ html, body {
        **1,25'te kaldı** — kazanç masanın bantlarına girdi (109,75 → 115,5) ama tavanı tutan sınır
        dikey değil YATAY olduğu için ölçek yükselmedi. Değer bu yüzden DEĞİŞMEZ. */
     --istaka-olcek: 1.25;
+    /* tasokey#85 (ADR-028): `:root`taki `--raf-bosluk` 8 → 5 indi, çünkü TABAN düzende düğme
+       satırının dikey payı oradan geri alınır. Bu dilim (900x600) ise VARYANTTIR ve varyantta
+       `--raf-bosluk` panelin YATAY terimidir (panel satır akar) — üstelik düğmeler burada dikeyde
+       hiç yer almaz, yani geri alınacak bir pay yok. Telefon dilimleri kendi 4px'ini
+       `max-height: 500px` bloğundan alır; 600 px yüksek olan bu dilimin tek kaynağı `:root`tu.
+       Ölçüm bunu yakaladı: 5px'e inince 900x600'de üst köşe hücresi 65 → 66,7 px oldu ve iz modeli
+       `tasokey#73`'te ÇİVİLENEN tarayıcı tablosundan ayrıştı (kose-atma-alani kabul-a3).
+       Değer bu yüzden burada tabandaki hâline sabitlenir: varyantın geometrisi birebir korunur. */
+    --raf-bosluk: 8px;
     /* ADR-022 madde 8 — muaf açık el yığınının KENDİ ölçeği bu kademede küçülür. Ölçülen merdiven
        ("MUAF" satırları, her basamakta ölçek araması yeniden koşuldu):
          · 4. çekim turu (madde 10'dan ÖNCE): 0,60 → 1,10 · 0,55 → 1,15 · 0,50 → 1,20 · 0,45 → 1,20

@@ -193,12 +193,22 @@ function ciftSinifi(tas, okeyTasi, kural) {
 // "en çok taşı kapsayan" bölüm aranır. Kural yeniden yazılmaz — geçerlilik yine `dizilim.js`'ten
 // (`perGecerliMi`, `ciftGecerliMi`) sorulur; bu işlev yalnız o kapıyı kullanarak bölümleme yapar.
 // Deterministiktir: aynı taş listesi her çağrıda aynı dökümü verir.
-export function elDokumu(taslar, okeyTasi, kural = KURAL_VARSAYILAN, gosterge = null) {
+//
+// ÖNCELİK (tasokey#85, ADR-028): el hem pere hem çifte bölünebildiğinde hangisinin önce ayrılacağı
+// seçenektir, çünkü iki arama AYNI taşlar için yarışır. Varsayılan `per` bugünkü davranıştır
+// (gerileme testi onu kilitler); `cift` istendiğinde çiftler elin TAMAMINDAN ayrılır ve perler
+// yalnız artanlardan kurulur. Sayı özdeşlikleri iki öncelikte de aynı kalır:
+// perTasSayisi + perDisiSayisi = el boyu ve ciftTasSayisi + kalanSayisi = perDisiSayisi.
+export const DOKUM_ONCELIGI = Object.freeze({ PER: 'per', CIFT: 'cift' });
+
+export function elDokumu(taslar, okeyTasi, kural = KURAL_VARSAYILAN, gosterge = null, secenekler = {}) {
   const el = Array.isArray(taslar) ? taslar : [];
-  const { perler } = enIyiPerBolumu(el, okeyTasi, kural, new Map());
+  const ciftOnce = secenekler.oncelik === DOKUM_ONCELIGI.CIFT;
+  const { perler, ciftler, kalanlar } = ciftOnce
+    ? ciftOncelikliBolum(el, okeyTasi, kural, gosterge)
+    : perOncelikliBolum(el, okeyTasi, kural, gosterge);
   const perTasIdleri = new Set(perler.flat().map((tas) => tas.id));
   const perDisi = el.filter((tas) => !perTasIdleri.has(tas.id));
-  const { ciftler, kalanlar } = ciftleriAyir(perDisi, okeyTasi, kural, gosterge);
 
   const siraliPerler = perler.map((per) => per.slice().sort(tasKarsilastir)).sort(grupKarsilastir);
   const siraliCiftler = ciftler.map((cift) => cift.slice().sort(tasKarsilastir)).sort(grupKarsilastir);
@@ -221,10 +231,41 @@ export function elDokumu(taslar, okeyTasi, kural = KURAL_VARSAYILAN, gosterge = 
   };
 }
 
+// Dökümün GRUP listesi (tasokey#85, ADR-028): her per ve her çift kendi grubu, per dışı tek
+// kalanların tamamı tek grup. Istakaya "gruplu dizme"nin tek sıralama kaynağıdır — `arayuz/raf.js`
+// (`yerlesimDiz`) yalnız blokları yuvalara yerleştirir, hangi taşın hangi blokta ve blokların
+// hangi sırada olduğuna karışmaz (ADR-002: kural arayüzde tekrar edilmez).
+export function dokumGruplari(dokum) {
+  const gruplar = [...dokum.perler, ...dokum.ciftler];
+  if (dokum.kalanlar.length > 0) gruplar.push(dokum.kalanlar);
+  return gruplar;
+}
+
 // Dökümün görüntüleme sırası (ADR-014 ek bilgisi: "ıstakada taşlar dizili olsun"): perler,
 // sonra çiftler, sonra per dışı kalanlar. Saf tutulur ki arayüz kendi sıralama kuralı yazmasın.
+// Grup listesinin düzleştirilmişidir — iki kapı aynı sırayı iki kez tanımlamasın.
 export function dokumSirasi(dokum) {
-  return [...dokum.perler.flat(), ...dokum.ciftler.flat(), ...dokum.kalanlar];
+  return dokumGruplari(dokum).flat();
+}
+
+// Per önce: elin tamamından en çok taşı kapsayan per bölümü ayrılır, çiftler artandan kurulur.
+function perOncelikliBolum(el, okeyTasi, kural, gosterge) {
+  const { perler } = enIyiPerBolumu(el, okeyTasi, kural, new Map());
+  const perDisi = perleriDus(el, perler);
+  const { ciftler, kalanlar } = ciftleriAyir(perDisi, okeyTasi, kural, gosterge);
+  return { perler, ciftler, kalanlar };
+}
+
+// Çift önce: çiftler elin TAMAMINDAN ayrılır (en çok çift), perler yalnız çift kurmayan taşlardan.
+function ciftOncelikliBolum(el, okeyTasi, kural, gosterge) {
+  const { ciftler, kalanlar: ciftDisi } = ciftleriAyir(el, okeyTasi, kural, gosterge);
+  const { perler } = enIyiPerBolumu(ciftDisi, okeyTasi, kural, new Map());
+  return { perler, ciftler, kalanlar: perleriDus(ciftDisi, perler) };
+}
+
+function perleriDus(taslar, perler) {
+  const perTasIdleri = new Set(perler.flat().map((tas) => tas.id));
+  return taslar.filter((tas) => !perTasIdleri.has(tas.id));
 }
 
 // En çok taşı per gruplarına sokan bölüm. `perAra`nın (bitiş kararı) aksine "hepsi kapsanmalı"
