@@ -4,9 +4,10 @@
 > **K1 onayı alındı** (Sahip, 2026-11-19, toplu onay — bütün sorular önerilen seçenekle): kural seti, yığın,
 > barındırma, 4 kural ayrıntısı ve görsel ton onaylı; ADR durumları ve karar verenler [ayrıntı](MIMARI-AYRINTI.md#başlıktaki-k1-onayı-bloğu--tam-metin).
 
-> **Son sürüm: 28** (`tasokey#87`, 2026-11-24) — **GDD §1 kural 14**: önceki oyuncudan çekilen taş,
-> atmadan önce aynı köşeye geri bırakılabilir (`cekirdek/el.js` `cekmeyiGeriAl`; yeni ADR açılmadı). Belge düzeni ADR-026'dır: ayrıntı [MIMARI-AYRINTI.md](MIMARI-AYRINTI.md)'de,
-> karar gövdeleri `adr/`de, tarihsel gerekçe [DEGISIKLIK.md](DEGISIKLIK.md#sürüm-28--tasokey87)'de.
+> **Son sürüm: 29** (`tasokey#89`, 2026-11-25) — **GDD §1 kural 15**: el YALNIZ açık bitirme
+> hamlesiyle biter; bitirilebilir elle köşeye atmak sıradan atmadır (`cekirdek/el.js` `bitir`;
+> yeni ADR açılmadı). Belge düzeni ADR-026'dır: ayrıntı [MIMARI-AYRINTI.md](MIMARI-AYRINTI.md)'de,
+> karar gövdeleri `adr/`de, tarihsel gerekçe [DEGISIKLIK.md](DEGISIKLIK.md#sürüm-29--tasokey89)'de.
 
 | Alan | Değer |
 |---|---|
@@ -58,7 +59,7 @@ reddedilenler (`file://`, `androidx.webkit`, yeniden yazmak, Gradle) ADR-020'nin
 | `cekirdek/dagitim.js` | 15/14/14/14 dağıtım, gösterge açma, o elin okey taşını belirleme | tas, karma, kural | evet |
 | `cekirdek/dizilim.js` (ADR-017) | Per (seri + sayı peri) ve çift geçerliliği; ardışık sayı pencerelerinin tek kapısı (`ardisikPencereUret`) | tas, kural | evet |
 | `cekirdek/cozucu.js` (ADR-017) | Bitirilebilirlik kararı ve **el dökümü**nün tek kaynağı — ikisi ayrıdır | dizilim | evet |
-| `cekirdek/el.js` | El durumu, sıra, hamle doğrulama (çek/at), el sonu koşulları | dagitim, cozucu, kural | evet |
+| `cekirdek/el.js` | El durumu, sıra, hamle doğrulama (çek/at/bitir), el sonu koşulları | dagitim, cozucu, kural | evet |
 | `cekirdek/puan.js` | El sonucu ve puan: kalan taş sayıları + oyuncu başına döküm (`dokumler`) | el, cozucu, kural | evet |
 | `bot/bot.js` (ADR-018 + ADR-013) | `bot/` katmanının **tek girişi** (`botTurOyna`): çekme/atma sezgiseli ve üç zorluk kademesi | cekirdek (dizilim, cozucu, el, kural, tas, dagitim, karma) | evet |
 | `arayuz/ekran.js` | Masa, raf ve atılan yığının çizimi + olayları bağlaması | cekirdek, dil, yerlesim, kabuk, raf | hayır (DOM) |

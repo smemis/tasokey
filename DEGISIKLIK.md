@@ -9,7 +9,7 @@
 > Burada **tarihsel** gerekçe durur; tablo hücrelerinin **yürürlükteki** ayrıntısı
 > [MIMARI-AYRINTI.md](MIMARI-AYRINTI.md)'de, karar gövdeleri [adr/](adr/ADR-026-mimari-dizin-ayrinti-eki.md)'dedir (ADR-026).
 
-**Son sürüm: 28** (`tasokey#87`, 2026-11-24) → [Sürüm 28](#sürüm-28--tasokey87)
+**Son sürüm: 29** (`tasokey#89`, 2026-11-25) → [Sürüm 29](#sürüm-29--tasokey89)
 
 > *Birleştirme notu (Masa, 2026-11-22):* `tasokey#66` (main) ile `tasokey#64` zinciri aynı anda ilerlediği için ikisi de "sürüm 20" yazmıştı. Birleştirmede sıraya konuldu: **20** = `tasokey#66`, **21** = `tasokey#67` (ADR-023), **22** = `tasokey#69` (ADR-022 §0). Metinlerdeki "20 numarası ADR-023'e verilmişti, bu yüzden 21" ifadesi bu sıralamadan önce yazıldı.
 
@@ -350,6 +350,36 @@
 > kalktı, durum satırı yine "Sıra sende — çek ya da at." ve ardından desteden çekilebildi.
 > `npm test` **819/819**; bot dayanıklılık koşusunda ihlal **0**, sonlanmayan el **0**.
 > `PRD.md` R-003'ün yalnız KANIT sütununa ek yazıldı: metin ve ölçüt değişmedi, gevşetilmedi,
+> **PRD sürümü artmadı**. Kayıt şeması ve `android/` değişmedi.
+
+## Sürüm 29 — tasokey#89
+
+> **Sürüm 29** (`tasokey#89`; Sahip hata bildirimi + kural kararı, Geliştirici uygulaması,
+> 2026-11-25): **bitirmek açık bir hamledir** (`GDD.md` §1 **kural 15**). Belirti: el bitirilebilir
+> durumdayken oyuncu taşını KÖŞESİNE attığında el kendiliğinden bitiyor ve "El bitti! Kazanan: Sen"
+> penceresi açılıyordu. Kök neden `cekirdek/el.js` `at` idi: her atıştan sonra `elBitirilebilirMi`
+> çağırıp eli kapatıyordu — yani bitirme oyuncunun seçimi değil, atmanın yan etkisiydi. Yeni ADR
+> açılmadı: karar bir KURAL kararıdır ve mevcut kapılara oturuyor — bitiş koşulunun kendisi
+> (kural 13, ADR-017) **değişmedi**, doğrulama yine `cekirdek/el.js`'te (ADR-002), hedef kararı yine
+> `arayuz/etkilesim.js`'te (bitirme alanı = yer destesi, ADR-021/6).
+>
+> Motor tarafı: atma ve bitirme artık **iki ayrı kapı**dır. `at` eli hiçbir koşulda bitirmez
+> (yalnız deste tükenmesi ve güvenlik tur sınırı orada kalır); yeni `bitir` kapısı yalnız o taş
+> atıldığında kalan el gerçekten bitiyorsa kabul eder, etmiyorsa yeni ret sebebi `bitirilemez` ile
+> reddeder ve durum HİÇ değişmez. İki kapının ÖN koşulları (sıra, çekmiş olma, taşın elde olması,
+> okey/sahte okey yasağı) tek iç işlevde bir kez yazılır; taş iki yolda da atan oyuncunun köşe
+> yığınına konur (ADR-010) — bırakma HEDEFİ ortadır, yer destesine eklemek destenin monoton
+> azalmasını (ADR-018/3) bozardı. Arayüz `EYLEM.BITIR` kararını `bitir`e, `EYLEM.AT`ı `at`a verir;
+> bot da aynı kapıdan geçer (`bot.js` önce `bitir`i dener, reddedilirse sıradan atar) — kural bot
+> içine kopyalanmadı (ADR-018/1) ve botların dış davranışı değişmedi.
+>
+> Ölçüldü: `npm test` **831/831** (yeni `testler/bitirme-acik-hamle.test.js`, 12 denetim: köşeye
+> atma → `SUREN` + sıra geçer, deste → `BITTI` + kazanan, `bitirilemez` reddi, etkileşim kararı,
+> bot yolu). Belirtinin **kırmızı** hâli düzeltme öncesi motorla üretildi (`is/tasokey-89/
+> kirmizi-kanit.log`: `sonuc=bitti kazanan=0`). Tarayıcı kanıtı `is/tasokey-89/ekran/`
+> (`1920x1080` + `800x360`, tohum 2447): köşeye bırakınca sonuç penceresi **açılmadı**, el 15→14,
+> sıra bota geçti; aynı taş ortadaki desteye bırakılınca "El bitti! Kazanan: Sen" açıldı.
+> `PRD.md` R-013'ün yalnız KANIT sütununa ek yazıldı: metin ve ölçüt değişmedi, gevşetilmedi,
 > **PRD sürümü artmadı**. Kayıt şeması ve `android/` değişmedi.
 
 ## Ek — özet tablodan taşınan sürüm zinciri

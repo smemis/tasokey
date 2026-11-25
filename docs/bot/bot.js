@@ -14,7 +14,7 @@
 // ADR-013: üç zorluk kademesi (kolay / orta / zor) **aynı** sezgiselin üç ayarıdır; kademeler
 // kuralı değiştirmez, yalnız botun kendi önerisini ne kadar iyi seçtiğini değiştirir.
 
-import { cek, at, KAYNAK, VARSAYILAN_MAKSIMUM_TUR, oncekiOyuncu } from '../cekirdek/el.js';
+import { cek, at, bitir, KAYNAK, VARSAYILAN_MAKSIMUM_TUR, oncekiOyuncu } from '../cekirdek/el.js';
 import { tasOkeyMi, tasOzelMi, sorguJokeriOlustur } from '../cekirdek/dagitim.js';
 import { perGecerliMi, ciftGecerliMi } from '../cekirdek/dizilim.js';
 import { elBitirenTaslar, elDokumu } from '../cekirdek/cozucu.js';
@@ -307,5 +307,12 @@ export function botTurOyna(durum, oyuncu, kademe = VARSAYILAN_KADEME, secenekler
   const atilacakTas = atilacakTasiSec(el, calisanDurum.okeyTasi, kademe, {
     ...turSecenekleri, gosterge: calisanDurum.gosterge ?? null,
   });
+  // tasokey#89 (GDD §1 kural 15): atma eli artık kendiliğinden bitirmez, bu yüzden bot da bitirme
+  // hamlesini AÇIKÇA yapar — seçtiği taşı önce bitirme kapısından geçirmeyi dener. Bot kuralı
+  // kendi içine kopyalamaz (ADR-018/1): "bu taş eli bitirir mi" sorusunu `el.js` `bitir` yanıtlar;
+  // reddederse (bitirilemez ya da ör. okey atma yasağı) aynı taş sıradan atma olarak atılır ve
+  // sebep atmanın kendi ret sebebi olarak döner — bot hiçbir reddi gizlemez.
+  const bitirmeDenemesi = bitir(calisanDurum, oyuncu, atilacakTas.id, kural);
+  if (bitirmeDenemesi.basarili) return bitirmeDenemesi;
   return at(calisanDurum, oyuncu, atilacakTas.id, kural, maksimumTur);
 }

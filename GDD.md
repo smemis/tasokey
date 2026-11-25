@@ -56,13 +56,15 @@
 | 5 | Tur: oyuncu yerden ya da son atılan taştan 1 taş çeker, elinden 1 taş atar; sıradaki oyuncuya geçer | R-003 | `ARASTIRMA.md` §2.5 | doğrulandı |
 | 6 | Per iki biçimde olur: **(a) seri** — aynı renkte ardışık en az 3 sayı; sıra **13'ten 1'e döner**, yani **`12-13-1` geçerli perdir** (v6, `tasokey#66`). Bir seride aynı sayı iki kez bulunamaz; bu yüzden en uzun seri 13 taştır. **(b) sayı peri** — aynı sayının 3 ya da 4 farklı renkteki taşı; aynı renk bir perde iki kez bulunamaz. **Okey (joker)** her iki per türünde de eksik taşın yerine geçer; **sahte okey geçmez** — o, kendi değerindeki (kural 4) sıradan taş olarak perde yer alır (v7, `tasokey#81`) | R-004 | (a) `MIMARI.md` ADR-008/1 (K1 kararı; **sürüm 3** Sahip kararı 2026-11-22, `tasokey#66`) · (b) Sahip kararı 2026-11-20 (`tasokey#35`) | doğrulandı (seri: K1, 2026-11-19 · dönüşlü sıra: Sahip, 2026-11-22 · sayı peri: Sahip, 2026-11-20) |
 | 7 | Çift: iki **birebir aynı** taş (aynı sayı **ve** aynı renk). **Okey (joker)** bir çiftin yerini tutabilir; **sahte okey tutmaz** — yalnız kendi değerindeki (kural 4) taşla, yani öbür sahte okeyle ya da gerçek okeyle çift kurar (v7, `tasokey#81`). Eski "aynı sayı, 2 farklı renk" tanımı yanlıştı; o dizilim artık sayı perinin parçasıdır (kural 6b) | R-004 | Sahip kararı 2026-11-20 (`tasokey#35`) + `adr/ADR-027` (Sahip kararı 2026-11-24); `ARASTIRMA.md` §2 satır 6 düzeltildi | doğrulandı (Sahip, 2026-11-20 · sahte okey: Sahip, 2026-11-24) |
-| 8 | Klasik Okey'de per/çift masaya yalnız el biterken (son taşı atarken) açılır; ara aşamada masaya taş konmaz | R-005 | `ARASTIRMA.md` §2.7 | doğrulandı |
+| 8 | Klasik Okey'de per/çift masaya yalnız el biterken (son taşı **ortadaki desteye bırakırken** — kural 15) açılır; ara aşamada masaya taş konmaz | R-005 | `ARASTIRMA.md` §2.7 | doğrulandı |
 | 9 | Gösterge taşı kendisi çift sayılamaz | R-004 | `ARASTIRMA.md` §2, satır 9 | doğrulandı |
 | 10 | Okey (joker) ve sahte okey taşı **atılabilir**: hamle engellenmez, ceza puanı da yoktur (tek elde ceza tablosunun yeri yok). İnsan oyuncu joker attığında arayüz bir bilgilendirme penceresi gösterir (ADR-016/8) — pencere yalnız anlatır, hamleyi geri almaz. Yasak, `cekirdek/kural.js`'teki ayarda **kapatma anahtarı** olarak duruyor: açılırsa motor hamleyi yine baştan engeller. *(v4'e kadar yasaktı — K1, 2026-11-19.)* | R-003, R-007 | `MIMARI.md` ADR-008/2 **sürüm 2** (Sahip kararı, `tasokey#50`) | doğrulandı (Sahip, 2026-11-21; önceki varsayılan K1, 2026-11-19) |
 | 11 | Gösterge taşı sahte okey çıkarsa taş desteye karışır ve gösterge yeniden açılır (yeni gösterge, yeni okey taşı belirler) | R-002 | `MIMARI.md` ADR-008/3 (K1 kararı) | doğrulandı (K1, 2026-11-19) |
 | 12 | Yerdeki (desteki) taşlar kimse elini bitirmeden tükenirse el **berabere** sayılır ve yeni el başlar | R-006, R-007 | `MIMARI.md` ADR-008/4 (K1 kararı) | doğrulandı (K1, 2026-11-19) |
 | 13 | Bitiş: el ya **tamamen per** gruplarına bölünür (her grup seri ya da sayı peri, her biri en az 3 taş), ya da **tam 7 çift**tir; per ile çift **karışık kullanılamaz** | R-004, R-005 | Sahip kararı 2026-11-20 (`tasokey#35`); motor karşılığı ADR-017, `MIMARI.md`'ye motor işinde yazılır | doğrulandı (Sahip, 2026-11-20) |
 | 14 | Önceki oyuncunun köşe yığınından çekilen taş, oyuncu **henüz atmadan** aynı köşeye **geri bırakılabilir**: taş yığının üstüne döner, el 15 → 14 olur, sayaç n-1 → n'e geri gelir ve tur yeniden "çekilmedi" sayılır — oyuncu bu kez desteden çekebilir. Geri bırakma bir **hamle değildir**: sıra geçmez, tur sayacı artmaz. Yalnız **köşeden** çekilen taş için geçerlidir (desteden çekileni geri koymak yer destesinin sırasını bozardı) ve yalnız **atmadan önce**. Ayar `cekirdek/kural.js`'te **kapatma anahtarı** olarak durur (`cekilenTasGeriBirakilabilir`): kapatılırsa motorun tek kapısı her denemeyi reddeder, arayüzün vurgusu da kendiliğinden kaybolur | R-003 | Sahip kararı 2026-11-24 (`tasokey#84` planı, iş `tasokey#87`) | doğrulandı (Sahip, 2026-11-24) |
+
+| 15 | **Bitirmek oyuncunun SEÇİMİDİR:** el yalnız oyuncu son taşını **ortadaki yer destesine** (bitirme alanı) bıraktığında biter. El bitirilebilir durumda olsa bile oyuncu taşını **köşesine atarsa** bu sıradan bir atmadır — el devam eder, sıra sonraki oyuncuya geçer ve bitirme fırsatı sıradaki turlarda da açık kalır; bitirilebilir durumda destenin vurgusu sürer (R-013). Aynı kural botlar için de geçerlidir: bot bitirmek istediğinde bitirme hamlesini açıkça yapar. Motor karşılığı `cekirdek/el.js` `bitir` kapısıdır (`at` eli asla kendiliğinden bitirmez); bitiş koşulunun kendisi değişmedi (kural 13, ADR-017) | R-005, R-013 | Sahip kararı 2026-11-25 (hata bildirimi, iş `tasokey#89`) | doğrulandı (Sahip, 2026-11-25) |
 
 ### Kural farkları tablosu (varsa)
 | Konu | Seçenek A (Klasik) | Seçenek B (101 Okey) | Öneri |
@@ -71,8 +73,8 @@
 | El/skor yapısı | Tek el, biten oyun biter | Çoklu el, kümülatif skor (101'e kadar) | A |
 
 ### Kazanma / bitiş koşulu
-Oyuncu elindeki 14 taşı (okey ve sahte okey dahil) geçerli bir dizilime dizip son taşı atar ve "taşsız" kalırsa eli kazanır
-("okey/bitti"). Bitiş yalnız **iki** biçimde geçerlidir (kural 13):
+Oyuncu elindeki 14 taşı (okey ve sahte okey dahil) geçerli bir dizilime dizip son taşını **ortadaki desteye bırakırsa** (kural 15)
+ve "taşsız" kalırsa eli kazanır ("okey/bitti"). Bitiş yalnız **iki** biçimde geçerlidir (kural 13):
 
 1. **Tamamen per:** 14 taşın tamamı per gruplarına bölünür; her grup ya seri ya sayı peridir ve en az 3 taş içerir (kural 6).
 2. **Tam 7 çift:** 14 taşın tamamı çifttir; her çift iki birebir aynı taştır (kural 7).
@@ -86,9 +88,9 @@ v7). Elin tamamı bu iki biçimden birine bölünmüyorsa bitiş kabul edilmez (
 |---|---|---|---|
 | Taş çekme | Yerden ya da atılan taştan birini seçer | Elindeki taş sayısını günceller, geçersiz çekimi engeller | R-003 |
 | Çekmeyi geri alma | Köşeden çektiği taşı, **atmadan önce** aynı köşeye geri bırakır (kural 14) | Taşı yığının üstüne koyar, turu yeniden "çekilmedi" yapar; sıra ve tur sayacı değişmez | R-003 |
-| Taş atma | Elinden bir taş seçip atar | Atılan taşı masaya koyar, sırayı ilerletir | R-003 |
+| Taş atma | Elinden bir taş seçip **kendi köşesine** atar | Atılan taşı o köşeye koyar, sırayı ilerletir; el bitirilebilir olsa da eli **bitirmez** (kural 15) | R-003 |
 | Dizme/deneme | Elindeki taşları sürükleyip per/çift grupları oluşturmayı dener (yalnız görsel düzenleme, masaya açma değil) | Geçerliliği anlık doğrulamaz zorunlu değildir; bitişte tam kontrol yapar | R-004, R-005 |
-| Bitirme | Son taşını atarak "bitti" bildirir | Elin tamamının geçerli per/çift olduğunu doğrular, kazananı ilan eder | R-005, R-006 |
+| Bitirme | Son taşını **ortadaki desteye (bitirme alanı) bırakarak** "bitti" bildirir (kural 15; köşeye atmak bitirme değildir) | Elin tamamının geçerli per/çift olduğunu doğrular, kazananı ilan eder; bitmiyorsa hamleyi `bitirilemez` ile reddeder ve el sürer | R-005, R-006 |
 | Bot turu | (Yok — bot kendi kendine oynar) | Botun elini kural motoruyla değerlendirip hamle seçer | R-006 |
 | Sonuç gösterimi | Sonuç ekranını görür, yeni el başlatabilir ya da başlangıç ekranına dönüp zorluğu değiştirebilir | Puanı hesaplar, ekrana yazar | R-007, R-010 |
 
