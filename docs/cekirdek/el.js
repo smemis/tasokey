@@ -23,6 +23,10 @@ export const REDDEDILME_SEBEBI = Object.freeze({
   // durumu anlatır: bu turda hiç çekilmedi, taş desteden çekildi, oyuncu zaten attı ya da kural
   // kapatma anahtarı kapalı. (Sıra ve el sonu kısıtları kendi sebeplerini korur.)
   GERI_BIRAKILAMAZ: 'geriBirakilamaz',
+  // tasokey#89 (Sahip kararı, GDD §1 kural 15): bitirme AÇIK bir hamledir (`bitir`) ve yalnız o
+  // taş atıldığında kalan el gerçekten bitiyorsa kabul edilir. Anahtar arayüzün kendi ret
+  // sebebiyle (etkilesim.js `BITIRILEMEZ`) ve `reddedilme.bitirilemez` dil anahtarıyla aynıdır.
+  BITIRILEMEZ: 'bitirilemez',
 });
 
 export const EL_SONUCU = Object.freeze({
@@ -154,34 +158,49 @@ export function cekmeyiGeriAl(durum, oyuncu, kural = KURAL_VARSAYILAN) {
   return { basarili: true, durum: { ...durum, eller, atilanYiginlar, cekildiMi: false, sonCekilen: null } };
 }
 
-// GDD.md §2 "Taş atma": elinden bir taş seçip atar; çekmeden atılamaz (R-003 kabul b), okey ve
-// sahte okey atılamaz (ADR-008/2, R-003 kabul d). El sonu koşulları burada denetlenir: el bitti mi
-// (R-005/R-006), yer destesi tükendi mi (ADR-008/4, R-003 kabul e), tur sınırına ulaşıldı mı.
-export function at(durum, oyuncu, tasId, kural = KURAL_VARSAYILAN, maksimumTur = VARSAYILAN_MAKSIMUM_TUR) {
-  if (durum.sonuc !== EL_SONUCU.SUREN) return reddet(durum, REDDEDILME_SEBEBI.EL_BITTI);
-  if (oyuncu !== durum.sira) return reddet(durum, REDDEDILME_SEBEBI.SIRA_DEGIL);
-  if (!durum.cekildiMi) return reddet(durum, REDDEDILME_SEBEBI.HENUZ_CEKILMEDI);
+// --- Taş elden çıkarma: atmanın ve bitirmenin paylaşılan kapısı ------------------------------
 
-  const el = durum.eller[oyuncu];
-  const tas = el.find((t) => t.id === tasId);
-  if (!tas) return reddet(durum, REDDEDILME_SEBEBI.TAS_ELDE_YOK);
+// İki hamlenin de ÖN koşulları aynıdır (R-003 kabul b/d, ADR-008/2): sıra, bu turda çekmiş olmak,
+// taşın elde olması, okey/sahte okey yasağı. Tek doğrulama kaynağı kuralı gereği (ADR-002) bu
+// denetim iki yolda da bir kez, burada yazılır. Döndürdüğü nesne ya `{ tas }` ya `{ sebep }`dir.
+function atilacakTasiDogrula(durum, oyuncu, tasId, kural) {
+  if (durum.sonuc !== EL_SONUCU.SUREN) return { sebep: REDDEDILME_SEBEBI.EL_BITTI };
+  if (oyuncu !== durum.sira) return { sebep: REDDEDILME_SEBEBI.SIRA_DEGIL };
+  if (!durum.cekildiMi) return { sebep: REDDEDILME_SEBEBI.HENUZ_CEKILMEDI };
+
+  const tas = durum.eller[oyuncu].find((t) => t.id === tasId);
+  if (!tas) return { sebep: REDDEDILME_SEBEBI.TAS_ELDE_YOK };
   // ADR-008 sürüm 2 + ADR-027: yasak "joker mi" değil "özel taş mı" sorusudur — sahte okey artık
   // joker olmasa da yasağın kapsamındadır (ayarın adı ve anlamı korunur).
   if (kural.okeyVeSahteOkeyAtmaYasak && tasOzelMi(tas, durum.okeyTasi)) {
-    return reddet(durum, REDDEDILME_SEBEBI.OKEY_ATILAMAZ);
+    return { sebep: REDDEDILME_SEBEBI.OKEY_ATILAMAZ };
   }
+  return { tas };
+}
 
-  const kalanEl = el.filter((t) => t.id !== tasId);
+// Taşı elden çıkarıp atan oyuncunun KENDİ köşe yığınına koyar (ADR-010 kabul a) ve turu kapatır.
+// Bitirme hamlesinde de taş aynı yığına konur: oyuncunun bıraktığı YER masanın ortasındaki bitirme
+// alanıdır (R-013, ADR-021/6 — bırakma hedefi arayüz kararıdır), ama durumda taş yine atanın
+// yığınında durur; yer destesine eklenmesi destenin monoton azalmasını bozardı (ADR-018/3).
+function tasiEldenCikar(durum, oyuncu, tas) {
+  const kalanEl = durum.eller[oyuncu].filter((t) => t.id !== tas.id);
   const eller = elleriGuncelle(durum.eller, oyuncu, () => kalanEl);
-  // ADR-010: atılan taş atan oyuncunun kendi yığınına konur (kabul a).
   const atilanYiginlar = durum.atilanYiginlar.map((yigin, i) => (i === oyuncu ? [...yigin, tas] : yigin));
   const turSayaci = durum.turSayaci + 1;
   // tasokey#87: atmak turu kapatır — artık geri bırakılacak bir çekme yoktur.
-  const ortakAlanlar = { eller, atilanYiginlar, turSayaci, cekildiMi: false, sonCekilen: null };
+  return { kalanEl, ortakAlanlar: { eller, atilanYiginlar, turSayaci, cekildiMi: false, sonCekilen: null } };
+}
 
-  if (elBitirilebilirMi(kalanEl, durum.okeyTasi, kural, durum.gosterge)) {
-    return { basarili: true, durum: { ...durum, ...ortakAlanlar, sonuc: EL_SONUCU.BITTI, kazanan: oyuncu } };
-  }
+// GDD.md §2 "Taş atma": elinden bir taş seçip köşesine atar; çekmeden atılamaz (R-003 kabul b),
+// okey ve sahte okey ayar açıkken atılamaz (ADR-008/2, R-003 kabul d). Atma eli ASLA kendiliğinden
+// bitirmez (tasokey#89, GDD §1 kural 15): burada denetlenen el sonu koşulları yalnız yer destesinin
+// tükenmesi (ADR-008/4, R-003 kabul e) ve güvenlik tur sınırıdır; bitirme ayrı kapıdır (`bitir`).
+export function at(durum, oyuncu, tasId, kural = KURAL_VARSAYILAN, maksimumTur = VARSAYILAN_MAKSIMUM_TUR) {
+  const { tas, sebep } = atilacakTasiDogrula(durum, oyuncu, tasId, kural);
+  if (sebep) return reddet(durum, sebep);
+
+  const { ortakAlanlar } = tasiEldenCikar(durum, oyuncu, tas);
+  const { turSayaci } = ortakAlanlar;
 
   if (turSayaci >= maksimumTur) {
     return { basarili: true, durum: { ...durum, ...ortakAlanlar, sonuc: EL_SONUCU.TUR_SINIRI } };
@@ -193,4 +212,22 @@ export function at(durum, oyuncu, tasId, kural = KURAL_VARSAYILAN, maksimumTur =
 
   const sira = sonrakiOyuncu(durum.sira);
   return { basarili: true, durum: { ...durum, ...ortakAlanlar, sira } };
+}
+
+// GDD.md §1 kural 15 + §2 "Bitirme" (Sahip kararı, tasokey#89; R-005/R-013): el YALNIZ oyuncunun
+// açık bitirme hamlesiyle biter — son taşını ortadaki bitirme alanına bırakır. Bitirilebilir elle
+// köşeye atmak sıradan bir atmadır (`at`), el devam eder; bitirmek oyuncunun SEÇİMİDİR.
+// Bu kapı bitiş kuralını kendisi yazmaz: "el bitti mi" sorusunun tek kaynağı `cozucu.js`
+// `elBitirilebilirMi`dir (ADR-017). O taş atıldığında kalan el bitmiyorsa hamle `bitirilemez` ile
+// reddedilir ve durum HİÇ değişmez. Bitirme turu kapattığı için `maksimumTur`/deste koşullarına
+// bakılmaz: el zaten kazananla sonlanır.
+export function bitir(durum, oyuncu, tasId, kural = KURAL_VARSAYILAN) {
+  const { tas, sebep } = atilacakTasiDogrula(durum, oyuncu, tasId, kural);
+  if (sebep) return reddet(durum, sebep);
+
+  const { kalanEl, ortakAlanlar } = tasiEldenCikar(durum, oyuncu, tas);
+  if (!elBitirilebilirMi(kalanEl, durum.okeyTasi, kural, durum.gosterge)) {
+    return reddet(durum, REDDEDILME_SEBEBI.BITIRILEMEZ);
+  }
+  return { basarili: true, durum: { ...durum, ...ortakAlanlar, sonuc: EL_SONUCU.BITTI, kazanan: oyuncu } };
 }

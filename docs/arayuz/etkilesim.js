@@ -98,6 +98,8 @@ export function eylemKararVer(secilenTasId, hedefTuru, elDurumu, oyuncu, hedef =
     if (secilenTasId) {
       // Taş seçiliyken ortadaki desteye bırakma = bitirme denemesi (R-013): yalnız o taş atılırsa
       // el biter mi diye iş 3'ün sorgusuna (`elBitirenTaslar`) bakılır, kural burada tekrar yazılmaz.
+      // tasokey#89: bu ÖNDEN bakıştır (erken, dil anahtarlı ret); hamleyi yine motor onaylar —
+      // EYLEM.BITIR'in motor karşılığı `el.js` `bitir`dir ve el YALNIZ o kapıdan biter.
       if (!elDurumu.cekildiMi) return gecersiz(ETKILESIM_RET_SEBEBI.HENUZ_CEKILMEDI);
       const bitirenler = elBitirenTaslar(elDurumu.eller[oyuncu], elDurumu.okeyTasi, undefined, elDurumu.gosterge);
       if (!bitirenler.includes(secilenTasId)) return gecersiz(ETKILESIM_RET_SEBEBI.BITIRILEMEZ);
@@ -124,6 +126,9 @@ export function eylemKararVer(secilenTasId, hedefTuru, elDurumu, oyuncu, hedef =
         if (hedef.kose === cekilenKose) return { eylem: EYLEM.GERI_BIRAK, tasId: secilenTasId };
       }
       if (hedef.kose !== kendiAtilanKosesi) return gecersiz(ETKILESIM_RET_SEBEBI.YANLIS_KOSE);
+      // tasokey#89 (GDD §1 kural 15): köşeye bırakmak her zaman SIRADAN atmadır — el bitirilebilir
+      // olsa bile. Bitirmek oyuncunun seçimi olduğu için bu yol `bitir`e hiç sapmaz; el devam eder
+      // ve sıra sonraki oyuncuya geçer (`el.js` `at`).
       return { eylem: EYLEM.AT, tasId: secilenTasId };
     }
     return cekmeKararVer(CEKME_KAYNAGI.KOSE, elDurumu, oyuncu, { kose: hedef.kose });

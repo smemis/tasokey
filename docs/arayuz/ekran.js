@@ -3,7 +3,7 @@
 // sonucu DOM'a yansıtır (R-003, R-005, R-006, R-009; tasokey#10).
 
 import {
-  elBaslat, cek, at, cekmeyiGeriAl, geriBirakilabilirTasId,
+  elBaslat, cek, at, bitir, cekmeyiGeriAl, geriBirakilabilirTasId,
   KAYNAK, EL_SONUCU, sonrakiOyuncu, oncekiOyuncu,
 } from '../cekirdek/el.js';
 import { tasOkeyMi, tasOzelMi, tasDegeri } from '../cekirdek/dagitim.js';
@@ -636,11 +636,12 @@ function cekSonucunuIsle(sonuc, yeniTasYuvasi) {
   ciz();
 }
 
-// Atma ve bitirme aynı motor çağrısına (`at`) varır: el.js bu hamlenin kalan eli bitirip
-// bitirmediğine zaten kendi bakar (R-005/R-013), etkileşim yalnız ÖNDEN göstermek için
-// `elBitirenTaslar`a bakmıştı (etkilesim.js) — burada motor sonucunu uygulamaktan başka bir
-// kural tekrarı yok (ADR-002).
-function atVeyaBitirUygula(tasId) {
+// Atma ve bitirme AYRI motor çağrılarıdır (tasokey#89, GDD §1 kural 15): köşeye atmak `at`,
+// ortadaki bitirme alanına bırakmak `bitir`dir — el yalnız ikincisiyle biter. Hangisinin
+// denendiğine `etkilesim.js` hedefe bakarak karar verir (EYLEM.AT / EYLEM.BITIR); hamleyi onaylayan
+// yine motordur, burada kural tekrarı yok (ADR-002). Ekrana yansıtma iki yolda da aynı olduğu için
+// gövde tektir: `motorHamlesi` yalnız hangi kapının çağrılacağını söyler.
+function atVeyaBitirUygula(tasId, motorHamlesi = at) {
   // Atılan taşın okey/sahte okey olup olmadığı hamleden ÖNCE okunur (taş sonra elde değil);
   // sorunun tek kaynağı `cekirdek/dagitim.js` tasOzelMi'dir, burada renk/sayı karşılaştırılmaz.
   // ADR-027: soru "joker mi" değil "özel taş mı" — sahte okey joker olmasa da bilgilendirme
@@ -654,7 +655,7 @@ function atVeyaBitirUygula(tasId) {
   const bilgiTuru = jokerAtiliyor && tasOkeyMi(atilanTas, okeyTasi)
     ? BILGI.OKEY_ATILDI
     : BILGI.SAHTE_OKEY_ATILDI;
-  const sonuc = at(durumKutu.durum, INSAN_OYUNCUSU, tasId);
+  const sonuc = motorHamlesi(durumKutu.durum, INSAN_OYUNCUSU, tasId);
   if (!sonuc.basarili) {
     mesajGoster(sonuc.sebep);
     ciz();
@@ -720,7 +721,8 @@ function eylemiUygula(karar, yeniTasYuvasi) {
     geriBirakUygula();
     return;
   }
-  atVeyaBitirUygula(karar.tasId);
+  // tasokey#89: bitirme hedefi (ortadaki deste) ayrı motor kapısına gider; köşeye atma `at`ta kalır.
+  atVeyaBitirUygula(karar.tasId, karar.eylem === EYLEM.BITIR ? bitir : at);
 }
 
 // Dokunma/tıklama/klavye yolu: seçili taş zaten `durumKutu`da durur (dokun-seç → hedefe dokun).

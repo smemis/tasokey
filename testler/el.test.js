@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  elBaslat, cek, at, cekmeyiGeriAl, geriBirakilabilirTasId,
+  elBaslat, cek, at, bitir, cekmeyiGeriAl, geriBirakilabilirTasId,
   KAYNAK, REDDEDILME_SEBEBI, EL_SONUCU, VARSAYILAN_MAKSIMUM_TUR,
   sonrakiOyuncu, oncekiOyuncu,
 } from '../docs/cekirdek/el.js';
@@ -225,8 +225,11 @@ test('elde olmayan taş atılamaz (sebep: tasEldeYok)', () => {
 });
 
 // --- el sonu: bitme (R-005/R-006 ile entegrasyon) ---
+// tasokey#89 (GDD §1 kural 15): el yalnız AÇIK bitirme hamlesiyle (`bitir`) biter; `at` eli hiçbir
+// koşulda kendiliğinden bitirmez. Bu yüzden aşağıdaki bitiş denetimleri `bitir` kapısından geçer;
+// "bitirilebilir elle köşeye atmak" yolunun kendi öz-testi `bitirme-acik-hamle.test.js`tedir.
 
-test('el bitince (son taş atılınca) sonuç BITTI olur ve kazanan belirlenir', () => {
+test('el bitirme hamlesiyle bitince sonuç BITTI olur ve kazanan belirlenir', () => {
   const fazlaTas = t('sari', 9);
   const durum = temelDurum({
     sira: 0,
@@ -236,14 +239,14 @@ test('el bitince (son taş atılınca) sonuç BITTI olur ve kazanan belirlenir',
       temelDurum().eller[1], temelDurum().eller[2], temelDurum().eller[3],
     ],
   });
-  const sonuc = at(durum, 0, fazlaTas.id);
+  const sonuc = bitir(durum, 0, fazlaTas.id);
   assert.equal(sonuc.basarili, true);
   assert.equal(sonuc.durum.sonuc, EL_SONUCU.BITTI);
   assert.equal(sonuc.durum.kazanan, 0);
 });
 
 // ADR-017 (GDD §1 kural 13): el akışında da bitiş yalnız iki biçimde kabul edilir.
-test('el biter: son taş atılınca kalan 14 taş tam 7 birebir çift', () => {
+test('el biter: bitirme hamlesinden sonra kalan 14 taş tam 7 birebir çift', () => {
   const fazlaTas = t('sari', 9);
   const cift = (renk, sayi) => [t(renk, sayi, 1), t(renk, sayi, 2)];
   const durum = temelDurum({
@@ -258,12 +261,12 @@ test('el biter: son taş atılınca kalan 14 taş tam 7 birebir çift', () => {
       temelDurum().eller[1], temelDurum().eller[2], temelDurum().eller[3],
     ],
   });
-  const sonuc = at(durum, 0, fazlaTas.id);
+  const sonuc = bitir(durum, 0, fazlaTas.id);
   assert.equal(sonuc.durum.sonuc, EL_SONUCU.BITTI);
   assert.equal(sonuc.durum.kazanan, 0);
 });
 
-test('el bitmez: karışık dizilim (per + çift) bitiş sayılmaz, sıra ilerler', () => {
+test('el bitmez: karışık dizilim (per + çift) bitirme hamlesini reddeder (bitirilemez)', () => {
   const fazlaTas = t('sari', 9);
   const cift = (renk, sayi) => [t(renk, sayi, 1), t(renk, sayi, 2)];
   const durum = temelDurum({
@@ -278,13 +281,17 @@ test('el bitmez: karışık dizilim (per + çift) bitiş sayılmaz, sıra ilerle
       temelDurum().eller[1], temelDurum().eller[2], temelDurum().eller[3],
     ],
   });
-  const sonuc = at(durum, 0, fazlaTas.id);
-  assert.equal(sonuc.basarili, true);
-  assert.equal(sonuc.durum.sonuc, EL_SONUCU.SUREN);
-  assert.equal(sonuc.durum.sira, 1);
+  const sonuc = bitir(durum, 0, fazlaTas.id);
+  assert.equal(sonuc.basarili, false);
+  assert.equal(sonuc.sebep, REDDEDILME_SEBEBI.BITIRILEMEZ);
+  assert.deepEqual(sonuc.durum, durum, 'reddedilen bitirme durumu değiştirmemeli');
+  // Aynı taş sıradan atma olarak atılabilir: el sürer, sıra ilerler.
+  const atma = at(durum, 0, fazlaTas.id);
+  assert.equal(atma.durum.sonuc, EL_SONUCU.SUREN);
+  assert.equal(atma.durum.sira, 1);
 });
 
-test('el bitmez: eski kuralın "aynı sayı farklı renk" ikilileri artık bitirmiyor', () => {
+test('el bitmez: eski kuralın "aynı sayı farklı renk" ikilileri bitirme hamlesinde de reddedilir', () => {
   const fazlaTas = t('sari', 9);
   const ikili = (sayi) => [t('kirmizi', sayi), t('siyah', sayi)];
   const durum = temelDurum({
@@ -298,8 +305,9 @@ test('el bitmez: eski kuralın "aynı sayı farklı renk" ikilileri artık bitir
       temelDurum().eller[1], temelDurum().eller[2], temelDurum().eller[3],
     ],
   });
-  const sonuc = at(durum, 0, fazlaTas.id);
-  assert.equal(sonuc.durum.sonuc, EL_SONUCU.SUREN);
+  const sonuc = bitir(durum, 0, fazlaTas.id);
+  assert.equal(sonuc.basarili, false);
+  assert.equal(sonuc.sebep, REDDEDILME_SEBEBI.BITIRILEMEZ);
 });
 
 test('el bittiyse başka hamle kabul edilmez (sebep: elBitti)', () => {
@@ -312,7 +320,7 @@ test('el bittiyse başka hamle kabul edilmez (sebep: elBitti)', () => {
       temelDurum().eller[1], temelDurum().eller[2], temelDurum().eller[3],
     ],
   });
-  const bitmisDurum = at(durum, 0, fazlaTas.id).durum;
+  const bitmisDurum = bitir(durum, 0, fazlaTas.id).durum;
   const sonrakiAt = at(bitmisDurum, 1, bitmisDurum.eller[1][0].id);
   assert.equal(sonrakiAt.basarili, false);
   assert.equal(sonrakiAt.sebep, REDDEDILME_SEBEBI.EL_BITTI);
