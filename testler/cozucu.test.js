@@ -78,15 +78,16 @@ const BITEBILEN = [
     ],
   },
   // tasokey#66 (ADR-008 sürüm 3): dönüşlü seri (13 → 1) çözücünün aday üretecine de girer.
+  // GDD v8 (ADR-008 sürüm 4, 2026-11-28): 1 yalnız serinin SON taşı — 12-13-1 biter, 13-1-2 bitmez (aşağıda).
   { ad: 'dönüşlü seri: kirmizi 12-13-1', el: [t('kirmizi', 12), t('kirmizi', 13), t('kirmizi', 1)] },
   {
-    ad: 'dönüşlü serinin boşluğunu gerçek okey dolduruyor: siyah 13-_-2',
-    el: [t('siyah', 13), t('mavi', 7), t('siyah', 2)],
+    ad: 'dönüşlü serinin boşluğunu gerçek okey dolduruyor: siyah 12-_-1',
+    el: [t('siyah', 12), t('mavi', 7), t('siyah', 1)],
   },
   {
     ad: '14 taşlık tam el, dönüşlü seri(4) + seri(3) + iki sayı peri',
     el: [
-      t('siyah', 12), t('siyah', 13), t('siyah', 1), t('siyah', 2),
+      t('siyah', 11), t('siyah', 12), t('siyah', 13), t('siyah', 1),
       t('kirmizi', 5), t('kirmizi', 6), t('kirmizi', 7),
       t('mavi', 9), t('sari', 9), t('kirmizi', 9),
       t('kirmizi', 3), t('siyah', 3), t('mavi', 3), t('sari', 3),
@@ -127,8 +128,8 @@ const ESKI_JOKER_ILE_BITEN = [
     ],
   },
   {
-    ad: 'dönüşlü serinin boşluğunu sahte okey dolduruyor: siyah 13-_-2',
-    el: [t('siyah', 13), sOkey(1), t('siyah', 2)],
+    ad: 'dönüşlü serinin boşluğunu sahte okey dolduruyor: siyah 12-_-1',
+    el: [t('siyah', 12), sOkey(1), t('siyah', 1)],
   },
   {
     ad: '14 taşlık tam el, iki sahte okey iki ayrı per boşluğunu dolduruyor',

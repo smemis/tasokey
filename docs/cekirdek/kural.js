@@ -9,6 +9,9 @@ export const KURAL_VARSAYILAN = Object.freeze({
   // Ayar **kapatma anahtarı** olarak duruyor: `false` yapılırsa per yine 1→13 düz sırası olur ve
   // tek kapıdan (`dizilim.js` → `ardisikPencereUret`) hem doğrulayıcı hem çözücü hem bot düz
   // sıraya döner — tek satır yeter. *(Sürüm 1-2'de varsayılan `false`'tu.)*
+  // **Sürüm 4 (Sahip 2026-11-28, GDD v8):** dönüş yalnız SONDA — 13'ten sonra 1 gelir ve 1 serinin son
+  // taşıdır: `12-13-1`, `11-12-13-1` geçerli; `13-1-2`, `12-13-1-2`, `13-1-2-3-4` geçersiz. Anahtarın anlamı
+  // "13 → 1 sonda geçişi"dir; tam dönüş (1'den sonra devam) hiçbir ayarla açılmaz.
   onUcBirGecisiPerSayilir: true,
   // 2) Okey ve sahte okey taşı ATILABİLİR (Sahip kararı, tasokey#50 — ADR-008 sürüm 2): hamle
   // engellenmez, ceza da yoktur; insan oyuncu joker attığında arayüz yalnız bilgilendirme

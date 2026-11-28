@@ -9,7 +9,7 @@
 > Burada **tarihsel** gerekçe durur; tablo hücrelerinin **yürürlükteki** ayrıntısı
 > [MIMARI-AYRINTI.md](MIMARI-AYRINTI.md)'de, karar gövdeleri [adr/](adr/ADR-026-mimari-dizin-ayrinti-eki.md)'dedir (ADR-026).
 
-**Son sürüm: 29** (`tasokey#89`, 2026-11-25) → [Sürüm 29](#sürüm-29--tasokey89)
+**Son sürüm: 30** (Sahip kararı, 2026-11-28) → [Sürüm 30](#sürüm-30--per-13-1-yalnız-sonda)
 
 > *Birleştirme notu (Masa, 2026-11-22):* `tasokey#66` (main) ile `tasokey#64` zinciri aynı anda ilerlediği için ikisi de "sürüm 20" yazmıştı. Birleştirmede sıraya konuldu: **20** = `tasokey#66`, **21** = `tasokey#67` (ADR-023), **22** = `tasokey#69` (ADR-022 §0). Metinlerdeki "20 numarası ADR-023'e verilmişti, bu yüzden 21" ifadesi bu sıralamadan önce yazıldı.
 
@@ -381,6 +381,22 @@
 > sıra bota geçti; aynı taş ortadaki desteye bırakılınca "El bitti! Kazanan: Sen" açıldı.
 > `PRD.md` R-013'ün yalnız KANIT sütununa ek yazıldı: metin ve ölçüt değişmedi, gevşetilmedi,
 > **PRD sürümü artmadı**. Kayıt şeması ve `android/` değişmedi.
+
+## Sürüm 30 — per 13-1 yalnız sonda
+
+> **Sürüm 30** (Sahip kararı 2026-11-28; önce Taş Okey 2'de, aynı gün web motoruna taşındı): **ADR-008
+> sürüm 4**, `GDD.md` **v8** §1 kural 6a. Seri 13'ten sonra yalnız 1'e döner ve **1 serinin son taşıdır**:
+> `12-13-1`, `11-12-13-1`, `12-★-1` geçerli; `13-1-2`, `12-13-1-2`, `13-1-2-3-4`, `13-★-2` geçersiz.
+> Değişiklik tek kapıda iki satırdır (`cekirdek/dizilim.js` `pencereleriUret`): dönüşlü pencere yalnız
+> son elemanı 13'ün ardındaki 1 ise üretilir. Doğrulayıcı, çözücü ve bot aynı kapıdan okuduğu için
+> başka kod değişmedi; `onUcBirGecisiPerSayilir` kapatma anahtarı anlamını korur (`false` → düz sıra).
+>
+> Testler: `dizilim.test.js` (13-1-2, 12-13-1-2, 13-1-2-3-4 ve okeyli 13-★-2 artık **geçersiz**; 11-12-13-1
+> ve 12-★-1 geçerli), `cozucu.test.js` (dönüşlü bitiş elleri 12-…-1 biçimine çevrildi). Sabit ölçüm
+> tohumu `BITIRME_TOHUMU` 2447 → **12257** (eski el `13-1-2` dönüşüne dayanıyordu; yeniden tarandı:
+> 20000 tohumda 2 bitirilebilir el, 12257 ve 18701). `npm test` 834 testten 833 geçti; kalan 1 hata
+> (`android-apk.test.js` "-Web ile başka bir web klasörü") değişiklikten önce de düşüyordu.
+> Unity sürümüyle (Taş Okey 2 `Dizilim.cs`) birebirlik 500 tohumluk altın kayıtla ölçüldü (500/500).
 
 ## Ek — özet tablodan taşınan sürüm zinciri
 

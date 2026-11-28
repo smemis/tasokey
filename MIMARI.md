@@ -4,7 +4,10 @@
 > **K1 onayı alındı** (Sahip, 2026-11-19, toplu onay — bütün sorular önerilen seçenekle): kural seti, yığın,
 > barındırma, 4 kural ayrıntısı ve görsel ton onaylı; ADR durumları ve karar verenler [ayrıntı](MIMARI-AYRINTI.md#başlıktaki-k1-onayı-bloğu--tam-metin).
 
-> **Son sürüm: 29** (`tasokey#89`, 2026-11-25) — **GDD §1 kural 15**: el YALNIZ açık bitirme
+> **Son sürüm: 30** (Sahip kararı, 2026-11-28) — **ADR-008 sürüm 4 / GDD §1 kural 6a**: seri 13'ten
+> sonra yalnız 1'e döner ve 1 serinin son taşıdır (`12-13-1` geçerli, `13-1-2` geçersiz); tek kapı
+> `cekirdek/dizilim.js`, ayrıntı [DEGISIKLIK.md](DEGISIKLIK.md#sürüm-30--per-13-1-yalnız-sonda).
+> Önceki: **29** (`tasokey#89`, 2026-11-25) — **GDD §1 kural 15**: el YALNIZ açık bitirme
 > hamlesiyle biter; bitirilebilir elle köşeye atmak sıradan atmadır (`cekirdek/el.js` `bitir`;
 > yeni ADR açılmadı). Belge düzeni ADR-026'dır: ayrıntı [MIMARI-AYRINTI.md](MIMARI-AYRINTI.md)'de,
 > karar gövdeleri `adr/`de, tarihsel gerekçe [DEGISIKLIK.md](DEGISIKLIK.md#sürüm-29--tasokey89)'de.
@@ -99,7 +102,7 @@ Yeni karar = yeni dosya + bir satır.
 | 005 | Barındırma — kraftdcm hesabında ayrı proje deposu + GitHub Pages | kabul\* | [dosya](adr/ADR-005-barindirma-github-pages.md) |
 | 006 | Kayıt — localStorage + şema sürümü, taşıma yok | kabul\* | [dosya](adr/ADR-006-kayit-localstorage-sema.md) |
 | 007 | Dil dosyası ve yazı tipi — dışarıya istek yok | kabul\* | [dosya](adr/ADR-007-dil-dosyasi-ve-yazi-tipi.md) |
-| 008 | Kural seti Klasik Okey; çelişkili 4 ayrıntı tek yerde ayar | kabul\* (sürüm 3) | [dosya](adr/ADR-008-kural-seti-klasik-okey.md) |
+| 008 | Kural seti Klasik Okey; çelişkili 4 ayrıntı tek yerde ayar | kabul\* (sürüm 4) | [dosya](adr/ADR-008-kural-seti-klasik-okey.md) |
 | 009 | Görsel tonda kumar/para çağrışımı yok | kabul\* | [dosya](adr/ADR-009-kumar-cagrisimi-yok.md) |
 | 010 | Atılan taş — oyuncu başına ayrı köşe yığını | kabul\* | [dosya](adr/ADR-010-kose-yiginlari.md) |
 | 011 | Taş gövdesi SVG + DOM rakam katmanı | kabul\* | [dosya](adr/ADR-011-tas-govdesi-svg.md) |

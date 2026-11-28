@@ -89,9 +89,13 @@ const TABLO = [
 
   // --- Dönüşlü seri varsayılan olarak GEÇERLİ (Sahip kararı tasokey#66, ADR-008 sürüm 3) ---
   { ad: 'per geçerli: 12-13-1 geçişi (sari)', tur: 'per', taslar: [t('sari', 12), t('sari', 13), t('sari', 1)], beklenen: true },
-  { ad: 'per geçerli: 13-1-2 geçişi (siyah)', tur: 'per', taslar: [t('siyah', 13), t('siyah', 1), t('siyah', 2)], beklenen: true },
-  { ad: 'per geçerli: 12-13-1-2 (dönüşlü, uzunluk 4)', tur: 'per', taslar: [t('kirmizi', 12), t('kirmizi', 13), t('kirmizi', 1), t('kirmizi', 2)], beklenen: true },
-  { ad: 'per geçerli: dönüşlü serinin boşluğunu gerçek okey dolduruyor (siyah 13-_-2)', tur: 'per', taslar: [t('siyah', 13), t('mavi', 7), t('siyah', 2)], beklenen: true },
+  // GDD v8 (ADR-008 sürüm 4, Sahip 2026-11-28): 13'ten sonra yalnız 1 gelir ve 1 serinin SON taşıdır.
+  { ad: 'per geçerli: 11-12-13-1 (dönüşlü, uzunluk 4)', tur: 'per', taslar: [t('kirmizi', 11), t('kirmizi', 12), t('kirmizi', 13), t('kirmizi', 1)], beklenen: true },
+  { ad: "per geçersiz: 13-1-2 (1'den sonra devam edilemez)", tur: 'per', taslar: [t('siyah', 13), t('siyah', 1), t('siyah', 2)], beklenen: false },
+  { ad: 'per geçersiz: 12-13-1-2', tur: 'per', taslar: [t('kirmizi', 12), t('kirmizi', 13), t('kirmizi', 1), t('kirmizi', 2)], beklenen: false },
+  { ad: 'per geçersiz: 13-1-2-3-4', tur: 'per', taslar: [13, 1, 2, 3, 4].map((s) => t('sari', s)), beklenen: false },
+  { ad: 'per geçerli: dönüşlü serinin boşluğunu gerçek okey dolduruyor (siyah 12-_-1)', tur: 'per', taslar: [t('siyah', 12), t('mavi', 7), t('siyah', 1)], beklenen: true },
+  { ad: "per geçersiz: gerçek okey 1'in yerine geçse de 13-_-2 dönmez", tur: 'per', taslar: [t('siyah', 13), t('mavi', 7), t('siyah', 2)], beklenen: false },
   { ad: 'per geçersiz: dönüşlü serinin boşluğunu sahte okey dolduramaz (siyah 13-★-2)', tur: 'per', taslar: [t('siyah', 13), sOkey(1), t('siyah', 2)], beklenen: false },
   { ad: 'per geçerli: 13 taşlık tam seri (1..13, sayı aralığının tamamı)', tur: 'per', taslar: Array.from({ length: 13 }, (_, i) => t('mavi', i + 1)), beklenen: true },
   { ad: 'per geçersiz: dönüşlü görünse de renk karışık (sari-12, sari-13, kirmizi-1)', tur: 'per', taslar: [t('sari', 12), t('sari', 13), t('kirmizi', 1)], beklenen: false },

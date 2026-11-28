@@ -52,9 +52,13 @@ export const BOYUTLAR = Object.freeze([
  * vermiyor ve test kırmızı yandı — tasarlandığı gibi. Yeniden tarandı (`is/tasokey-81/
  * tohum-tara.mjs`, aynı ölçüm): bitirilebilir el 5000 tohumda 1 kez çıkıyor (eski kuralda 7),
  * ilk bulunan 2447. `HEDEF_TOHUMU` (1) yeni kuralda da bitirici taşsız kaldı, değişmedi.
+ *
+ * GDD v8 (2026-11-28, seri 13'ten sonra yalnız 1 ve 1 serinin son taşı): 2447'nin eli 13-1-2 dönüşüne
+ * dayanıyordu, bitirilebilir olmaktan çıktı. Aynı ölçümle yeniden tarandı: 20000 tohumda 2 kez
+ * (12257, 18701); ilk bulunan 12257. `HEDEF_TOHUMU` (1) yine bitirici taşsız, değişmedi.
  */
 export const HEDEF_TOHUMU = 1;
-export const BITIRME_TOHUMU = 2447;
+export const BITIRME_TOHUMU = 12257;
 export const SAHNE_TOHUMLARI = Object.freeze({ hedef: HEDEF_TOHUMU, bitirme: BITIRME_TOHUMU });
 
 /** Saf çekirdeğin sayfa katmanına verilen adları (tek liste; öz-test modülle karşılaştırır). */

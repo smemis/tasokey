@@ -43,11 +43,12 @@ function pencereleriUret(n, onUcBirGecisiPerSayilir) {
     for (let i = 0; i < n; i++) {
       let deger = baslangic + i;
       if (deger > EN_YUKSEK_SAYI) {
-        if (!onUcBirGecisiPerSayilir) {
+        // 13'ten sonra yalnız 1 gelir ve 1 serinin SON taşıdır (12-13-1 geçerli; 13-1-2 geçersiz) — v8, Sahip 2026-11-28.
+        if (!onUcBirGecisiPerSayilir || deger !== EN_YUKSEK_SAYI + 1 || i !== n - 1) {
           gecerli = false;
           break;
         }
-        deger = EN_DUSUK_SAYI + ((deger - EN_DUSUK_SAYI) % SAYI_ARALIGI);
+        deger = EN_DUSUK_SAYI;
       }
       pencere.push(deger);
     }
